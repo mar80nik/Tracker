@@ -279,7 +279,7 @@ void CalcR_TM(CalcRParams& params)
 	}	
 }
 //////////////////////////////////////////////////////////////////////////
-int Fit_Parabola( MultiFitterFuncParams& in, Fit_Ax2BxCParams init,Fit_Ax2BxCParams& out )
+int Fit_Parabola( MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCParams& out )
 {
     Fit_Ax2BxC fit(in,10);	
 	fit.Run(init, 1e-15, 1e-9); 

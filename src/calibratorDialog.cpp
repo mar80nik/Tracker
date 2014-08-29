@@ -188,6 +188,7 @@ void CalibratorDialog::OnBnClickedSaveToConfig()
 
 void * CalibratorDialog::GetChartFromParent()
 {
+	CWnd *t = GetParent(); 
 	return ((ImageWndCtrlsTab*)GetParent())->GetChartFromParent();
 }
 

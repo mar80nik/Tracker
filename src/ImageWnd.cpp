@@ -524,7 +524,7 @@ void ImageWndPicWnd::OnPicWndSave()
 
 void ImageWndCtrlsTab::OnBnClickedCalibrate()
 {
-	//CalibratorDlg.ShowWindow(SW_SHOW);
+	CalibratorDlg.ShowWindow(SW_SHOW);
 
 	
 	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
@@ -690,6 +690,9 @@ void ImageWndCtrlsTab::OnEnKillfocusEdit1()
 
 void * ImageWndCtrlsTab::GetChartFromParent()
 {
+	CWnd *t = GetParent(); //ctabctrl
+	CWnd *t1 = t->GetParent(); //cdialogbar
+	CWnd *t2 = t1->GetParent(); //cmainframe
 	return ((ImageWnd*)GetParent())->GetChartFromParent();
 }
 

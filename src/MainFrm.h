@@ -59,7 +59,7 @@ protected:
 protected:
 	//{{AFX_MSG(CMainFrame)
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-//	afx_msg void OnEventlog();
+	afx_msg void OnEventlog();
 	afx_msg void OnMainTabAccel();
 	afx_msg void OnImageTabAccel();
 	afx_msg void OnConfig();

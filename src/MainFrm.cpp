@@ -23,8 +23,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_CREATE()
 	ON_COMMAND(ID_MAIN_TAB, OnMainTabAccel)
 	ON_COMMAND(ID_IMAGE_TAB, OnImageTabAccel)
-//	ON_COMMAND(IDB_LOG_BUTTON, OnEventlog)
-//	ON_COMMAND(ID_EVENT_LOG, OnEventlog)	
+	ON_COMMAND(IDB_LOG_BUTTON, OnEventlog)
+	ON_COMMAND(ID_EVENT_LOG, OnEventlog)	
 	ON_COMMAND(ID_VIEW_CONFIG, OnConfig)	
 	
 	ON_NOTIFY(TCN_SELCHANGE,IDC_TAB1,OnTabChange)
@@ -55,8 +55,6 @@ CMainFrame::~CMainFrame()
 {
 	Chart1.DestroyWindow();
 	SeriesList.DestroyWindow();	
-//	Tab4.DestroyWindow();
-//	PGADlg.DestroyWindow();
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -69,14 +67,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
-//	m_wndStatusBar.AddIndicator(ID_SEPARATOR);
-//	m_wndStatusBar.AddIndicator(IND_GRIDTYPE);
-//	m_wndStatusBar.AddIndicator(IND_WAVELEN);
-//	m_wndStatusBar.AddIndicator(IND_ACTION);
-//	m_wndStatusBar.AddIndicator(IND_DEVICE);
-//	m_wndStatusBar.AddIndicator(IND_TEST, MyStatusBar::Refresh);
-//	m_wndStatusBar.Hide(IND_DEVICE);
-
 	MainBar.Create(this,IDD_DIALOGBAR,CBRS_ALIGN_BOTTOM,IDD_DIALOGBAR);
 
 	Toolbar1.Create(this,WS_CHILD | WS_VISIBLE | CBRS_RIGHT); Toolbar1.LoadToolBar(IDR_TOOLBAR2);
@@ -88,30 +78,20 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CMainFrame::OnClose() 
 {
-//	(((CKSVU3App*)AfxGetApp()))->TerminateThreads();	
-
-//	Chart1.Panel.DestroyWindow();
-//	Tab4.DestroyWindow();
-//	CntrlerWnd.Panel.DestroyWindow();
-//	Scope1.Panel.DestroyWindow();
-
-//	EventLog1.DestroyWindow();
+	EventLog1.DestroyWindow();
 	Config.DestroyWindow();
 	Img.DestroyWindow();
 	Chart1.DestroyWindow();
-//	CntrlerWnd.DestroyWindow();
-//	Scope1.DestroyWindow();
-
 	CFrameWnd::OnClose();
 }
 
 void CMainFrame::OnConfig() {Config.ShowWindow(SW_SHOW);}
-/*
+
 void CMainFrame::OnEventlog() 
 {
 	EventLog1.ShowWindow(SW_SHOW);
 }
-*/
+
 void CMainFrame::OnMainTabAccel() 
 {
 	TabCtrl1.ChangeTab(0);
@@ -121,13 +101,7 @@ void CMainFrame::OnImageTabAccel()
 {
 	TabCtrl1.ChangeTab(1);
 }
-/*
-void CMainFrame::OnPGAControl() 
-{
-	if(PGADlg.IsWindowVisible()) PGADlg.ShowWindow(SW_HIDE);
-	else PGADlg.ShowWindow(SW_SHOW);
-}
-*/
+
 void CMainFrame::OnTabChange( NMHDR * pNotifyStruct, LRESULT * result )
 {	
 	TabCtrl1.ChangeTab();
@@ -179,7 +153,7 @@ void CMainFrame::OnShowWindow(BOOL bShow, UINT nStatus)
 	if(bShow)
 	{		
 
-//		EventLog1.Create(IDD_DIALOG5,this);
+		EventLog1.Create(IDD_DIALOG5,this);
 //		TDlg1.Create(IDD_DIALOG12,this);
 		Config.Create(IDD_CONFIG,this);
 		SeriesList.Create(IDD_DIALOGBARTAB2,this);	

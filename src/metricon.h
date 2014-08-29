@@ -193,7 +193,7 @@ struct MultiFitterFuncParams
 	size_t GetPointsNum() {return n;}
 };
 typedef MultiFitterTemplate<Fit_Ax2BxCParams,MultiFitterFuncParams> Fit_Ax2BxC;
-int Fit_Parabola(MultiFitterFuncParams& in, Fit_Ax2BxCParams init,Fit_Ax2BxCParams& out);
+int Fit_Parabola(MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCParams& out);
 //////////////////////////////////////////////////////////////////////////
 //************************************************************************
 //////////////////////////////////////////////////////////////////////////

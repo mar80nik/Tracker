@@ -105,7 +105,7 @@ BOOL CKSVU3App::InitInstance()
 	if (!ProcessShellCommand(cmdInfo))
 		return FALSE;
 	CMainFrame* MainWnd=(CMainFrame*)m_pMainWnd;
-//	EventsLog.pThrd=AfxGetThread(); EventsLog.pWND=&MainWnd->EventLog1;
+	EventsLog.pThrd=AfxGetThread(); EventsLog.pWND=&MainWnd->EventLog1;
 //	TerminalWindow.pThrd=AfxGetThread(); TerminalWindow.pWND=&MainWnd->Tab4;
 //	ControllerWindow.pThrd=AfxGetThread(); ControllerWindow.pWND=&MainWnd->CntrlerWnd; 
 //	PGADialog.pThrd=AfxGetThread(); PGADialog.pWND=&MainWnd->PGADlg;

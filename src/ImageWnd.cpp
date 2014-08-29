@@ -51,11 +51,15 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
+#ifdef DEBUG
+	// 	dark.LoadPic(CString("exe\\dark.png"));
+	// 	cupol.LoadPic(CString("exe\\cupol.png"));
+	// 	strips.LoadPic(CString("exe\\strips.png"));
 
-	dark.LoadPic(CString("exe\\dark.png"));
-	cupol.LoadPic(CString("exe\\cupol.png"));
-	strips.LoadPic(CString("exe\\strips.png"));
-
+	dark.LoadPic(CString("exe\\test1.png"));
+	cupol.LoadPic(CString("exe\\test2.png"));
+	strips.LoadPic(CString("exe\\test3.png"));
+#endif
 	Ctrls.Parent=this;
 
 	return 0;
@@ -174,9 +178,9 @@ void ImageWndCtrlsTab::OnBnClickedScan()
 	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
 	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
 
-	 void* x; CString T,T1; BYTE *dark,*cupol,*strips;
+	void* x; CString T,T1; BYTE *dark,*cupol,*strips;
 	TPointVsErrorSeries *t2; //TSimplePointSeries *t1; 
-	int midl=stroka, dd=AvrRange,w=parent->strips.org.w, min=midl-dd, max=midl+dd, mm=(max-min)/2; 
+	int midl=stroka, dd=AvrRange,w=parent->strips.org.w, Ymin=midl-dd, Ymax=midl+dd, mm=(Ymax-Ymin)/2; 
 	MyTimer Timer1,Timer2; sec time; CString logT; 
 	TPointVsErrorSeries::DataImportMsg *CHM2, *AdarkChartMsg, *AcupolChartMsg, *AstripsChartMsg, *ChartMsg; 
 	TSimplePointSeries::DataImportMsg *CHM1, *darkChartMsg,*cupolChartMsg, *stripsChartMsg;
@@ -224,9 +228,9 @@ void ImageWndCtrlsTab::OnBnClickedScan()
 	}
 	
     Timer1.Start();	
-	parent->dark.org.LoadBitmapArray(min,max); 
-	parent->cupol.org.LoadBitmapArray(min,max);
-	parent->strips.org.LoadBitmapArray(min,max);
+	parent->dark.org.LoadBitmapArray(Ymin,Ymax); 
+	parent->cupol.org.LoadBitmapArray(Ymin,Ymax);
+	parent->strips.org.LoadBitmapArray(Ymin,Ymax);
 	Timer1.Stop(); time=Timer1.GetValue();
 	logT.Format("D C S %d lines load = %s",2*dd+1,ConvTimeToStr(time)); log->Msgs.Add(logT);
 	dark=parent->dark.org.arr; 	cupol=parent->cupol.org.arr; strips=parent->strips.org.arr;
@@ -236,10 +240,10 @@ void ImageWndCtrlsTab::OnBnClickedScan()
 	pnteD.type.Set(AveragePnt);	pnteC.type.Set(AveragePnt);	pnteS.type.Set(AveragePnt);	
 	
 	Timer1.Start();	
-	for(int i=Xmin;i<Xmax;i++)
+	for(int i = Xmin; i < Xmax; i++)
 	{
 		pnteD.Clear();pnteC.Clear();pnteS.Clear();		
-		for(int j=1;j<=dd;j++)
+		for(int j = 1; j <= dd; j++)
 		{
             pnteD << dark[i+(mm+j)*w] << dark[i+(mm-j)*w];
 			pnteC << cupol[i+(mm+j)*w] << cupol[i+(mm-j)*w];

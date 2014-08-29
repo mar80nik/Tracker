@@ -59,8 +59,9 @@ class PicWndScanLine
 protected:
 	BOOL ToErase; BMPanvas *buf;
 	CPoint lastL, lastR; int lastdy; 
+	CPoint curL, curR;
 public:
-	CPoint curL, curR; int dy;
+	int dy;
 
 	virtual void Draw(BMPanvas* Parent);
 	virtual void Erase();

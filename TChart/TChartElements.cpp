@@ -85,14 +85,17 @@ int TChartAxisMajorTicks::RenderTicks()
 	double X=0,dx=fabs(Max-Min)/numTicks; double p=10.,q=1.; int e;
 	ticks.RemoveAll();
 
-	e=(int)(log10(dx)); 
-	if(e<=0) {e=abs(e)+1; p=0.1;}
-	while((e--)>0) {dx/=p; q*=p;}
-	if(((int)dx)!=0)
+	if( dx > 1e-16)
 	{
-		dx=((int)dx)*q; e=(int)(Min/dx); if(e>=0) e++;
-		X=e*dx; ticks.Add(X);
-		while((X+=dx)<=Max) ticks.Add(X);
+		e=(int)(log10(dx)); 
+		if(e<=0) {e=abs(e)+1; p=0.1;}
+		while((e--)>0) {dx/=p; q*=p;}
+		if(((int)dx)!=0)
+		{
+			dx=((int)dx)*q; e=(int)(Min/dx); if(e>=0) e++;
+			X=e*dx; ticks.Add(X);
+			while((X+=dx)<=Max) ticks.Add(X);
+		}
 	}
 	return ticks.GetSize();
 }

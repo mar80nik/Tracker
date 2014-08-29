@@ -47,7 +47,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\gsl-1.16\lib$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>

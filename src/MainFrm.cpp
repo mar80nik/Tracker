@@ -107,15 +107,14 @@ void CMainFrame::InitChart()
 	TabCtrl1.AddTab("Main control",&Chart1.Panel,IDD_DIALOGBARTAB11);	
 	TabCtrl1.AddTab("Image control",&Img.Ctrls,IDD_DIALOGBARTAB1);		
 
-	Img.Create(0, "ImageWnd", WS_CHILD, r, pFirstView, ID_MV_WND+1, 0);	
+	Img.Create(0, "ImageWnd", WS_CHILD, r, pFirstView, ID_MV_WND+1, 0);
+	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); Chart1.SeriesDataWnd=&SeriesList;
 
 #ifdef DEBUG
-//	Img.CameraWnd.SelectCaptureSrc(CString("A4 tech USB2.0 Camera"));
+	Img.CameraWnd.SelectCaptureSrc(CString("WebCam SCB-0340N"));
 #else
 	Img.CameraWnd.SelectCaptureSrc(CString("ScopeTek DCM800"));
-#endif
-
-	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); Chart1.SeriesDataWnd=&SeriesList;
+#endif	
 }
 
 void CMainFrame::Serialize(CArchive& ar)

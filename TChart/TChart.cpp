@@ -97,6 +97,7 @@ BOOL TChart::Create(CWnd* pParentWnd,const RECT& rect)
 
 	pThrd=AfxGetThread();	pWND=this;
 	BckgBrush.CreateSolidBrush(RGB(140,140,140));
+	InitBasicElements();
 	OnSeriesUpdate(0,0);
 	return ret;
 }
@@ -143,14 +144,18 @@ void TChart::CalcOriginScale()
 	FindMinMax();
 	
 	if(BottomAxis!=NULL)
-		if(BottomAxis->GetMinMax().IsNull()) BottomAxis->SetInterval(BottomAxis->GetMinMax());
+		if(BottomAxis->GetMinMax().IsNull()) 
+			BottomAxis->SetInterval(BottomAxis->GetMinMax());	
 	if(BottomAxis!=NULL)
-		if(BottomAxis->GetInterval().IsNull()) BottomAxis->SetInterval(BottomAxis->GetMinMax());
-
+		if(BottomAxis->GetInterval().IsNull()) 
+			BottomAxis->SetInterval(BottomAxis->GetMinMax());
+		
 	if(LeftAxis!=NULL)
-		if(LeftAxis->GetMinMax().IsNull()) LeftAxis->SetInterval(LeftAxis->GetMinMax());
+		if(LeftAxis->GetMinMax().IsNull()) 
+			LeftAxis->SetInterval(LeftAxis->GetMinMax());
 	if(LeftAxis!=NULL)
-		if(LeftAxis->GetInterval().IsNull()) LeftAxis->SetInterval(LeftAxis->GetMinMax());
+		if(LeftAxis->GetInterval().IsNull()) 
+			LeftAxis->SetInterval(LeftAxis->GetMinMax());
 
 	if(BottomAxis!=NULL && LeftAxis!=NULL)
 	{
@@ -160,12 +165,13 @@ void TChart::CalcOriginScale()
 		area=Frame->DrawArea; FrameRender.Set(xx,yy,area);
 		area.OffsetRect(-area.TopLeft()); SeriesRender.Set(xx,yy,area); 
 	}
+
 }
 
 
 void TChart::UpdateNow(RepaintSource src) 
 {
-	repaint=src;
+	repaint=src; 
 	RedrawWindow(0,0,RDW_INVALIDATE | RDW_NOERASE | RDW_NOFRAME | RDW_ALLCHILDREN);
 }
 
@@ -178,9 +184,10 @@ void TChart::InitBasicElements()
 	void *x;
 	if((x=buffer.GainAcsess(WRITE))!=NULL)
 	{
-		GetClientRect(&DrawArea);
+		GetClientRect(&DrawArea); 
 		BMPanvasGuard guard(x); BMPanvas& bmp(guard);
 		bmp.Create(this,DrawArea.Width(),DrawArea.Height(),24);
+				
 		bmp.SetBkMode(TRANSPARENT);
 
 		elmnt=new TChartBackground("Background"); elmnt->Create(this,ColorsStyle(RGB(140,140,140))); 	
@@ -219,19 +226,25 @@ void TChart::InitBasicElements()
 void TChart::OnPaint()
 {
 	CPaintDC canvas(this); void *x; CString T;
-	HDC hdc=canvas.GetSafeHdc(); ms dt;
+	 ms dt;
 	
 	if(visible)
-	{		
+	{			
 		if((x=buffer.GainAcsess(WRITE))!=NULL)
 		{			
-			BMPanvasGuard guard(x); BMPanvas& bmp(guard);			
+			HDC hdc=canvas.GetSafeHdc();
+			BMPanvasGuard guard(x); BMPanvas& bmp(guard);	
+	
 			if(bmp.HasImage())
 			{
+	
 				if(repaint==REPAINT_DEFAULT) 
+				{
 					DefaultBufferRender(&bmp);
-				else
-					ASSERT(0);
+				}
+
+		
+	
 				InfoOnCanvas.dt1=OnPaintTimer.StopStart();
 
 				HGDIOBJ tf=bmp.SelectObject(font2); bmp.SetTextColor(clWHITE); bmp.SetBkMode(TRANSPARENT);
@@ -288,12 +301,13 @@ void TChart::DefaultBufferRender(BMPanvas* canvas)
 	BMPanvas &bmp=*canvas; 
 
 	CalcOriginScale(); 	
+
 	if(SeriesRenderIsChanged()==FALSE && SeriesIsChanged()==FALSE) return;
 	LastSeriesRenderUpdateID=SeriesRender.GetModificationID();
 	LastSeriesUpdateID=Series.GetModificationID();
 	if((x=Series.GainAcsess(READ))!=0)
 	{
-		Timer1.Start();
+		Timer1.Start(); 
 		SeriesProtector Protector(x); TSeriesArray& series(Protector);
 		Clear();	
 		InfoOnCanvas.dt2=Timer1.StopStart();
@@ -309,6 +323,7 @@ void TChart::DefaultBufferRender(BMPanvas* canvas)
 	}
 	else
 		ASSERT(0);
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -565,10 +580,12 @@ BOOL TChart::SeriesRenderIsChanged()
 
 void TChart::OnSize(UINT nType, int cx, int cy)
 {
-	CRect r; GetWindowRect(&r); BOOL init=false;
-	if(r.Width()!=cx || r.Height()!=cy) init=TRUE;
+	CRect cr; GetClientRect(&cr); 
+	if(cr.Width()!=cx || cr.Height()!=cy) 
+	{
+		InitBasicElements();
+	}
 	__super::OnSize(nType, cx, cy);
-	if(init) InitBasicElements();	
 }
 
 void TChart::OnDestroy()

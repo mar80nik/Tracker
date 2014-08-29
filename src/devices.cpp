@@ -418,18 +418,28 @@ void CalibrationData::FillCfgTree( CTreeCtrl* t,HTREEITEM l0 )
 
 void CalibrationData::SetCalibration( CalibrationParams& _cal )
 {
+	int i = 0;
 	cal=_cal;
 	fi.SetParamValue(cal.fi0); 
 	d.SetParamValue(cal.d0); 
 	N.SetParamValue(cal.N0); 
 	L.SetParamValue(cal.L);
-	for(int i=0;i<cal.Nexp.GetSize();i++)
+	for(i = 0; i < cal.Nexp.GetSize(); i++)
 	{
 		N_exp[i]->SetParamValue(cal.Nexp[i]);
 	}
-	for(int i=0;i<cal.teta.GetSize();i++)
+	for(;i < CALIBRATION_MODES_NUM;i++)
+	{
+		N_exp[i]->SetParamValue(0);
+	}
+	
+	for(i = 0; i < cal.teta.GetSize(); i++)
 	{
 		teta[i]->SetParamValue(cal.teta[i]);
+	}
+	for(; i < CALIBRATION_MODES_NUM; i++)
+	{
+		teta[i]->SetParamValue(0);
 	}
 }
 

@@ -50,7 +50,6 @@ public:
 	afx_msg void OnEnKillfocusEdit1();
 public:
 	afx_msg void OnBnClickedCalcTM();
-	void * GetChartFromParent();
 };
 
 class ImageWnd;

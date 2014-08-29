@@ -67,23 +67,13 @@ protected:
 	afx_msg void OnTerminalButton();
 	afx_msg void OnTabChange( NMHDR * pNotifyStruct, LRESULT * result );
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
-//	afx_msg LRESULT OnUpdateIndicators(WPARAM,LPARAM);
-//	afx_msg LRESULT OnUpdateConfig(WPARAM,LPARAM);
-//	afx_msg LRESULT OnWavelenSet(WPARAM wParam, LPARAM lParam );	
-//	afx_msg LRESULT OnDataUpdate(WPARAM wParam, LPARAM lParam );
+	afx_msg LRESULT OnUpdateConfig(WPARAM,LPARAM);
 	afx_msg LRESULT OnSeriesUpdate(WPARAM wParam, LPARAM lParam );
-//	afx_msg LRESULT OnStop(WPARAM wParam, LPARAM lParam );
-//	afx_msg LRESULT OnStart(WPARAM wParam, LPARAM lParam );
-//	afx_msg LRESULT OnPause(WPARAM wParam, LPARAM lParam );
-//	afx_msg LRESULT OnContinue(WPARAM wParam, LPARAM lParam );
 	afx_msg void OnClose();
-//	afx_msg LRESULT OnAccessRequest(WPARAM,LPARAM);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	void * GetChartFromParent();
-
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -12,7 +12,7 @@ CalibratorDialog::CalibratorDialog(CWnd* pParent /*=NULL*/)
 	for(int i=0;i<modes_num;i++) { N[i]=0; Q[i]=0; }
 	Nc=Lc=dc=fic=0;
 	Series=NULL; 
-//	Q[0]=63.37; Q[1]=60.02; Q[2]=55.13; Q[3]=48.98;
+	Q[0]=63.37; Q[1]=60.02; Q[2]=55.13; Q[3]=48.98;
 }
 
 CalibratorDialog::~CalibratorDialog()
@@ -132,7 +132,7 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 		t=Q[i]*DEGREE; teta.Add(t);
 	}
 
-	TChart *chart=(TChart*)GetChartFromParent(); 
+	TChart *chart=(TChart*)&GlobalChart; 
 	ASSERT(chart != NULL);
 	if (chart == NULL) return;
 	
@@ -182,13 +182,7 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 void CalibratorDialog::OnBnClickedSaveToConfig()
 {
 	MainCfg.SetCalibration(cal);	
-	CWnd* mainfrm=AfxGetMainWnd();
-	mainfrm->PostMessage(UM_UPDATE_CONFIG,0,0);
+	MainFrame.pWND->PostMessage(UM_UPDATE_CONFIG,0,0);
 }
 
-void * CalibratorDialog::GetChartFromParent()
-{
-	CWnd *t = GetParent(); 
-	return ((ImageWndCtrlsTab*)GetParent())->GetChartFromParent();
-}
 

@@ -16,16 +16,9 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////
-// CKSVU3App
-//MVThread* MV, *Assistant;
-//ChipThread *ChipThrd=NULL; ChipDriver *ATmega=NULL;
 MainChartWnd GlobalChart;
-//CEvent TerminateEvent1(true), TerminateEvent2(true), TerminateEvent3(true), TerminateEvent4(true);
-//CEvent TerminateEvent[4]={(true),(true),(true),(true)};
-///HICON StartIcon, PauseIcon, ResumeIcon, StopIcon, Start1Icon, Stop1Icon;	
 SystemConfig MainCfg;
-//CWnd* AbstractButtonVsFeedback::RequestManagerWnd;
-WindowAddress EventsLog, TerminalWindow, ControllerWindow, PGADialog, MainFrame;
+WindowAddress EventsLog, MainFrame;
 MessagesInspector GlobalInspector;
 MessagesInspector* MessagesInspectorSubject::GlobalInspector=&::GlobalInspector;
 
@@ -33,13 +26,8 @@ BEGIN_MESSAGE_MAP(CKSVU3App, CWinApp)
 	//{{AFX_MSG_MAP(CKSVU3App)
 	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
 	ON_THREAD_MESSAGE(UM_BACKUP_SAVE,OnBackupSave)	
-	ON_THREAD_MESSAGE(UM_START,OnStart)	
-//	ON_THREAD_MESSAGE(UM_STOP,OnStop)	
-	ON_THREAD_MESSAGE(UM_UPDATE_INDICATORS,OnUpdateIndicators)	
-	ON_THREAD_MESSAGE(UM_WAVELEN_SET,OnWavelenSet)	
 	ON_THREAD_MESSAGE(UM_UPDATE_CONFIG,OnUpdateConfig)	
 	ON_THREAD_MESSAGE(UM_DATA_UPDATE,OnDataUpdate)	
-//	ON_THREAD_MESSAGE(UM_SERIES_UPDATE,OnSeriesUpdate)	
 	ON_THREAD_MESSAGE(UM_GENERIC_MESSAGE,OnGenericMessage)	
 	ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, CWinApp::OnFileOpen)
@@ -73,19 +61,13 @@ BOOL CKSVU3App::InitInstance()
 	AfxEnableControlContainer(); //myThread.Config.Terminate=None;
 	CoInitialize(NULL);
 
-//	StartIcon=LoadIcon(IDI_START_ICON); Start1Icon=LoadIcon(IDI_START_ICON1); 
-//	PauseIcon=LoadIcon(IDI_PAUSE_ICON);	
-//	ResumeIcon=LoadIcon(IDI_RESUME_ICON);
-//	StopIcon=LoadIcon(IDI_STOP_ICON); Stop1Icon=LoadIcon(IDI_STOP_ICON1);	
-
 	// Change the registry key under which our settings are stored.
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 
 	LoadStdProfileSettings();  // Load standard INI file options (including MRU)
 
-	MainCfg.Parent=this;
-
 	// Register document templates
+	MainCfg.Parent=this;
 
 	CSingleDocTemplate* pDocTemplate;
 	pDocTemplate = new CSingleDocTemplate(
@@ -106,9 +88,6 @@ BOOL CKSVU3App::InitInstance()
 		return FALSE;
 	CMainFrame* MainWnd=(CMainFrame*)m_pMainWnd;
 	EventsLog.pThrd=AfxGetThread(); EventsLog.pWND=&MainWnd->EventLog1;
-//	TerminalWindow.pThrd=AfxGetThread(); TerminalWindow.pWND=&MainWnd->Tab4;
-//	ControllerWindow.pThrd=AfxGetThread(); ControllerWindow.pWND=&MainWnd->CntrlerWnd; 
-//	PGADialog.pThrd=AfxGetThread(); PGADialog.pWND=&MainWnd->PGADlg;
 	MainFrame.pThrd=AfxGetThread(); MainFrame.pWND=MainWnd;
 	MainCfg.LoadConfig(); 
 	MainWnd->InitChart(); 
@@ -116,32 +95,6 @@ BOOL CKSVU3App::InitInstance()
 	else MainWnd->TabCtrl1.ChangeTab(0);	
 	CString ProgPortName;
 
-//#ifndef DEBUG_PORT 
-//	ProgPortName="COM3";
-//#else
-//	ProgPortName="COM21";	
-//#endif
-	/*
-	CEvent* TempEvent=TerminateEvent;
-	MV=0; 
-	if((MV=(MVThread*)AfxBeginThread(RUNTIME_CLASS(MVThread),THREAD_PRIORITY_NORMAL,0,CREATE_SUSPENDED))!=0)
-	{
-		MV->Create(this,MVThreadID,TempEvent++); MV->ResumeThread();		
-		Threads.Add(MV);
-	}
-	Assistant=0; 
-	if((Assistant=(MVThread*)AfxBeginThread(RUNTIME_CLASS(MVThread),THREAD_PRIORITY_NORMAL,0,CREATE_SUSPENDED))!=0)
-	{
-		Assistant->Create(this,AssistntID,TempEvent++); Assistant->ResumeThread(); 
-		Assistant->Config.Name=CString("Assistatnt"); 		
-		Threads.Add(Assistant);
-	}
-	*/
-//	MainWnd->WorkThread=MV;
-//	AbstractButtonVsFeedback::RequestManagerWnd=MainWnd;
-//	MainWnd->TDlg1.WorkThread=MV;
-//	MainWnd->Scope1.WorkThread=MV;
-	
 	return TRUE;
 }
 
@@ -201,26 +154,10 @@ void CKSVU3App::OnAppAbout()
 
 /////////////////////////////////////////////////////////////////////////////
 // CKSVU3App message handlers
-/*
-void CKSVU3App::TerminateThreads()
-{
-	int i,ret,num=Threads.GetSize(); myThread.Config.SetTerminate(ToDo);
-	if(ATmega!=NULL) ATmega->StopOperation();
-	for(i=0;i<num;i++) 
-	{
-		ret=(Threads[i])->TerminateThread();	
-		ASSERT(ret==0);
-	}	
-	return;
-}
-*/
+
 int CKSVU3App::ExitInstance() 
 {
-	// TODO: Add your specialized code here and/or call the base class
 	MainCfg.SaveConfig();
-	
-//	DestroyIcon(StartIcon);DestroyIcon(PauseIcon); DestroyIcon(StopIcon); 
-//	DestroyIcon(Start1Icon); DestroyIcon(Stop1Icon); DestroyIcon(ResumeIcon);	
 	myThread.Config.SetTerminate(Done);
 
 	CoUninitialize();
@@ -242,16 +179,6 @@ void CKSVU3App::OnBackupSave(WPARAM wParam, LPARAM lParam )
 	return;
 }
 
-void CKSVU3App::OnWavelenSet(WPARAM wParam, LPARAM lParam )
-{
-	if(myThread.Config.GetTerminate()==None) MainFrame.pWND->PostMessage(UM_WAVELEN_SET,0,0);
-	return;
-}
-
-void CKSVU3App::OnStart(WPARAM wParam, LPARAM lParam )
-	{if(myThread.Config.GetTerminate()==None) MainFrame.pWND->PostMessage(UM_START,wParam,lParam);}
-void CKSVU3App::OnUpdateIndicators(WPARAM wParam, LPARAM lParam )
-	{if(myThread.Config.GetTerminate()==None) MainFrame.pWND->PostMessage(UM_UPDATE_INDICATORS,wParam,lParam);}
 void CKSVU3App::OnUpdateConfig(WPARAM wParam, LPARAM lParam )
 	{if(myThread.Config.GetTerminate()==None) 
 	MainFrame.pWND->PostMessage(UM_UPDATE_CONFIG,wParam,lParam);

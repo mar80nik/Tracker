@@ -630,11 +630,6 @@ BOOL ImageWnd::OnEraseBkgnd(CDC* pDC)
 	return CWnd::OnEraseBkgnd(pDC);
 }
 
-void * ImageWnd::GetChartFromParent()
-{
-	return ((CMainFrame*)GetParent())->GetChartFromParent();
-}
-
 void ImageWndPicWnd::OnMove(int x, int y)
 {	
 	CRect r,r1,r2; GetWindowRect(&r);
@@ -688,11 +683,4 @@ void ImageWndCtrlsTab::OnEnKillfocusEdit1()
 	// TODO: Add your control notification handler code here
 }
 
-void * ImageWndCtrlsTab::GetChartFromParent()
-{
-	CWnd *t = GetParent(); //ctabctrl
-	CWnd *t1 = t->GetParent(); //cdialogbar
-	CWnd *t2 = t1->GetParent(); //cmainframe
-	return ((ImageWnd*)GetParent())->GetChartFromParent();
-}
 

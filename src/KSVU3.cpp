@@ -193,6 +193,6 @@ void CKSVU3App::OnGenericMessage( WPARAM wParam, LPARAM lParam )
 	if(myThread.Config.GetTerminate()==None)
 	{
 		msg->wParam=wParam;
-//		msg->Dispatch();
+		msg->Dispatch();
 	}
 }

@@ -228,7 +228,10 @@ void TChart::OnPaint()
 			BMPanvasGuard guard(x); BMPanvas& bmp(guard);			
 			if(bmp.HasImage())
 			{
-				if(repaint==REPAINT_DEFAULT) DefaultBufferRender(&bmp);
+				if(repaint==REPAINT_DEFAULT) 
+					DefaultBufferRender(&bmp);
+				else
+					ASSERT(0);
 				InfoOnCanvas.dt1=OnPaintTimer.StopStart();
 
 				HGDIOBJ tf=bmp.SelectObject(font2); bmp.SetTextColor(clWHITE); bmp.SetBkMode(TRANSPARENT);
@@ -304,6 +307,8 @@ void TChart::DefaultBufferRender(BMPanvas* canvas)
 		
 		InfoOnCanvas.dt4=Timer1.StopStart();
 	}
+	else
+		ASSERT(0);
 }
 
 //////////////////////////////////////////////////////////////////////////

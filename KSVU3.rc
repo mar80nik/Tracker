@@ -751,7 +751,7 @@ END
 //
 
 IDR_TOOLBAR2            BITMAP                  "res\\toolbar2.bmp"
-IDB_STATEICONS          BITMAP                  "d:\\myProjects\\Reframetr\\res\\stateico.bmp"
+IDB_STATEICONS          BITMAP                  "res\\stateico.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //

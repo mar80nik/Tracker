@@ -882,9 +882,6 @@
     <None Include="res\bitmap1.bmp">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="..\..\stateico.bmp">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="res\stateico.bmp">
       <Filter>Resource Files</Filter>
     </None>

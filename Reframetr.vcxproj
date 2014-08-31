@@ -41,14 +41,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\gsl-1.16\lib$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\gsl-1.16\lib;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
     <OutDir>$(SolutionDir)exe\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\gsl-1.16\lib$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\gsl-1.16\lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
   </PropertyGroup>
@@ -379,7 +379,6 @@
     <ResourceCompile Include="mythread\errors.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\stateico.bmp" />
     <None Include="res\bitmap1.bmp" />
     <None Include="res\KSVU3.ico" />
     <None Include="res\KSVU3Doc.ico" />

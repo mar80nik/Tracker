@@ -14,10 +14,7 @@
 // ImageWnd
 
 IMPLEMENT_DYNAMIC(ImageWnd, CWnd)
-ImageWnd::ImageWnd(): //darkChart("dark"), cupolChart("cupol"),stripsChart("strips"),
-	dark_ava_r(CRect(CPoint(0,0),CSize(326,244))),
-	cupol_ava_r(CRect(CPoint(0,250),CSize(326,244))),
-	strips_ava_r(CRect(CPoint(0,500),CSize(326,244)))
+ImageWnd::ImageWnd()
 {
 	scale=10;
 }
@@ -29,7 +26,8 @@ BEGIN_MESSAGE_MAP(ImageWnd, CWnd)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_ERASEBKGND()
-ON_WM_DESTROY()
+	ON_WM_DESTROY()
+	ON_WM_SHOWWINDOW()
 END_MESSAGE_MAP()
 
 
@@ -50,17 +48,21 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	OnChildMove();
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
-	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
+	
+#define TEST1
 #ifdef DEBUG
-	// 	dark.LoadPic(CString("exe\\dark.png"));
-	// 	cupol.LoadPic(CString("exe\\cupol.png"));
-	// 	strips.LoadPic(CString("exe\\strips.png"));
-
-	dark.LoadPic(CString("exe\\test1.png"));
-	cupol.LoadPic(CString("exe\\test2.png"));
-	strips.LoadPic(CString("exe\\test3.png"));
+	#ifdef TEST1
+	 	dark.LoadPic(CString("exe\\dark.png"));
+	 	cupol.LoadPic(CString("exe\\cupol.png"));
+	 	strips.LoadPic(CString("exe\\strips.png"));
+	#elif TEST2
+		dark.LoadPic(CString("exe\\test1.png"));
+		cupol.LoadPic(CString("exe\\test2.png"));
+		strips.LoadPic(CString("exe\\test3.png"));
+	#endif	
 #endif
 	Ctrls.Parent=this;
+	
 
 	return 0;
 }
@@ -74,13 +76,14 @@ void ImageWnd::OnDestroy()
 
 }
 
-void ImageWnd::DrawScanLine( CPoint curL, CPoint curR )
+void ImageWnd::SetScanRgn( const OrgPicRgn& rgn)
 {
-	dark.ScanLine.curL=cupol.ScanLine.curL=strips.ScanLine.curL=curL;
-	dark.ScanLine.curR=cupol.ScanLine.curR=strips.ScanLine.curR=curR;
-	if(dark.org.HasImage()) dark.UpdateNow(); 
-	if(cupol.org.HasImage()) cupol.UpdateNow(); 
-	if(strips.org.HasImage()) strips.UpdateNow();
+	PicWnd& ref = dark;
+ 	*((OrgPicRgn*)&ScanRgn) = ref.Validate(rgn);
+	Ctrls.InitScanRgnFields((OrgPicRgn&)ScanRgn);
+	dark.SetScanRgn((OrgPicRgn&)ScanRgn);
+	cupol.SetScanRgn((OrgPicRgn&)ScanRgn);
+	strips.SetScanRgn((OrgPicRgn&)ScanRgn);
 }
 
 typedef CArray<HWND> HWNDArray;
@@ -128,26 +131,28 @@ void ImageWnd::OnChildMove()
 }
 
 //////////////////////////////////////////////////////////////////////////
-BEGIN_MESSAGE_MAP(ImageWndCtrlsTab, BarTemplate)
+BEGIN_MESSAGE_MAP(ImageWnd::CtrlsTab, BarTemplate)
 	//{{AFX_MSG_MAP(DialogBarTab1)
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedScan)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedCalibrate)
 	ON_WM_CREATE()
-	ON_BN_CLICKED(IDC_BUTTON4, &ImageWndCtrlsTab::OnBnClickedCalcTE)
-	ON_BN_CLICKED(IDC_BUTTON5, &ImageWndCtrlsTab::OnBnClickedButton5)
+	ON_BN_CLICKED(IDC_BUTTON4, &ImageWnd::CtrlsTab::OnBnClickedCalcTE)
+	ON_BN_CLICKED(IDC_BUTTON5, &ImageWnd::CtrlsTab::OnBnClickedButton5)
 	//}}AFX_MSG_MAP	
-	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWndCtrlsTab::OnEnKillfocusEdit1)
-	ON_BN_CLICKED(IDC_BUTTON11, &ImageWndCtrlsTab::OnBnClickedCalcTM)
+	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)
+	ON_BN_CLICKED(IDC_BUTTON11, &ImageWnd::CtrlsTab::OnBnClickedCalcTM)
 END_MESSAGE_MAP()
 
-BOOL ImageWndCtrlsTab::OnInitDialog() 
+BOOL ImageWnd::CtrlsTab::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
+	BarTemplate::OnInitDialog();
+
+	//CameraWnd.Ctrls.ShowWindow(SW_SHOW);
+
+	return TRUE;
 }
 
-ImageWndCtrlsTab::ImageWndCtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent)
+ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent)
 , stroka(1220)
 , AvrRange(100)
 , Xmin(100)
@@ -155,7 +160,7 @@ ImageWndCtrlsTab::ImageWndCtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pPar
 {
 }
 
-void ImageWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
+void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 {
 	BarTemplate::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(DialogBarTab1)
@@ -165,16 +170,17 @@ void ImageWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT3, Xmin);
 	DDX_Text(pDX, IDC_EDIT4, Xmax);
 	//}}AFX_DATA_MAP
+//	DDX_Control(pDX, IDC_EDIT1, XminCtrl);
 }
 
-void ImageWndCtrlsTab::OnBnClickedScan()
+void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	
-	parent->strips.ScanLine.curL.x=Xmin/parent->scale; parent->strips.ScanLine.curR.x=Xmax/parent->scale;
-	parent->strips.ScanLine.curL.y=parent->strips.ScanLine.curR.y=stroka/parent->scale;
+//	parent->strips.ScanLine.curL.x=Xmin/parent->scale; parent->strips.ScanLine.curR.x=Xmax/parent->scale;
+	//parent->strips.ScanLine.curL.y=parent->strips.ScanLine.curR.y=stroka/parent->scale;
 	
-	parent->DrawScanLine(parent->strips.ScanLine.curL,parent->strips.ScanLine.curR);
+//	parent->DrawScanRgn();
 	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
 	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
 
@@ -285,20 +291,19 @@ void ImageWndCtrlsTab::OnBnClickedScan()
 	Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);	
 }
 
-ImageWndPicWnd::ImageWndPicWnd()
+ImageWnd::PicWnd::PicWnd()
 {
 	Parent=0;
 }
 
-ImageWndPicWnd::~ImageWndPicWnd()
+ImageWnd::PicWnd::~PicWnd()
 {
 
 }
-BEGIN_MESSAGE_MAP(ImageWndPicWnd, CWnd)
+BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_CREATE()
 	ON_WM_PAINT()
 	ON_WM_DROPFILES()
-//	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_RBUTTONUP()
 	ON_COMMAND(CaptureBtnID, OnMvButton)
@@ -306,13 +311,10 @@ BEGIN_MESSAGE_MAP(ImageWndPicWnd, CWnd)
 	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
 	ON_COMMAND(ID_PICWNDMENU_SAVE, OnPicWndSave)
-
-	
-//	ON_WM_ERASEBKGND()
 	ON_WM_MOVE()
 END_MESSAGE_MAP()
 
-int ImageWndPicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
+int ImageWnd::PicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -322,7 +324,6 @@ int ImageWndPicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	EraseAva();
 	DragAcceptFiles(true);
 	font1.CreatePointFont(80,"Arial"); 
-	ScanLine.curL.x=0; ScanLine.curR.x=r.right;
 	CRect t(CPoint(0,0),CSize(150,20)); t.OffsetRect(r.CenterPoint()-t.CenterPoint());
 	CString T; GetWindowText(T); T="Capture "+T+" image";
 	CaptureButton.Create(T,BS_CENTER | BS_TEXT | WS_VISIBLE | BS_PUSHBUTTON, t,this,CaptureBtnID);
@@ -330,31 +331,31 @@ int ImageWndPicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
-void ImageWndPicWnd::EraseAva()
+void ImageWnd::PicWnd::EraseAva()
 {
 	CString T,T1;  GetWindowText(T1); T.Format("Drag or Capture %s image",T1);
-	CRect r; GetClientRect(&r); ScanLine.Erase();
+	CRect r; GetClientRect(&r);  
 	ava.PatBlt(WHITENESS); ava.Rectangle(r);
 	ava.TextOut(10,10,T);
 }
 
-void ImageWndPicWnd::OnPaint()
+void ImageWnd::PicWnd::OnPaint()
 {
 	CPaintDC dc(this); 	
 	HDC hdc=dc.GetSafeHdc();
 	if(org.HasImage())
 	{
-		if(ScanLine.curL.y>=0 && ScanLine.curR.y>=0) ScanLine.Draw(&ava);
+		ScanRgn.Draw(&ava);
 	}
 	ava.CopyTo(hdc,TOP_LEFT);
 }
 
-void ImageWndPicWnd::UpdateNow(void)
+void ImageWnd::PicWnd::UpdateNow(void)
 {
 	RedrawWindow(0,0,RDW_INVALIDATE | RDW_FRAME | RDW_NOERASE | RDW_ALLCHILDREN);					
 }
 
-void ImageWndPicWnd::LoadPic(CString T)
+void ImageWnd::PicWnd::LoadPic(CString T)
 {
 	if(org.LoadImage(T)==S_OK)
 	{
@@ -373,7 +374,7 @@ void ImageWndPicWnd::LoadPic(CString T)
 	else FileName="";		 
 }
 
-void ImageWndPicWnd::OnDropFiles(HDROP hDropInfo)
+void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 {
 	char buf[1000]; CString T,T2;  GetWindowText(T2);
 	DragQueryFile(hDropInfo,0xFFFFFFFF,buf,1000);
@@ -393,90 +394,75 @@ void ImageWndPicWnd::OnDropFiles(HDROP hDropInfo)
 }
 
 #define ScanLineXShift 20
-void PicWndScanLine::Draw( BMPanvas* canvas )
+void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas )
 {
-	canvas->SetROP2(R2_NOT);
-	Erase();
-	canvas->MoveTo(curL); canvas->LineTo(curR); 
-	canvas->MoveTo(curL+CPoint(ScanLineXShift,dy)); canvas->LineTo(curR+CPoint(-ScanLineXShift,dy)); 
-	canvas->MoveTo(curL+CPoint(ScanLineXShift,-dy)); canvas->LineTo(curR+CPoint(-ScanLineXShift,-dy)); 
-	ToErase=TRUE; lastL=curL; lastR=curR; buf=canvas; lastdy=dy;
-	canvas->SetROP2(R2_COPYPEN); 			
+	Draw( canvas, *this, DRAW ); 
 }
 
-void PicWndScanLine::Erase()
+void ImageWnd::PicWnd::c_ScanRgn::Erase( BMPanvas * canvas )
 {
-	if(ToErase==TRUE) 
-	{
-		if(buf!=NULL)
-		{
-			buf->MoveTo(lastL); buf->LineTo(lastR); 
-			buf->MoveTo(lastL+CPoint(ScanLineXShift,lastdy)); buf->LineTo(lastR+CPoint(-ScanLineXShift,lastdy)); 
-			buf->MoveTo(lastL+CPoint(ScanLineXShift,-lastdy)); buf->LineTo(lastR+CPoint(-ScanLineXShift,-lastdy)); 
-			ToErase=FALSE;
-		}		
-	}
+	if ( ToErase == TRUE ) Draw( canvas, last, ERASE );
+	ToErase=FALSE;
 }
 
-void ImageWndPicWnd::OnLButtonUp(UINT nFlags, CPoint point)
+void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas, const AvaPicRgn& rgn, ScanRgnDrawModes mode )
 {
-	BOOL update=FALSE; Parent->Ctrls.UpdateData();
-	if(org.HasImage()==FALSE) return;
-	switch(nFlags)
+	CPoint rgnCenter = rgn.CenterPoint(); int lastMode;
+	if ( canvas == NULL) return;
+	switch ( mode)
 	{
-	case MK_SHIFT: 
-		ScanLine.curL.x=point.x; Parent->Ctrls.Xmin=point.x*Parent->scale; update=TRUE; 
-		ScanLine.dy=Parent->Ctrls.AvrRange/Parent->scale;		
-		break;
-	case 0: 
-		ScanLine.curL.y=ScanLine.curR.y=point.y; 
-		ScanLine.curL.x=Parent->Ctrls.Xmin/Parent->scale;
-		ScanLine.curR.x=Parent->Ctrls.Xmax/Parent->scale;
-		update=TRUE; 
-		Parent->Ctrls.stroka=point.y*Parent->scale; 
-		ScanLine.dy=Parent->Ctrls.AvrRange/Parent->scale;		
-		break;
-	case MK_CONTROL:
-		ScanLine.curL.y=ScanLine.curR.y=point.y; update=TRUE; 
-		if(org.HasImage()==FALSE) break;
-		int y=point.y*Parent->scale;
-		if(y<0) y=0;
-		if(y>=org.h) y=org.h-1;
-		Parent->Ctrls.stroka=y;
-		Parent->Ctrls.UpdateData(0);
-		Parent->Ctrls.OnBnClickedScan();		
-		break;
+	case DRAW: Erase( canvas ); lastMode = canvas->SetROP2(R2_NOT); last = *this; ToErase=TRUE; break;
+	case ERASE: 
+	default:		
+		lastMode = canvas->SetROP2(R2_COPYPEN); 
+	}	
+	canvas->MoveTo(rgn.left, rgnCenter.y); canvas->LineTo(rgn.right, rgnCenter.y); 
+	canvas->MoveTo(rgn.left + ScanLineXShift, rgn.top); canvas->LineTo(rgn.right - ScanLineXShift, rgn.top); 
+	canvas->MoveTo(rgn.left + ScanLineXShift, rgn.bottom); canvas->LineTo(rgn.right - ScanLineXShift, rgn.bottom); 	
+	canvas->SetROP2(lastMode);
+}
+
+void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	BOOL update = FALSE; AvaPicRgn tmpRgn = (AvaPicRgn&)ScanRgn; CPoint tmpRgnCntr = tmpRgn.CenterPoint();
+	if ( org.HasImage() == FALSE ) return;
+	switch( nFlags )
+	{
+	case MK_SHIFT: tmpRgn.left = point.y; update=TRUE; break;
+	case MK_CONTROL: tmpRgn.OffsetRect( 0, point.y - tmpRgnCntr.y ); update=TRUE; break;
+	case 0: tmpRgn.OffsetRect( point - tmpRgnCntr ); update=TRUE; break;	
 	}
-	if(update) 
-	{		
-		Parent->DrawScanLine(ScanLine.curL, ScanLine.curR);		
-		Parent->Ctrls.UpdateData(0);
-	}
+	if ( update && IsRgnInAva( tmpRgn ) ) 	Parent->SetScanRgn( Convert(tmpRgn) );	
 	CWnd::OnLButtonUp(nFlags, point);
 }
 
-void ImageWndPicWnd::OnRButtonUp(UINT nFlags, CPoint point)
+void ImageWnd::PicWnd::OnRButtonUp(UINT nFlags, CPoint point)
 {
-	BOOL update=FALSE;
-	switch(nFlags)
+	BOOL update = FALSE; AvaPicRgn tmpRgn = (AvaPicRgn&)ScanRgn;
+	if ( org.HasImage() == FALSE ) return;
+	switch( nFlags )
 	{
-	case MK_SHIFT: ScanLine.curR.x=point.x; Parent->Ctrls.Xmax=point.x*Parent->scale; update=TRUE; break;
-	default: CWnd::OnRButtonUp(nFlags, point);
+	case MK_SHIFT: tmpRgn.right = point.x; update=TRUE; break;
+	default: ;
 	}
-	if(update) 	
-	{		
-		Parent->DrawScanLine(ScanLine.curL, ScanLine.curR);
-		Parent->Ctrls.UpdateData(0);
-	}
+	if ( update && IsRgnInAva( tmpRgn ) ) 	Parent->SetScanRgn( Convert(tmpRgn) );	
+	CWnd::OnRButtonUp(nFlags, point);
 }
 
-void ImageWndPicWnd::OnMvButton()
+BOOL ImageWnd::PicWnd::IsRgnInAva( const AvaPicRgn& rgn)
+{
+	AvaPicRgn tmpRgn = rgn; tmpRgn.IntersectRect(ava.Rgn, rgn);
+	return tmpRgn == rgn;
+}
+
+
+void ImageWnd::PicWnd::OnMvButton()
 {
 	CaptureButton.EnableWindow(FALSE);
     Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)this, (LPARAM)&org);
 }
 
-LRESULT ImageWndPicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
+LRESULT ImageWnd::PicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
 {
 	CString T;
 	if(org.HasImage())
@@ -494,7 +480,7 @@ LRESULT ImageWndPicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
 	}
 	return 0;
 }
-void ImageWndPicWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
+void ImageWnd::PicWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 {
 	if(org.HasImage())
 	{
@@ -503,7 +489,7 @@ void ImageWndPicWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 	}
 }
 
-void ImageWndPicWnd::OnPicWndErase()
+void ImageWnd::PicWnd::OnPicWndErase()
 {
 	if(org.HasImage())
 	{
@@ -514,7 +500,7 @@ void ImageWndPicWnd::OnPicWndErase()
 	}
 }
 
-void ImageWndPicWnd::OnPicWndSave()
+void ImageWnd::PicWnd::OnPicWndSave()
 {
 	if(org.HasImage())
 	{
@@ -526,7 +512,7 @@ void ImageWndPicWnd::OnPicWndSave()
 	}
 }
 
-void ImageWndCtrlsTab::OnBnClickedCalibrate()
+void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 {
 	CalibratorDlg.ShowWindow(SW_SHOW);
 
@@ -592,7 +578,7 @@ void ImageWndCtrlsTab::OnBnClickedCalibrate()
 
 }
 
-int ImageWndCtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
+int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	if (BarTemplate::OnCreate(lpCreateStruct) == -1)
 		return -1;
@@ -634,7 +620,7 @@ BOOL ImageWnd::OnEraseBkgnd(CDC* pDC)
 	return CWnd::OnEraseBkgnd(pDC);
 }
 
-void ImageWndPicWnd::OnMove(int x, int y)
+void ImageWnd::PicWnd::OnMove(int x, int y)
 {	
 	CRect r,r1,r2; GetWindowRect(&r);
 	CPoint tl=r.TopLeft(), br=r.BottomRight(); 
@@ -655,26 +641,71 @@ void ImageWndPicWnd::OnMove(int x, int y)
 	Parent->OnChildMove();
 }
 
+ImageWnd::OrgPicRgn ImageWnd::PicWnd::Validate( const OrgPicRgn& temprgn )
+{
+	OrgPicRgn ret = temprgn; CRect& rgn = *((CRect*)&temprgn); CRect deflate;
+	
+	rgn.NormalizeRect();	
+	if (org.HasImage())
+	{
+		deflate.left = ( org.Rgn.left > rgn.left ? (org.Rgn.left - rgn.left) : 0 );
+		deflate.right = ( org.Rgn.right < rgn.left ? -(org.Rgn.right - rgn.right) : 0 );
+		deflate.top = ( org.Rgn.top > rgn.top ? (org.Rgn.top - rgn.top) : 0 );
+		deflate.bottom = ( org.Rgn.bottom < rgn.bottom ? -(org.Rgn.bottom - rgn.bottom) : 0 );
+		rgn.DeflateRect(deflate);
+	}
+	return ret;	
+}
 
-BOOL ImageWndCtrlsTab::DestroyWindow()
+void ImageWnd::PicWnd::SetScanRgn( const OrgPicRgn& rgn )
+{
+	ScanRgn.Set(Convert((OrgPicRgn&)rgn));
+	UpdateNow(); 
+}
+
+ImageWnd::OrgPicRgn ImageWnd::PicWnd::Convert( const AvaPicRgn& rgn )
+{
+	OrgPicRgn ret; 
+	if ( ava.HasImage() )
+	{
+		CSize scale( org.Rgn.Width() / ava.Rgn.Width(), org.Rgn.Height() / ava.Rgn.Height() );	
+		ret.left = rgn.left * scale.cx; ret.right = rgn.right * scale.cx; 
+		ret.top = rgn.top * scale.cy; ret.bottom = rgn.bottom * scale.cy;
+	}
+	return ret;
+}
+
+ImageWnd::AvaPicRgn ImageWnd::PicWnd::Convert( const OrgPicRgn& rgn )
+{
+	AvaPicRgn ret; 
+	if ( org.HasImage() )
+	{
+		CSize scale( ava.Rgn.Width() / org.Rgn.Width(), ava.Rgn.Height() / org.Rgn.Height() );	
+		ret.left = rgn.left * scale.cx; ret.right = rgn.right * scale.cx; 
+		ret.top = rgn.top * scale.cy; ret.bottom = rgn.bottom * scale.cy;
+	}
+	return ret;
+}
+
+BOOL ImageWnd::CtrlsTab::DestroyWindow()
 {
 	CalibratorDlg.DestroyWindow();
 
 	return BarTemplate::DestroyWindow();
 }
 
-void ImageWndCtrlsTab::OnBnClickedCalcTE()
+void ImageWnd::CtrlsTab::OnBnClickedCalcTE()
 {
 	CalcTEDlg.ShowWindow(SW_SHOW);
 }
 
-void ImageWndCtrlsTab::OnBnClickedCalcTM()
+void ImageWnd::CtrlsTab::OnBnClickedCalcTM()
 {
 	CalcTMDlg.ShowWindow(SW_SHOW);
 }
 
 
-void ImageWndCtrlsTab::OnBnClickedButton5()
+void ImageWnd::CtrlsTab::OnBnClickedButton5()
 {
 	ImageWnd *parent=(ImageWnd*)Parent;
 	parent->dark.PostMessage(WM_COMMAND,ID_PICWNDMENU_ERASE,0);
@@ -682,9 +713,41 @@ void ImageWndCtrlsTab::OnBnClickedButton5()
 	parent->strips.PostMessage(WM_COMMAND,ID_PICWNDMENU_ERASE,0);
 }
 
-void ImageWndCtrlsTab::OnEnKillfocusEdit1()
+void ImageWnd::CtrlsTab::OnEnKillfocusEdit1() {}
+
+ImageWnd::AvaPicRgn ImageWnd::CtrlsTab::GetScanRgn()
 {
-	// TODO: Add your control notification handler code here
+	UpdateData();
+	AvaPicRgn ret; *((CRect*)&ret) = CRect( Xmin, stroka - AvrRange, Xmax, stroka + AvrRange ); 
+	return ret;
 }
 
+void ImageWnd::CtrlsTab::InitScanRgnFields( const OrgPicRgn& rgn)
+{
+	Xmin = rgn.left; Xmax = rgn.right; AvrRange = rgn.Height()/2; stroka = rgn.CenterPoint().y;
+	UpdateData(FALSE);
+}
+
+void ImageWnd::c_ScanRgn::SetCoord( const OrgPicRgn& rgn ) 
+{ 
+	*((OrgPicRgn*)this) = rgn; 
+}
+
+void ImageWnd::PicWnd::c_ScanRgn::Set( const AvaPicRgn& rgn )
+{
+	*((AvaPicRgn*)this) = rgn;
+}
+
+
+IMPLEMENT_DYNAMIC(ImageWndCtrlsCEditInterceptor, CEdit)
+
+BEGIN_MESSAGE_MAP(ImageWndCtrlsCEditInterceptor, CEdit)
+	ON_WM_CHAR()
+END_MESSAGE_MAP()
+
+
+void ImageWndCtrlsCEditInterceptor::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	CEdit::OnChar(nChar, nRepCnt, nFlags);
+}
 

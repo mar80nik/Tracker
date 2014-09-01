@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Нейтральный resources
+// Neutral resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
 LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
@@ -144,12 +144,12 @@ BEGIN
     ID_MOTORCTRL            "oa?uoooue"
 END
 
-#endif    // Нейтральный resources
+#endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Русский (Россия) resources
+// Russian (Russia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
@@ -215,7 +215,7 @@ BEGIN
     LTEXT           "Y",IDC_STATIC,120,18,8,8
     EDITTEXT        IDC_EDIT2,74,32,40,14,ES_AUTOHSCROLL
     LTEXT           "dY (+/-)",IDC_STATIC,119,35,25,8
-    EDITTEXT        IDC_EDIT3,10,14,40,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT3,10,14,40,14,ES_AUTOHSCROLL | ES_WANTRETURN | ES_NUMBER
     EDITTEXT        IDC_EDIT4,10,32,40,14,ES_AUTOHSCROLL
     LTEXT           "Xmin",IDC_STATIC,55,18,16,8
     GROUPBOX        "ScanLine",IDC_STATIC,3,3,143,53
@@ -1028,12 +1028,12 @@ BEGIN
     IDS_ERRORS_VALUES       "+++ Описания ошибок +++"
 END
 
-#endif    // Русский (Россия) resources
+#endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// Английский (США) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -1190,7 +1190,7 @@ BEGIN
     END
 END
 
-#endif    // Английский (США) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

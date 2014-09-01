@@ -196,3 +196,5 @@ void CKSVU3App::OnGenericMessage( WPARAM wParam, LPARAM lParam )
 		msg->Dispatch();
 	}
 }
+
+

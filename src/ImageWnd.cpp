@@ -48,6 +48,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	OnChildMove();
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
+	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
 	
 #define TEST1
 #ifdef DEBUG

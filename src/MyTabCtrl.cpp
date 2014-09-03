@@ -59,7 +59,7 @@ void MyTabCtrl::ChangeTab(int num)
 		}
 		curTab=TabCtrl->GetCurSel();
 		Tabs[curTab]->ShowWindow(SW_SHOW);
-	}	
+	}
 }
 
 int MyTabCtrl::SetCurSel(int nItem)

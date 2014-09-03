@@ -9,11 +9,13 @@
 
 
 
-class CaptureWndCtrlsTab : public BarTemplate
+//class CaptureWndCtrlsTab : public BarTemplate
+class CaptureWndCtrlsTab : public CDialog
 {		
 protected:	
 	CString Name;	
 public:
+	CWnd* Parent;
 	enum ColorTransformModes {TrueColor, NativeGDI, HSL, HSV};
 	CameraChooser Chooser;
 

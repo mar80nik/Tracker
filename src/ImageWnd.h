@@ -37,8 +37,8 @@ class ImageWnd : public CWnd
 		int stroka, AvrRange, Xmin, Xmax;
 
 		CtrlsTab(CWnd* pParent = NULL);  
-		AvaPicRgn GetScanRgn();
-		void InitScanRgnFields(const OrgPicRgn&);
+		OrgPicRgn GetScanRgnFromCtrls();
+		void InitScanRgnCtrlsFields(const OrgPicRgn&);
 	protected:
 		virtual void DoDataExchange(CDataExchange* pDX);   
 	protected:

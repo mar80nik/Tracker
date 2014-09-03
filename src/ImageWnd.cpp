@@ -49,7 +49,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
-	
+		
 #define TEST1
 #ifdef DEBUG
 	#ifdef TEST1
@@ -63,7 +63,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	#endif	
 #endif
 	Ctrls.Parent=this;
-	
+	SetScanRgn(Ctrls.GetScanRgnFromCtrls());	
 
 	return 0;
 }
@@ -79,9 +79,8 @@ void ImageWnd::OnDestroy()
 
 void ImageWnd::SetScanRgn( const OrgPicRgn& rgn)
 {
-	PicWnd& ref = dark;
- 	*((OrgPicRgn*)&ScanRgn) = ref.Validate(rgn);
-	Ctrls.InitScanRgnFields((OrgPicRgn&)ScanRgn);
+	PicWnd& ref = dark; *((OrgPicRgn*)&ScanRgn) = ref.Validate(rgn);
+	Ctrls.InitScanRgnCtrlsFields((OrgPicRgn&)ScanRgn);
 	dark.SetScanRgn((OrgPicRgn&)ScanRgn);
 	cupol.SetScanRgn((OrgPicRgn&)ScanRgn);
 	strips.SetScanRgn((OrgPicRgn&)ScanRgn);
@@ -178,10 +177,7 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	
-//	parent->strips.ScanLine.curL.x=Xmin/parent->scale; parent->strips.ScanLine.curR.x=Xmax/parent->scale;
-	//parent->strips.ScanLine.curL.y=parent->strips.ScanLine.curR.y=stroka/parent->scale;
-	
-//	parent->DrawScanRgn();
+	parent->SetScanRgn(GetScanRgnFromCtrls());
 	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
 	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
 
@@ -415,7 +411,7 @@ void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas, const AvaPicRgn& rgn, 
 	case DRAW: Erase( canvas ); lastMode = canvas->SetROP2(R2_NOT); last = *this; ToErase=TRUE; break;
 	case ERASE: 
 	default:		
-		lastMode = canvas->SetROP2(R2_COPYPEN); 
+		lastMode = canvas->SetROP2(R2_NOT); 
 	}	
 	canvas->MoveTo(rgn.left, rgnCenter.y); canvas->LineTo(rgn.right, rgnCenter.y); 
 	canvas->MoveTo(rgn.left + ScanLineXShift, rgn.top); canvas->LineTo(rgn.right - ScanLineXShift, rgn.top); 
@@ -681,9 +677,9 @@ ImageWnd::AvaPicRgn ImageWnd::PicWnd::Convert( const OrgPicRgn& rgn )
 	AvaPicRgn ret; 
 	if ( org.HasImage() )
 	{
-		CSize scale( ava.Rgn.Width() / org.Rgn.Width(), ava.Rgn.Height() / org.Rgn.Height() );	
-		ret.left = rgn.left * scale.cx; ret.right = rgn.right * scale.cx; 
-		ret.top = rgn.top * scale.cy; ret.bottom = rgn.bottom * scale.cy;
+		struct {double cx, cy;} scale = {(double)ava.Rgn.Width() / org.Rgn.Width(), (double)ava.Rgn.Height() / org.Rgn.Height()}; 
+		ret.left = (LONG)(rgn.left * scale.cx); ret.right = (LONG)(rgn.right * scale.cx); 
+		ret.top = (LONG)(rgn.top * scale.cy); ret.bottom = (LONG)(rgn.bottom * scale.cy);
 	}
 	return ret;
 }
@@ -716,14 +712,14 @@ void ImageWnd::CtrlsTab::OnBnClickedButton5()
 
 void ImageWnd::CtrlsTab::OnEnKillfocusEdit1() {}
 
-ImageWnd::AvaPicRgn ImageWnd::CtrlsTab::GetScanRgn()
+ImageWnd::OrgPicRgn ImageWnd::CtrlsTab::GetScanRgnFromCtrls()
 {
 	UpdateData();
-	AvaPicRgn ret; *((CRect*)&ret) = CRect( Xmin, stroka - AvrRange, Xmax, stroka + AvrRange ); 
+	OrgPicRgn ret; *((CRect*)&ret) = CRect( Xmin, stroka - AvrRange, Xmax, stroka + AvrRange ); 
 	return ret;
 }
 
-void ImageWnd::CtrlsTab::InitScanRgnFields( const OrgPicRgn& rgn)
+void ImageWnd::CtrlsTab::InitScanRgnCtrlsFields( const OrgPicRgn& rgn)
 {
 	Xmin = rgn.left; Xmax = rgn.right; AvrRange = rgn.Height()/2; stroka = rgn.CenterPoint().y;
 	UpdateData(FALSE);

@@ -22,8 +22,16 @@ public:
 
 class ImageWnd : public CWnd
 {
-	struct AvaPicRgn: public CRect {};
-	struct OrgPicRgn: public CRect {};
+	struct AvaPicRgn: public CRect 
+	{ 
+		AvaPicRgn(): CRect() {}
+		AvaPicRgn(const CRect& rgn): CRect(rgn) {}
+	};
+	struct OrgPicRgn: public CRect 
+	{
+		OrgPicRgn(): CRect() {}
+		OrgPicRgn(const CRect& rgn): CRect(rgn) {}	
+	};
 	
 	class CtrlsTab : public BarTemplate
 	{		
@@ -64,7 +72,7 @@ class ImageWnd : public CWnd
 	class PicWnd: public CWnd
 	{
 		enum ScanRgnDrawModes { DRAW, ERASE };
-		class c_ScanRgn: protected AvaPicRgn
+		class c_ScanRgn: public AvaPicRgn
 		{
 		protected:
 			BOOL ToErase; 
@@ -73,26 +81,25 @@ class ImageWnd : public CWnd
 			void Draw(BMPanvas* bmp, const AvaPicRgn& rgn, ScanRgnDrawModes mode );
 		public:
 			c_ScanRgn() { ToErase=FALSE; }
-
 			virtual void Draw(BMPanvas* Parent);
-			virtual void Erase(BMPanvas * canvas);
-			void Set(const AvaPicRgn& rgn);
+			virtual void Erase(BMPanvas * canvas);		
+			c_ScanRgn& operator= (const AvaPicRgn& rgn) { *((AvaPicRgn*)this) = rgn; return *this; }
 		};
 
 	protected:
 		CButton CaptureButton;
-		CMenu menu1;
+		CMenu menu1; c_ScanRgn ScanRgn;
 
 		AvaPicRgn Convert(const OrgPicRgn&);
 		OrgPicRgn Convert(const AvaPicRgn&);
 		BOOL IsRgnInAva( const AvaPicRgn& );	
+		CRect ValidatePicRgn( const CRect& rgn, BMPanvas& ref );
 	public:
 		BMPanvas org, ava;
 		CRect ClientArea;
 		ImageWnd* Parent;
 		CFont font1;
 		CString FileName;
-		c_ScanRgn ScanRgn;
 
 		enum {CaptureBtnID=234234};
 
@@ -103,8 +110,9 @@ class ImageWnd : public CWnd
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void EraseAva();
-		void SetScanRgn(const OrgPicRgn&);
-		OrgPicRgn Validate(const OrgPicRgn&);
+		void SetScanRgn(const OrgPicRgn& rgn);
+		OrgPicRgn ValidateOrgPicRgn(const OrgPicRgn&);
+		AvaPicRgn ValidateAvaPicRgn( const AvaPicRgn& );
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -116,18 +124,17 @@ class ImageWnd : public CWnd
 		afx_msg void OnMvButton();
 		LRESULT OnCaptureReady( WPARAM wParam, LPARAM lParam );
 		afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
-		afx_msg void OnMove(int x, int y);
+		afx_msg void OnMove(int x, int y);	
 	};
-
-	class c_ScanRgn: protected OrgPicRgn
+	
+	class c_ScanRgn: public OrgPicRgn
 	{
 	public:
-		void Draw();
-		void SetCoord(const OrgPicRgn& rgn);
-	public:
 		c_ScanRgn() {}
+		void Draw();
+		c_ScanRgn& operator= (const OrgPicRgn& rgn) { *((CRect*)this) = rgn; return *this;}
 	};
-
+	
 	DECLARE_DYNAMIC(ImageWnd)
 protected:
 	PicWnd dark, cupol, strips;
@@ -137,10 +144,9 @@ protected:
 public:
 	CtrlsTab Ctrls;
 	CaptureWnd	CameraWnd;
-public:
+
 	ImageWnd();
 	virtual ~ImageWnd();
-
 protected:
 	DECLARE_MESSAGE_MAP()
 public:

@@ -79,11 +79,12 @@ void ImageWnd::OnDestroy()
 
 void ImageWnd::SetScanRgn( const OrgPicRgn& rgn)
 {
-	PicWnd& ref = dark; *((OrgPicRgn*)&ScanRgn) = ref.Validate(rgn);
-	Ctrls.InitScanRgnCtrlsFields((OrgPicRgn&)ScanRgn);
-	dark.SetScanRgn((OrgPicRgn&)ScanRgn);
-	cupol.SetScanRgn((OrgPicRgn&)ScanRgn);
-	strips.SetScanRgn((OrgPicRgn&)ScanRgn);
+	PicWnd& ref = dark; 
+	ScanRgn = ref.ValidateOrgPicRgn(rgn);
+	Ctrls.InitScanRgnCtrlsFields(ScanRgn);
+	dark.SetScanRgn(ScanRgn);
+	cupol.SetScanRgn(ScanRgn);
+	strips.SetScanRgn(ScanRgn);
 }
 
 typedef CArray<HWND> HWNDArray;
@@ -413,7 +414,7 @@ void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas, const AvaPicRgn& rgn, 
 	default:		
 		lastMode = canvas->SetROP2(R2_NOT); 
 	}	
-	canvas->MoveTo(rgn.left, rgnCenter.y); canvas->LineTo(rgn.right, rgnCenter.y); 
+	//canvas->MoveTo(rgn.left, rgnCenter.y); canvas->LineTo(rgn.right, rgnCenter.y); 
 	canvas->MoveTo(rgn.left + ScanLineXShift, rgn.top); canvas->LineTo(rgn.right - ScanLineXShift, rgn.top); 
 	canvas->MoveTo(rgn.left + ScanLineXShift, rgn.bottom); canvas->LineTo(rgn.right - ScanLineXShift, rgn.bottom); 	
 	canvas->SetROP2(lastMode);
@@ -421,7 +422,7 @@ void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas, const AvaPicRgn& rgn, 
 
 void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	BOOL update = FALSE; AvaPicRgn tmpRgn = (AvaPicRgn&)ScanRgn; CPoint tmpRgnCntr = tmpRgn.CenterPoint();
+	BOOL update = FALSE; AvaPicRgn tmpRgn = ScanRgn; CPoint tmpRgnCntr = tmpRgn.CenterPoint();
 	if ( org.HasImage() == FALSE ) return;
 	switch( nFlags )
 	{
@@ -429,7 +430,11 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 	case MK_CONTROL: tmpRgn.OffsetRect( 0, point.y - tmpRgnCntr.y ); update=TRUE; break;
 	case 0: tmpRgn.OffsetRect( point - tmpRgnCntr ); update=TRUE; break;	
 	}
-	if ( update && IsRgnInAva( tmpRgn ) ) 	Parent->SetScanRgn( Convert(tmpRgn) );	
+	if ( update )
+	{
+		ValidateAvaPicRgn(tmpRgn);
+		Parent->SetScanRgn( Convert(tmpRgn) );	
+	}
 	CWnd::OnLButtonUp(nFlags, point);
 }
 
@@ -638,25 +643,33 @@ void ImageWnd::PicWnd::OnMove(int x, int y)
 	Parent->OnChildMove();
 }
 
-ImageWnd::OrgPicRgn ImageWnd::PicWnd::Validate( const OrgPicRgn& temprgn )
+ImageWnd::OrgPicRgn ImageWnd::PicWnd::ValidateOrgPicRgn( const OrgPicRgn& rgn )
 {
-	OrgPicRgn ret = temprgn; CRect& rgn = *((CRect*)&temprgn); CRect deflate;
-	
-	rgn.NormalizeRect();	
-	if (org.HasImage())
+	return ValidatePicRgn(rgn, org);
+}
+
+ImageWnd::AvaPicRgn ImageWnd::PicWnd::ValidateAvaPicRgn( const AvaPicRgn& rgn )
+{
+	return ValidatePicRgn(rgn, ava);
+}
+
+CRect ImageWnd::PicWnd::ValidatePicRgn( const CRect& rgn, BMPanvas& ref )
+{
+	CRect deflate, ret(rgn); ret.NormalizeRect();	
+	if (ref.HasImage())
 	{
-		deflate.left = ( org.Rgn.left > rgn.left ? (org.Rgn.left - rgn.left) : 0 );
-		deflate.right = ( org.Rgn.right < rgn.left ? -(org.Rgn.right - rgn.right) : 0 );
-		deflate.top = ( org.Rgn.top > rgn.top ? (org.Rgn.top - rgn.top) : 0 );
-		deflate.bottom = ( org.Rgn.bottom < rgn.bottom ? -(org.Rgn.bottom - rgn.bottom) : 0 );
-		rgn.DeflateRect(deflate);
+		deflate.left = ( ref.Rgn.left > rgn.left ? (ref.Rgn.left - rgn.left) : 0 );
+		deflate.right = ( ref.Rgn.right < rgn.left ? -(ref.Rgn.right - rgn.right) : 0 );
+		deflate.top = ( ref.Rgn.top > rgn.top ? (ref.Rgn.top - rgn.top) : 0 );
+		deflate.bottom = ( ref.Rgn.bottom < rgn.bottom ? -(ref.Rgn.bottom - rgn.bottom) : 0 );
+		ret.DeflateRect(deflate);
 	}
 	return ret;	
 }
 
 void ImageWnd::PicWnd::SetScanRgn( const OrgPicRgn& rgn )
 {
-	ScanRgn.Set(Convert((OrgPicRgn&)rgn));
+	ScanRgn = Convert(rgn);
 	UpdateNow(); 
 }
 
@@ -665,9 +678,9 @@ ImageWnd::OrgPicRgn ImageWnd::PicWnd::Convert( const AvaPicRgn& rgn )
 	OrgPicRgn ret; 
 	if ( ava.HasImage() )
 	{
-		CSize scale( org.Rgn.Width() / ava.Rgn.Width(), org.Rgn.Height() / ava.Rgn.Height() );	
-		ret.left = rgn.left * scale.cx; ret.right = rgn.right * scale.cx; 
-		ret.top = rgn.top * scale.cy; ret.bottom = rgn.bottom * scale.cy;
+		struct {double cx, cy;} scale = {(double)org.Rgn.Width() / ava.Rgn.Width(), (double)org.Rgn.Height() / ava.Rgn.Height()}; 
+		ret.left = (LONG)(rgn.left * scale.cx); ret.right = (LONG)(rgn.right * scale.cx); 
+		ret.top = (LONG)(rgn.top * scale.cy); ret.bottom = (LONG)(rgn.bottom * scale.cy);
 	}
 	return ret;
 }
@@ -724,17 +737,6 @@ void ImageWnd::CtrlsTab::InitScanRgnCtrlsFields( const OrgPicRgn& rgn)
 	Xmin = rgn.left; Xmax = rgn.right; AvrRange = rgn.Height()/2; stroka = rgn.CenterPoint().y;
 	UpdateData(FALSE);
 }
-
-void ImageWnd::c_ScanRgn::SetCoord( const OrgPicRgn& rgn ) 
-{ 
-	*((OrgPicRgn*)this) = rgn; 
-}
-
-void ImageWnd::PicWnd::c_ScanRgn::Set( const AvaPicRgn& rgn )
-{
-	*((AvaPicRgn*)this) = rgn;
-}
-
 
 IMPLEMENT_DYNAMIC(ImageWndCtrlsCEditInterceptor, CEdit)
 

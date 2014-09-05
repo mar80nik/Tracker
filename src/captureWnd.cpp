@@ -130,8 +130,8 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		pParent->thrd.params.thrd=&pParent->thrd;
 
 		CRect r=((CaptureWnd*)Parent)->CameraOutWnd;
-		pParent->colorBuf.Create(this,r.Width(),r.Height(),8);
-		pParent->colorBuf.CreateGrayPallete();		
+		pParent->grayscaleBuf.Create(this,r.Width(),r.Height(),8);
+		pParent->grayscaleBuf.CreateGrayPallete();		
 		pParent->truecolorBuf.Create(this,r.Width(),r.Height(),24);		
 
 		pParent->thrd.Start();	
@@ -265,8 +265,8 @@ LRESULT CaptureWnd::OnDataUpdate(WPARAM wParam, LPARAM lParam )
 
 void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::ColorTransformModes mode)
 {	
-	RGBTRIPLE *col; int i,j; BYTE *t=NULL, *bwt=NULL, *bw=NULL; int L;
-	int (*LuminosityFunc)(RGBTRIPLE& col)=NULL;
+	RGBTRIPLE *colorCurrentPoint; int i,j; BYTE *colorLineBegin=NULL, *bwCurrentPoint=NULL, *bwLineBegin=NULL;
+	int (*LuminosityFunc)(RGBTRIPLE&)=NULL;
 	
 	switch(mode)
 	{
@@ -276,17 +276,16 @@ void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::Co
 	}
 	if(LuminosityFunc==NULL) return;
 
-	color->LoadBitmapArray(); t=bw=color->arr;
+	color->LoadBitmapArray(); colorLineBegin=bwLineBegin=color->arr;
 	for(i=0;i<color->h;i++)
 	{
-		col=(RGBTRIPLE *)t; bwt=bw;
+		colorCurrentPoint=(RGBTRIPLE *)colorLineBegin; bwCurrentPoint=bwLineBegin;
 		for(j=0;j<color->w;j++)
 		{
-			L=LuminosityFunc(*col);
-			*bwt=L;
-			col++; bwt++;
+			(*bwCurrentPoint) = LuminosityFunc(*colorCurrentPoint);
+			colorCurrentPoint++; bwCurrentPoint++;
 		}
-		t+=color->wbyte; bw+=grayscale->wbyte;
+		colorLineBegin += color->wbyte; bwLineBegin += grayscale->wbyte;
 	}
 	grayscale->SetBitmapArray(BMPanvas::MIN_SCANLINE,BMPanvas::MAX_SCANLINE,color->arr);
 	color->UnloadBitmapArray();
@@ -321,7 +320,7 @@ void CaptureWnd::OnPaint()
 	CPaintDC dc(this); Ctrls.UpdateData();
 	CRect tr; GetClientRect(&tr); HDC hdc=dc.GetSafeHdc();
 	
-    if(colorBuf.GetDC()==NULL) return;
+    if(grayscaleBuf.GetDC()==NULL) return;
 	void* x,* xx; CString T; sec dt1; MyTimer Timer2;
 	if((x=Pbuf.GainAcsess(READ))!=NULL)
 	{
@@ -330,7 +329,7 @@ void CaptureWnd::OnPaint()
 		BMPanvas* tbuf=&buf;
 		dt1=Timer1.StopStart();		
 
-		CRect rgn1=buf.Rgn, rgn2=colorBuf.Rgn, trgn;
+		CRect rgn1=buf.Rgn, rgn2=grayscaleBuf.Rgn, trgn;
 		double r1=(double)rgn1.Width()/rgn2.Width(), r2=(double)rgn1.Height()/rgn2.Height(), r;
 		r=(r1>r2 ? r1:r2);
 		if(r>1) rgn1=CRect(0,0,(int)(rgn1.Width()/r),(int)(rgn1.Height()/r));
@@ -349,8 +348,8 @@ void CaptureWnd::OnPaint()
 
 		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor)
 		{
-			ColorTransform(tbuf, &colorBuf, Ctrls.ColorTransformSelector);
-			tbuf=&colorBuf;
+			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector);
+			tbuf=&grayscaleBuf;
 
 			CaptureRequestStack::Item request;
 			while(Stack >> request)
@@ -360,7 +359,7 @@ void CaptureWnd::OnPaint()
 					request.buf->Create(buf.GetDC(),buf.w,buf.h,8);
 					request.buf->CreateGrayPallete();
 				}
-				//buf.CopyTo(request.buf,TOP_LEFT);
+				buf.CopyTo(request.buf,TOP_LEFT);
 				ColorTransform(&buf, request.buf, Ctrls.ColorTransformSelector);
 				request.sender->PostMessage(UM_CAPTURE_READY,0,0);
 			}
@@ -379,9 +378,9 @@ void CaptureWnd::OnPaint()
 		T.Format("%d eqv fps = %g",cntr++,(1./dt1.val()));  tbuf->TextOut(TextOutput.x,TextOutput.y+40,T);
 		tbuf->SelectObject(tf);
 		
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) colorBuf.SetPallete(pal); 
+		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
 		tbuf->CopyTo(hdc,TOP_LEFT);
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) colorBuf.CreateGrayPallete();
+		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
 	else ASSERT(0);
 }

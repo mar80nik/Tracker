@@ -304,7 +304,7 @@ BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_DROPFILES()
 	ON_WM_LBUTTONUP()
 	ON_WM_RBUTTONUP()
-	ON_COMMAND(CaptureBtnID, OnMvButton)
+	ON_COMMAND(CaptureBtnID, OnCaptureButton)
 	ON_MESSAGE(UM_CAPTURE_READY,OnCaptureReady)
 	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
@@ -458,7 +458,7 @@ BOOL ImageWnd::PicWnd::IsRgnInAva( const AvaPicRgn& rgn)
 }
 
 
-void ImageWnd::PicWnd::OnMvButton()
+void ImageWnd::PicWnd::OnCaptureButton()
 {
 	CaptureButton.EnableWindow(FALSE);
     Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)this, (LPARAM)&org);

@@ -360,7 +360,7 @@ void CaptureWnd::OnPaint()
 					request.buf->Create(buf.GetDC(),buf.w,buf.h,8);
 					request.buf->CreateGrayPallete();
 				}
-				//buf.CopyTo(request.buf,TOP_LEFT);
+				buf.CopyTo(request.buf,TOP_LEFT);
 				ColorTransform(&buf, request.buf, Ctrls.ColorTransformSelector);
 				request.sender->PostMessage(UM_CAPTURE_READY,0,0);
 			}

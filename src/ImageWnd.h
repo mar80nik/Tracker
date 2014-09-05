@@ -121,7 +121,7 @@ class ImageWnd : public CWnd
 		afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 		afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 		afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
-		afx_msg void OnMvButton();
+		afx_msg void OnCaptureButton();
 		LRESULT OnCaptureReady( WPARAM wParam, LPARAM lParam );
 		afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 		afx_msg void OnMove(int x, int y);	

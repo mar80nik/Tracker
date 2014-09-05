@@ -7,8 +7,6 @@
 
 #define SET_RGBQUAD(a,r,g,b) {a.rgbBlue=b; a.rgbGreen=g; a.rgbRed=r;}
 
-
-
 class CaptureWndCtrlsTab : public BarTemplate
 {		
 protected:	
@@ -64,6 +62,8 @@ public:
 	ColorTransformModes ColorTransformSelector;
 };
 
+void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::ColorTransformModes mode);
+
 class CaptureRequestStack
 {
 public:
@@ -103,7 +103,7 @@ protected:
 	CPen penRed,penBlue,penGreen;
     
 	ProtectedBMPanvas Pbuf,LevelsScanBuf;
-	BMPanvas colorBuf, truecolorBuf;
+	BMPanvas grayscaleBuf, truecolorBuf;
 	RGBQUAD pal[256];
 	CaptureRequestStack Stack;
 	CRect CameraOutWnd, LevelsScanWnd;

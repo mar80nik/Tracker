@@ -84,7 +84,6 @@ public:
 	CFont font1;
 	CString FileName;
 	PicWndScanLine ScanLine;
-
 enum {CaptureBtnID=234234};
 
 	ImageWndPicWnd();
@@ -107,6 +106,7 @@ enum {CaptureBtnID=234234};
 	void OnPicWndSave();
 	void EraseAva();
 	afx_msg void OnMove(int x, int y);
+	void ConvertOrgToGrayscale();
 };
 
 class ImageWnd : public CWnd

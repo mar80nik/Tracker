@@ -10,6 +10,8 @@
 //#include "monochromator.h"
 #include "metricon.h"
 #include "my_color.h"
+#include "captureWnd.h"
+#include "BMPanvas.h"
 
 // ImageWnd
 
@@ -52,13 +54,13 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
 #ifdef DEBUG
-	// 	dark.LoadPic(CString("exe\\dark.png"));
-	// 	cupol.LoadPic(CString("exe\\cupol.png"));
-	// 	strips.LoadPic(CString("exe\\strips.png"));
+	 	dark.LoadPic(CString("exe\\dark.bmp"));
+	 	cupol.LoadPic(CString("exe\\cupol.bmp"));
+	 	strips.LoadPic(CString("exe\\strips.bmp"));
 
-	dark.LoadPic(CString("exe\\test1.png"));
-	cupol.LoadPic(CString("exe\\test2.png"));
-	strips.LoadPic(CString("exe\\test3.png"));
+//	dark.LoadPic(CString("exe\\test1.png"));
+//	cupol.LoadPic(CString("exe\\test2.png"));
+//	strips.LoadPic(CString("exe\\test3.png"));
 #endif
 	Ctrls.Parent=this;
 
@@ -358,6 +360,19 @@ void ImageWndPicWnd::LoadPic(CString T)
 {
 	if(org.LoadImage(T)==S_OK)
 	{
+		Parent->CameraWnd.Ctrls.UpdateData();			
+		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWndCtrlsTab::TrueColor)
+		{
+			LogMessage *log=new LogMessage(); 
+			log->CreateEntry("Error","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			
+			log->CreateEntry("*****","In order to use bult-in convertor please select",LogMessage::high_pr);			
+			log->CreateEntry("*****","convert method: NativeGDI, HSL or HSV.",LogMessage::high_pr);			
+			CKSVU3App* Parent=(CKSVU3App*)AfxGetApp();
+			Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);
+			return;
+		}
+
+		if (org.ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
 		FileName=T;
 		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
 		org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
@@ -653,6 +668,15 @@ void ImageWndPicWnd::OnMove(int x, int y)
 	CWnd::OnMove(x, y);	
 	RedrawWindow(0,0,RDW_FRAME | RDW_INVALIDATE);
 	Parent->OnChildMove();
+}
+
+void ImageWndPicWnd::ConvertOrgToGrayscale()
+{
+	BMPanvas temp_replica; 
+	temp_replica.Create(&org, org.Rgn); org.CopyTo(&temp_replica, TOP_LEFT);
+	org.Destroy(); org.Create(this,temp_replica.w,temp_replica.h,8);
+	org.CreateGrayPallete(); Parent->CameraWnd.Ctrls.UpdateData();			
+	ColorTransform(&temp_replica, &org, Parent->CameraWnd.Ctrls.ColorTransformSelector);
 }
 
 

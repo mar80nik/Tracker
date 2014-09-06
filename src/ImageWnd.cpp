@@ -391,7 +391,7 @@ void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 	CWnd::OnDropFiles(hDropInfo);
 }
 
-#define ScanLineXShift 20
+#define ScanLineXShift 0
 void ImageWnd::PicWnd::c_ScanRgn::Draw( BMPanvas* canvas )
 {
 	Draw( canvas, *this, DRAW ); 
@@ -432,8 +432,7 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 	if ( update )
 	{
-		ValidateAvaPicRgn(tmpRgn);
-		Parent->SetScanRgn( Convert(tmpRgn) );	
+		Parent->SetScanRgn( Convert(ValidateAvaPicRgn(tmpRgn)) );	
 	}
 	CWnd::OnLButtonUp(nFlags, point);
 }
@@ -447,8 +446,14 @@ void ImageWnd::PicWnd::OnRButtonUp(UINT nFlags, CPoint point)
 	case MK_SHIFT: tmpRgn.right = point.x; update=TRUE; break;
 	default: ;
 	}
-	if ( update && IsRgnInAva( tmpRgn ) ) 	Parent->SetScanRgn( Convert(tmpRgn) );	
-	CWnd::OnRButtonUp(nFlags, point);
+	if (update && IsRgnInAva(tmpRgn))
+	{
+		Parent->SetScanRgn( Convert(tmpRgn) );	
+	}
+	else
+	{
+		CWnd::OnRButtonUp(nFlags, point);
+	}	
 }
 
 BOOL ImageWnd::PicWnd::IsRgnInAva( const AvaPicRgn& rgn)
@@ -655,14 +660,35 @@ ImageWnd::AvaPicRgn ImageWnd::PicWnd::ValidateAvaPicRgn( const AvaPicRgn& rgn )
 
 CRect ImageWnd::PicWnd::ValidatePicRgn( const CRect& rgn, BMPanvas& ref )
 {
-	CRect deflate, ret(rgn); ret.NormalizeRect();	
+	CRect ret(rgn); ret.NormalizeRect(); CSize offset; int diff; BOOL update = false;
 	if (ref.HasImage())
-	{
-		deflate.left = ( ref.Rgn.left > rgn.left ? (ref.Rgn.left - rgn.left) : 0 );
-		deflate.right = ( ref.Rgn.right < rgn.left ? -(ref.Rgn.right - rgn.right) : 0 );
-		deflate.top = ( ref.Rgn.top > rgn.top ? (ref.Rgn.top - rgn.top) : 0 );
-		deflate.bottom = ( ref.Rgn.bottom < rgn.bottom ? -(ref.Rgn.bottom - rgn.bottom) : 0 );
-		ret.DeflateRect(deflate);
+	{		
+		if (rgn.Width() > ref.Rgn.Width())
+		{
+			ret.left = ref.Rgn.left; ret.right = ref.Rgn.right;
+		}
+		else
+		{
+			if ((diff = ref.Rgn.left - ret.left) > 0 || (diff = ref.Rgn.right - ret.right) < 0)
+			{
+				offset.cx = diff; update = true;
+			}			
+		}
+		if (rgn.Height() > ref.Rgn.Height())
+		{
+			ret.top = ref.Rgn.top; ret.bottom = ref.Rgn.bottom;
+		} 
+		else
+		{
+			if ((diff = ref.Rgn.top - ret.top) > 0 || (diff = ref.Rgn.bottom - ret.bottom) < 0)
+			{
+				offset.cy = diff; update = true;
+			}			
+		}
+		if (update)
+		{
+			ret.OffsetRect(offset);
+		}						
 	}
 	return ret;	
 }

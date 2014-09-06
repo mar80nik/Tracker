@@ -7,13 +7,14 @@
 #include "afxwin.h"
 
 enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_READY};
+enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
-class ImageWndCtrlsCEditInterceptor : public CEdit
+class CEditInterceptor : public CEdit
 {
-	DECLARE_DYNAMIC(ImageWndCtrlsCEditInterceptor)
+	DECLARE_DYNAMIC(CEditInterceptor)
 public:
-	ImageWndCtrlsCEditInterceptor() {};
-	virtual ~ImageWndCtrlsCEditInterceptor() {};
+	CEditInterceptor() {};
+	virtual ~CEditInterceptor() {};
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
@@ -43,6 +44,7 @@ class ImageWnd : public CWnd
 		CalibratorDialog CalibratorDlg;
 		CalcTEDialog	CalcTEDlg, CalcTMDlg;
 		int stroka, AvrRange, Xmin, Xmax;
+		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
 
 		CtrlsTab(CWnd* pParent = NULL);  
 		OrgPicRgn GetScanRgnFromCtrls();
@@ -62,11 +64,8 @@ class ImageWnd : public CWnd
 		afx_msg void OnBnClickedCalcTE();
 		afx_msg void OnBnClickedButton5();
 		afx_msg void OnEnKillfocusEdit1();
-		afx_msg void OnBnClickedCalcTM();
-	
-//		virtual BOOL OnInitDialog();
-
-		ImageWndCtrlsCEditInterceptor XminCtrl;
+		afx_msg void OnBnClickedCalcTM();		
+		LRESULT OnButtonIntercepted(WPARAM wParam, LPARAM lParam );
 	};
 
 	class PicWnd: public CWnd

@@ -50,13 +50,13 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
 		
-#define TEST1
+#define TEST2
 #ifdef DEBUG
-	#ifdef TEST1
+	#if defined TEST1
 	 	dark.LoadPic(CString("exe\\dark.png"));
 	 	cupol.LoadPic(CString("exe\\cupol.png"));
 	 	strips.LoadPic(CString("exe\\strips.png"));
-	#elif TEST2
+	#elif defined TEST2
 		dark.LoadPic(CString("exe\\test1.png"));
 		cupol.LoadPic(CString("exe\\test2.png"));
 		strips.LoadPic(CString("exe\\test3.png"));
@@ -142,6 +142,7 @@ BEGIN_MESSAGE_MAP(ImageWnd::CtrlsTab, BarTemplate)
 	//}}AFX_MSG_MAP	
 	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)
 	ON_BN_CLICKED(IDC_BUTTON11, &ImageWnd::CtrlsTab::OnBnClickedCalcTM)
+	ON_MESSAGE(UM_BUTTON_ITERCEPTED,&ImageWnd::CtrlsTab::OnButtonIntercepted)
 END_MESSAGE_MAP()
 
 BOOL ImageWnd::CtrlsTab::OnInitDialog() 
@@ -167,11 +168,15 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(DialogBarTab1)
 	DDX_Text(pDX, IDC_EDIT1, stroka);
 	DDX_Text(pDX, IDC_EDIT2, AvrRange);
-	DDV_MinMaxInt(pDX, AvrRange, 1, 1000);
 	DDX_Text(pDX, IDC_EDIT3, Xmin);
 	DDX_Text(pDX, IDC_EDIT4, Xmax);
+	DDV_MinMaxInt(pDX, AvrRange, 1, 1000);
+	DDX_Control(pDX, IDC_EDIT3, XminCtrl);
+	DDX_Control(pDX, IDC_EDIT4, XmaxCtrl);
+	DDX_Control(pDX, IDC_EDIT1, strokaCtrl);
+	DDX_Control(pDX, IDC_EDIT2, AvrRangeCtrl);
 	//}}AFX_DATA_MAP
-//	DDX_Control(pDX, IDC_EDIT1, XminCtrl);
+
 }
 
 void ImageWnd::CtrlsTab::OnBnClickedScan()
@@ -680,7 +685,9 @@ CRect ImageWnd::PicWnd::ValidatePicRgn( const CRect& rgn, BMPanvas& ref )
 		} 
 		else
 		{
-			if ((diff = ref.Rgn.top - ret.top) > 0 || (diff = ref.Rgn.bottom - ret.bottom) < 0)
+			//ref.Rgn.bottom - 1	in order not to cross the bottom border on scanline
+			//ref.Rgn.top + 1		in order not to reduce ScanRgn height when it is moved above top border 
+			if ((diff = ref.Rgn.top + 1 - ret.top) > 0 || (diff = ref.Rgn.bottom -1 - ret.bottom) < 0)
 			{
 				offset.cy = diff; update = true;
 			}			
@@ -764,15 +771,30 @@ void ImageWnd::CtrlsTab::InitScanRgnCtrlsFields( const OrgPicRgn& rgn)
 	UpdateData(FALSE);
 }
 
-IMPLEMENT_DYNAMIC(ImageWndCtrlsCEditInterceptor, CEdit)
+LRESULT ImageWnd::CtrlsTab::OnButtonIntercepted( WPARAM wParam, LPARAM lParam )
+{
+	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
+	parent->SetScanRgn(GetScanRgnFromCtrls());
+	return NULL;
+}
 
-BEGIN_MESSAGE_MAP(ImageWndCtrlsCEditInterceptor, CEdit)
+IMPLEMENT_DYNAMIC(CEditInterceptor, CEdit)
+
+BEGIN_MESSAGE_MAP(CEditInterceptor, CEdit)
 	ON_WM_CHAR()
 END_MESSAGE_MAP()
 
 
-void ImageWndCtrlsCEditInterceptor::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
+void CEditInterceptor::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-	CEdit::OnChar(nChar, nRepCnt, nFlags);
+	if (nChar == 13)
+	{
+		CWnd * parent = GetParent();
+		parent->PostMessage(UM_BUTTON_ITERCEPTED, nChar, 0);		
+	}
+	else
+	{
+		CEdit::OnChar(nChar, nRepCnt, nFlags);
+	}
 }
 

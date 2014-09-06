@@ -43,7 +43,7 @@ END_MESSAGE_MAP()
 // CaptureWnd message handlers
 
 
-BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, BarTemplate)
+BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, CDialog)
 	//{{AFX_MSG_MAP(DialogBarTab1)
 	//}}AFX_MSG_MAP	
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Capture)
@@ -440,7 +440,7 @@ LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
 }
 void CaptureWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
 {
-	BarTemplate::DoDataExchange(pDX);
+	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(DialogBarTab1)
 	DDX_Control(pDX, IDC_BUTTON1, BtnCapture);
 	DDX_Control(pDX, IDC_BUTTON2, BtnStop);

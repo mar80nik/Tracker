@@ -7,11 +7,12 @@
 
 #define SET_RGBQUAD(a,r,g,b) {a.rgbBlue=b; a.rgbGreen=g; a.rgbRed=r;}
 
-class CaptureWndCtrlsTab : public BarTemplate
+class CaptureWndCtrlsTab : public CDialog
 {		
 protected:	
 	CString Name;	
 public:
+	CWnd* Parent;
 	enum ColorTransformModes {TrueColor, NativeGDI, HSL, HSV};
 	CameraChooser Chooser;
 

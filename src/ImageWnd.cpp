@@ -54,6 +54,8 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
  	fiber.LoadPic(CString("exe\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
+	SetMarker(OrgPoint(CPoint(100, 100)), BGN);
+	SetMarker(OrgPoint(CPoint(300, 300)), END);
 
 	return 0;
 }
@@ -253,9 +255,45 @@ void ImageWnd::PicWnd::OnPaint()
 	HDC hdc=dc.GetSafeHdc();
 	if(org.HasImage())
 	{
-		
+		MarkerAvaBGN.Draw(&ava);
+		MarkerAvaEND.Draw(&ava);			
 	}
 	ava.CopyTo(hdc,TOP_LEFT);
+}
+
+void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas )
+{
+	Draw( canvas, *this, DRAW ); 
+}
+
+void ImageWnd::PicWnd::AvaMarker::Erase( BMPanvas * canvas )
+{
+	if (canvas == NULL)
+	{
+		ToErase = FALSE;
+	}
+	else
+	{
+		if ( ToErase == TRUE ) Draw( canvas, last, ERASE );
+		ToErase = FALSE;
+	}
+}
+
+#define CrossWidth 10
+void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const AvaPoint& pnt, DrawModes mode )
+{
+	int lastMode;
+	if ( canvas == NULL) return;
+	switch ( mode)
+	{
+	case DRAW: Erase( canvas ); lastMode = canvas->SetROP2(R2_NOT); last = *this; ToErase=TRUE; break;
+	case ERASE: 
+	default:		
+		lastMode = canvas->SetROP2(R2_NOT); 
+	}	
+	canvas->MoveTo(pnt.x - CrossWidth, pnt.y); canvas->LineTo(pnt.x+CrossWidth, pnt.y); 
+	canvas->MoveTo(pnt.x, pnt.y - CrossWidth); canvas->LineTo(pnt.x, pnt.y + CrossWidth); 
+	canvas->SetROP2(lastMode);
 }
 
 void ImageWnd::PicWnd::UpdateNow(void)
@@ -512,6 +550,18 @@ BOOL ImageWnd::OnEraseBkgnd(CDC* pDC)
 	return CWnd::OnEraseBkgnd(pDC);
 }
 
+void ImageWnd::SetMarker( const OrgPoint& mark, MarkerNames pos )
+{
+	if (fiber.org.HasImage())
+	{
+		switch (pos)
+		{
+		case BGN: MarkerBGN = fiber.ValidatePnt(mark); fiber.SetMarker(fiber.Convert(MarkerBGN), BGN); break;
+		case END: MarkerEND = fiber.ValidatePnt(mark); fiber.SetMarker(fiber.Convert(MarkerEND), END);break;
+		}
+	}
+}
+
 void ImageWnd::PicWnd::OnMove(int x, int y)
 {	
 	CRect r,r1,r2; GetWindowRect(&r);
@@ -540,6 +590,53 @@ void ImageWnd::PicWnd::ConvertOrgToGrayscale()
 	org.Destroy(); org.Create(this,temp_replica.w,temp_replica.h,8);
 	org.CreateGrayPallete(); Parent->CameraWnd.Ctrls.UpdateData();			
 	ColorTransform(&temp_replica, &org, Parent->CameraWnd.Ctrls.ColorTransformSelector);
+}
+
+void ImageWnd::PicWnd::SetMarker( const AvaPoint& mark, MarkerNames pos )
+{
+	if (org.HasImage())
+	{
+		switch (pos)
+		{
+		case BGN: MarkerAvaBGN = ValidatePnt(mark); break;
+		case END: MarkerAvaEND = ValidatePnt(mark); break;
+		}
+	}	
+}
+
+ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt)
+{
+	OrgPoint ret = pnt;
+	if (org.HasImage())
+	{
+		if (ret.x < 0) ret.x = 0;
+		if (ret.x >= org.w)	 ret.x = org.w - 1;
+		if (ret.y < 0) ret.y = 0;
+		if (ret.y >= org.h)	 ret.y = org.h - 1;
+	}
+	return ret;	
+}
+
+ImageWnd::OrgPoint ImageWnd::PicWnd::Convert( const AvaPoint& pnt)
+{
+	OrgPoint ret; 
+	if ( ava.HasImage() )
+	{
+		struct {double cx, cy;} scale = {(double)org.Rgn.Width() / ava.Rgn.Width(), (double)org.Rgn.Height() / ava.Rgn.Height()}; 
+		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy);
+	}
+	return ret;
+}
+
+ImageWnd::AvaPoint ImageWnd::PicWnd::Convert( const OrgPoint& pnt)
+{
+	AvaPoint ret; 
+	if ( org.HasImage() )
+	{
+		struct {double cx, cy;} scale = {(double)ava.Rgn.Width() / org.Rgn.Width(), (double)ava.Rgn.Height() / org.Rgn.Height()}; 
+		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy); 
+	}
+	return ret;
 }
 
 BOOL ImageWnd::CtrlsTab::DestroyWindow()

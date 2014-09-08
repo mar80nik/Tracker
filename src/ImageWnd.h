@@ -23,6 +23,20 @@ public:
 
 class ImageWnd : public CWnd
 {
+	struct AvaPoint: public CPoint 
+	{ 
+		AvaPoint(): CPoint() {}
+		AvaPoint(const CPoint& pnt): CPoint(pnt) {}
+	};
+	struct OrgPoint: public CPoint
+	{
+		OrgPoint(): CPoint() {}
+		OrgPoint(const CPoint& pnt): CPoint(pnt) {}	
+	};
+
+	enum DrawModes { DRAW, ERASE };
+	enum MarkerNames { BGN, END};
+
 	class CtrlsTab : public BarTemplate
 	{		
 	protected:	
@@ -57,13 +71,25 @@ class ImageWnd : public CWnd
 
 	class PicWnd: public CWnd
 	{
-		enum ScanRgnDrawModes { DRAW, ERASE };
+	public:
+		class AvaMarker: public AvaPoint
+		{
+		protected:
+			BOOL ToErase; 
+			AvaPoint last;
+
+			void Draw(BMPanvas* bmp, const AvaPoint& rgn, DrawModes mode );
+		public:
+			AvaMarker() { ToErase=FALSE; }
+			virtual void Draw(BMPanvas* Parent);
+			virtual void Erase(BMPanvas * canvas);		
+			AvaMarker& operator= (const AvaPoint& pnt) { *((AvaPoint*)this) = pnt; return *this; }
+		};
 
 	protected:
 		CButton CaptureButton;
-		CMenu menu1; 
-
-		CRect ValidatePicRgn( const CRect& rgn, BMPanvas& ref );
+		CMenu menu1; AvaMarker MarkerAvaBGN, MarkerAvaEND;
+				
 	public:
 		BMPanvas org, ava;
 		CRect ClientArea;
@@ -79,6 +105,10 @@ class ImageWnd : public CWnd
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void EraseAva();
+		void SetMarker(const AvaPoint& mark, MarkerNames pos);
+		AvaPoint Convert(const OrgPoint&);
+		OrgPoint Convert(const AvaPoint&);
+		OrgPoint ValidatePnt( const OrgPoint& rgn);
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -97,7 +127,7 @@ class ImageWnd : public CWnd
 	DECLARE_DYNAMIC(ImageWnd)
 protected:
 	PicWnd fiber;
-    int scale;	
+    int scale;	OrgPoint MarkerBGN, MarkerEND;
 	CScrollBar VertScroll;
 public:
 	CtrlsTab Ctrls;
@@ -110,6 +140,7 @@ protected:
 public:
 	void OnChildMove();
 	void * GetChartFromParent();
+	void SetMarker(const OrgPoint& mark, MarkerNames pos);
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);	

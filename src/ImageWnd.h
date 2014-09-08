@@ -23,17 +23,6 @@ public:
 
 class ImageWnd : public CWnd
 {
-	struct AvaPicRgn: public CRect 
-	{ 
-		AvaPicRgn(): CRect() {}
-		AvaPicRgn(const CRect& rgn): CRect(rgn) {}
-	};
-	struct OrgPicRgn: public CRect 
-	{
-		OrgPicRgn(): CRect() {}
-		OrgPicRgn(const CRect& rgn): CRect(rgn) {}	
-	};
-	
 	class CtrlsTab : public BarTemplate
 	{		
 	protected:	
@@ -47,8 +36,6 @@ class ImageWnd : public CWnd
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
 
 		CtrlsTab(CWnd* pParent = NULL);  
-		OrgPicRgn GetScanRgnFromCtrls();
-		void InitScanRgnCtrlsFields(const OrgPicRgn&);
 	protected:
 		virtual void DoDataExchange(CDataExchange* pDX);   
 	protected:
@@ -71,28 +58,11 @@ class ImageWnd : public CWnd
 	class PicWnd: public CWnd
 	{
 		enum ScanRgnDrawModes { DRAW, ERASE };
-		class c_ScanRgn: public AvaPicRgn
-		{
-		protected:
-			BOOL ToErase; 
-			AvaPicRgn last;
-	CPoint curL, curR;
-
-			void Draw(BMPanvas* bmp, const AvaPicRgn& rgn, ScanRgnDrawModes mode );
-		public:
-			c_ScanRgn() { ToErase=FALSE; }
-			virtual void Draw(BMPanvas* Parent);
-			virtual void Erase(BMPanvas * canvas);		
-			c_ScanRgn& operator= (const AvaPicRgn& rgn) { *((AvaPicRgn*)this) = rgn; return *this; }
-		};
 
 	protected:
 		CButton CaptureButton;
-		CMenu menu1; c_ScanRgn ScanRgn;
+		CMenu menu1; 
 
-		AvaPicRgn Convert(const OrgPicRgn&);
-		OrgPicRgn Convert(const AvaPicRgn&);
-		BOOL IsRgnInAva( const AvaPicRgn& );	
 		CRect ValidatePicRgn( const CRect& rgn, BMPanvas& ref );
 	public:
 		BMPanvas org, ava;
@@ -109,9 +79,6 @@ class ImageWnd : public CWnd
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void EraseAva();
-		void SetScanRgn(const OrgPicRgn& rgn);
-		OrgPicRgn ValidateOrgPicRgn(const OrgPicRgn&);
-		AvaPicRgn ValidateAvaPicRgn( const AvaPicRgn& );
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -127,20 +94,11 @@ class ImageWnd : public CWnd
 		void ConvertOrgToGrayscale();
 	};
 	
-	class c_ScanRgn: public OrgPicRgn
-	{
-	public:
-		c_ScanRgn() {}
-		void Draw();
-		c_ScanRgn& operator= (const OrgPicRgn& rgn) { *((CRect*)this) = rgn; return *this;}
-	};
-	
 	DECLARE_DYNAMIC(ImageWnd)
 protected:
-	PicWnd dark, cupol, strips;
+	PicWnd fiber;
     int scale;	
 	CScrollBar VertScroll;
-	c_ScanRgn ScanRgn;
 public:
 	CtrlsTab Ctrls;
 	CaptureWnd	CameraWnd;
@@ -151,7 +109,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	void OnChildMove();
-	void SetScanRgn(const OrgPicRgn&);
 	void * GetChartFromParent();
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);

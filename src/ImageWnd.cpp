@@ -13,8 +13,6 @@
 #include "captureWnd.h"
 #include "BMPanvas.h"
 
-// ImageWnd
-
 IMPLEMENT_DYNAMIC(ImageWnd, CWnd)
 ImageWnd::ImageWnd()
 {
@@ -54,8 +52,8 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
  	fiber.LoadPic(CString("exe\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
-	SetMarker(OrgPoint(CPoint(100, 100)), BGN);
-	SetMarker(OrgPoint(CPoint(300, 300)), END);
+	SetMarker(OrgPoint(CPoint(282, 243)), BGN);
+	SetMarker(OrgPoint(CPoint(507, 784)), END);
 
 	return 0;
 }
@@ -159,11 +157,40 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 
 }
 
+void Interpolate(CPoint Beg, CPoint End, double dr, BYTE *arr, int wbyte, SimplePointArray* Points)
+{
+	int x1, y1, z1, z2, z3; double z, r, cosfi, sinfi, dx, dy; int A, B, D, N; 
+	SimplePoint pnt; pnt.type.Set(GenericPnt); 
+	double rmax = sqrt((double)(End.x - Beg.x)*(End.x - Beg.x) + (End.y - Beg.y)*(End.y - Beg.y));
+	cosfi = (End.x - Beg.x)/rmax; sinfi = (End.y - Beg.y)/rmax;
+	N = (int)(1 + rmax/dr); dx = dr*cosfi; dy = dr*sinfi; r = 0.; pnt.x = Beg.x; pnt.y = Beg.y;
+
+	for (int i = 0; i < N; i++)
+	{
+		x1 = (int)pnt.x; y1 = (int)pnt.y; 
+		z1 = arr[y1*wbyte + x1]; z3 = arr[(y1 + 1)*wbyte + (x1 + 1)];
+		if ((double)(pnt.x - x1 + pnt.y - y1) > 1.)
+		{
+			z2 = arr[y1*wbyte + (x1 + 1)];
+			A = z1 - z2; B = z2 - z3;
+		}
+		else
+		{
+			z2 = arr[(y1 + 1)*wbyte + x1];
+			A = z2 - z3; B = z1 - z2;
+		}
+		D = -z1 - x1*A - y1*B; z = -D - A*pnt.x - B*pnt.y;
+		Points->Add(pnt);	
+		r += dr; pnt.x += dx; pnt.y += dy;
+	}
+}
+
 void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent; void* x; CString T,T1;
-	MyTimer Timer1,Timer2; sec time; CString logT; TPointVsErrorSeries *t2;
-	TPointVsErrorSeries::DataImportMsg *ChartMsg; 
+	MyTimer Timer1,Timer2; sec time; CString logT; TSimplePointSeries *t2;
+	TSimplePointSeries::DataImportMsg *ChartMsg; int Xmin, Xmax, Ymin, Ymax;
+	BYTE *fiber;
 	
 	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
 	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
@@ -178,22 +205,58 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 	if((x=chrt.Series.GainAcsess(WRITE))!=0)
 	{
 		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-		if((t2=new TPointVsErrorSeries(T))!=0)	
+		if((t2=new TSimplePointSeries(T))!=0)	
 		{
 			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
 			Series.Add(t2); 
 			t2->_SymbolStyle::Set(NO_SYMBOL); 
-			ChartMsg=t2->CreateDataImportMsg(); 
+			ChartMsg = t2->CreateDataImportMsg(); 
 			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
 			t2->PointType.Set(GenericPnt); 
 			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
 		}		
 	}
-	
-    Timer1.Start();	parent->fiber.org.LoadBitmapArray(); Timer1.Stop(); time=Timer1.GetValue();
-	
+
+	Xmin = parent->MarkerBGN.x - CrossWidth; Xmax = parent->MarkerBGN.x + CrossWidth;
+	Ymin = parent->MarkerBGN.y - CrossWidth; Ymax = parent->MarkerBGN.y + CrossWidth;
+
+    Timer1.Start();	parent->fiber.org.LoadBitmapArray(); 
+	Timer1.Stop(); time=Timer1.GetValue();
+	logT.Format("D C S %d lines load = %s", Xmax - Xmin + 1,ConvTimeToStr(time)); log->Msgs.Add(logT);
+	fiber = parent->fiber.org.arr;
+
+	Timer1.Start();	
+	Interpolate(CPoint(parent->MarkerBGN.x, parent->MarkerBGN.y - CrossWidth), 
+				CPoint(parent->MarkerBGN.x, parent->MarkerBGN.y + CrossWidth), 1.0, 
+				parent->fiber.org.arr, parent->fiber.org.wbyte, &ChartMsg->Points);
+	Timer1.Stop(); 
+	logT.Format("Interpolating %d lines time=%s", ChartMsg->Points.GetSize(), ConvTimeToStr(Timer1.GetValue())); log->Msgs.Add(logT);
+	ChartMsg->Dispatch();
+
+	if((x=chrt.Series.GainAcsess(WRITE))!=0)
+	{
+		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+		if((t2=new TSimplePointSeries(T))!=0)	
+		{
+			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+			Series.Add(t2); 
+			t2->_SymbolStyle::Set(NO_SYMBOL); 
+			ChartMsg = t2->CreateDataImportMsg(); 
+			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+			t2->PointType.Set(GenericPnt); 
+			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+		}		
+	}
+
+	Timer1.Start();
+	Interpolate(CPoint(parent->MarkerBGN.x - CrossWidth, parent->MarkerBGN.y), 
+		CPoint(parent->MarkerBGN.x + CrossWidth, parent->MarkerBGN.y), 1.0, 
+		parent->fiber.org.arr, parent->fiber.org.wbyte, &ChartMsg->Points);
+	Timer1.Stop(); 
+	logT.Format("Interpolating %d lines time=%s", ChartMsg->Points.GetSize(), ConvTimeToStr(Timer1.GetValue())); log->Msgs.Add(logT);
+	ChartMsg->Dispatch();
+
 	parent->fiber.org.UnloadBitmapArray();
-	
 	Timer2.Stop(); time=Timer2.GetValue();
 	logT.Format("Total processing time=%s",ConvTimeToStr(time)); log->Msgs.Add(logT);
 
@@ -279,7 +342,6 @@ void ImageWnd::PicWnd::AvaMarker::Erase( BMPanvas * canvas )
 	}
 }
 
-#define CrossWidth 10
 void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const AvaPoint& pnt, DrawModes mode )
 {
 	int lastMode;
@@ -291,7 +353,7 @@ void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const AvaPoint& pnt, D
 	default:		
 		lastMode = canvas->SetROP2(R2_NOT); 
 	}	
-	canvas->MoveTo(pnt.x - CrossWidth, pnt.y); canvas->LineTo(pnt.x+CrossWidth, pnt.y); 
+	canvas->MoveTo(pnt.x - CrossWidth, pnt.y); canvas->LineTo(pnt.x + CrossWidth, pnt.y); 
 	canvas->MoveTo(pnt.x, pnt.y - CrossWidth); canvas->LineTo(pnt.x, pnt.y + CrossWidth); 
 	canvas->SetROP2(lastMode);
 }
@@ -358,12 +420,13 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( org.HasImage() == FALSE ) return;
 	switch( nFlags )
 	{
-	case MK_SHIFT: update=TRUE; break;
-	case MK_CONTROL: update=TRUE; break;
+	case MK_SHIFT: Parent->SetMarker(Convert(AvaPoint(point)), BGN); update = TRUE; break;
+	case MK_CONTROL: Parent->SetMarker(Convert(AvaPoint(point)), END); update = TRUE; break;
 	case 0: update=TRUE; break;	
 	}
-	if ( update )
+	if (update == TRUE)
 	{
+		UpdateNow();
 	}
 	CWnd::OnLButtonUp(nFlags, point);
 }
@@ -604,15 +667,15 @@ void ImageWnd::PicWnd::SetMarker( const AvaPoint& mark, MarkerNames pos )
 	}	
 }
 
-ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt)
+ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt )
 {
-	OrgPoint ret = pnt;
-	if (org.HasImage())
+	OrgPoint ret = pnt; BMPanvas& ref = org;
+	if (ref.HasImage())
 	{
 		if (ret.x < 0) ret.x = 0;
-		if (ret.x >= org.w)	 ret.x = org.w - 1;
+		if (ret.x >= ref.w)	 ret.x = ref.w - 1;
 		if (ret.y < 0) ret.y = 0;
-		if (ret.y >= org.h)	 ret.y = org.h - 1;
+		if (ret.y >= ref.h)	 ret.y = ref.h - 1;
 	}
 	return ret;	
 }

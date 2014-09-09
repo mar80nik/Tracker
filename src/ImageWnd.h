@@ -6,6 +6,8 @@
 #include "CalcTEDialog.h"
 #include "afxwin.h"
 
+#define CrossWidth 10
+
 enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_READY};
 enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
@@ -108,7 +110,7 @@ class ImageWnd : public CWnd
 		void SetMarker(const AvaPoint& mark, MarkerNames pos);
 		AvaPoint Convert(const OrgPoint&);
 		OrgPoint Convert(const AvaPoint&);
-		OrgPoint ValidatePnt( const OrgPoint& rgn);
+		OrgPoint ValidatePnt( const OrgPoint& );
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);

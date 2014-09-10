@@ -154,10 +154,10 @@ BOOL ImageWnd::CtrlsTab::OnInitDialog()
 }
 
 ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent)
-, stroka(1220)
-, AvrRange(100)
-, Xmin(100)
-, Xmax(3100)
+, stroka(1224)
+, AvrRange(50)
+, Xmin(2)
+, Xmax(3263)
 {
 }
 

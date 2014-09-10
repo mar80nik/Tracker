@@ -66,7 +66,7 @@ public:
 	TPointVsErrorSeries* GetSeries(TSeriesArray& series);
 public:
 	CComboBox SeriesCombo;
-	afx_msg void OnBnClickedButton4();
+	afx_msg void OnBnClickedKneeTest();
 	double Xmin;
 	double Xmax;
 	double level;

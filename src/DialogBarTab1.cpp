@@ -45,7 +45,7 @@ BEGIN_MESSAGE_MAP(DialogBarTab1, BarTemplate)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClicked_Fit)
 	ON_BN_CLICKED(IDC_BUTTON5, OnBnClicked_Locate)
 	ON_BN_CLICKED(IDC_BUTTON1, &DialogBarTab1::OnBnClickedLoadCalibration)
-	ON_BN_CLICKED(IDC_BUTTON4, &DialogBarTab1::OnBnClickedButton4)
+	ON_BN_CLICKED(IDC_BUTTON4, &DialogBarTab1::OnBnClickedKneeTest)
 END_MESSAGE_MAP()
 
 DialogBarTab1::DialogBarTab1(CWnd* pParent /*=NULL*/)
@@ -579,7 +579,7 @@ LRESULT DialogBarTab1::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 	return 0;
 }
 
-void DialogBarTab1::OnBnClickedButton4()
+void DialogBarTab1::OnBnClickedKneeTest()
 {
 	CString str; UpdateData(); TPointVsErrorSeries *graph; 
 	LogMessage *log=new LogMessage(); size_t i;

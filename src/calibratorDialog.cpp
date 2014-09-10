@@ -170,7 +170,7 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 	UpdateData(0);
 
 	T.Format("****Statistics***"); 
-	if(cal.status!=GSL_SUCCESS) log->CreateEntry("*",T,LogMessage::high_pr);
+	if(cal.status!=GSL_SUCCESS) log->CreateEntry("*",T,LogMessage::low_pr);
 	T.Format("---Calibration---"); log->CreateEntry("*",T);
 	T.Format("Nexp=[%g %g %g %g]",cal.Nexp[0],cal.Nexp[1],cal.Nexp[2],cal.Nexp[3]);log->CreateEntry("*",T);
 	T.Format("teta=[%g %g %g %g]",cal.teta[0],cal.teta[1],cal.teta[2],cal.teta[3]);log->CreateEntry("*",T);

@@ -365,9 +365,9 @@ void ImageWnd::PicWnd::LoadPic(CString T)
 		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWndCtrlsTab::TrueColor)
 		{
 			LogMessage *log=new LogMessage(); 
-			log->CreateEntry("Error","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			
-			log->CreateEntry("*****","In order to use bult-in convertor please select",LogMessage::high_pr);			
-			log->CreateEntry("*****","convert method: NativeGDI, HSL or HSV.",LogMessage::high_pr);			
+			log->CreateEntry("ERR","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			
+			log->CreateEntry("ERR","In order to use bult-in convertor please select",LogMessage::low_pr);			
+			log->CreateEntry("ERR","convert method: NativeGDI, HSL or HSV.",LogMessage::low_pr);			
 			CKSVU3App* Parent=(CKSVU3App*)AfxGetApp();
 			Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);
 			return;
@@ -582,7 +582,7 @@ void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 	CalclFilmParamsTM(in_TM,outTM);
 	int a=5;
 
-	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::high_pr);
+	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::low_pr);
 	T.Format("---Calibration---"); log->CreateEntry("*",T);
 	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g",cal.N0,cal.L,cal.d0,cal.fi0,cal.epsabs,cal.epsrel); log->CreateEntry("*",T);
 	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.func_call_cntr); log->CreateEntry("*",T);

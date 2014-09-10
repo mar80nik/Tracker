@@ -212,8 +212,7 @@ void CaptureWnd::SelectCaptureSrc(CString name)
 		if(Src->status!=S_OK)
 		{			
 			LogMessage *log=new LogMessage(); 
-			T.Format(" %s - INIT ERROR",name);
-			log->CreateEntry("*",T,LogMessage::high_pr);
+			T.Format(" %s - INIT ERROR",name); log->CreateEntry("ERR",T,LogMessage::high_pr);
 			log->Dispatch();
 		}
 		else Src->Name=name;

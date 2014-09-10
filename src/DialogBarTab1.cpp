@@ -133,8 +133,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 				int N=buf.GetSize(), n0=GetArrayIndex(buf.x,X0), n1=n0-dX, n2=n0+dX;
 				if(n1<0 || n2>=N)
 				{
-					str.Format("No valid points found %d+/-%d",X0,dX); 
-					log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+					str.Format("No valid points found %d+/-%d",X0,dX); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 					log->Dispatch(); 
 					return;
 				}				
@@ -142,8 +141,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 			}			
 			else
 			{
-				str.Format("No series matching criteria (ACTIVE) found"); 
-				log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+				str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 				log->Dispatch(); return;
 			}
 		}
@@ -155,7 +153,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 		
 		str.Format("**********************************"); log->CreateEntry(CString('*'),str);
 		str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-		if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::high_pr);
+		if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
 		str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
 		str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
 		for(i=0;i<out.GetParamsNum();i++)
@@ -163,7 +161,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 			str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
 		}
 		str.Format("xmin = %g ymin = %g", out.GetTop().x,out.GetTop().y);
-		log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+		log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 		str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
 		str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
 		str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);
@@ -427,8 +425,7 @@ afx_msg void DialogBarTab1::OnBnClicked_Locate()
 		}			
 		else
 		{
-			str.Format("No series matching criteria (ACTIVE) found"); 
-			log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+			str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 			log->Dispatch(); return;
 		}
 	}
@@ -452,7 +449,7 @@ afx_msg void DialogBarTab1::OnBnClicked_Locate()
 	str.Format("********Minimums 2stage*************"); log->CreateEntry(CString('*'),str);
 	str.Format("minimums=%d time=%g ms", MinimumsFitFilter->fitings.GetSize(), MinimumsFitFilter->dt.val()); log->CreateEntry(CString('*'),str);
 	str.Format("*********Total********************"); log->CreateEntry(CString('*'),str);
-	str.Format("time=%g ms",dt1.val()); log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+	str.Format("time=%g ms",dt1.val()); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 
 	log->Dispatch();
 	delete MinimumsFitFilter;
@@ -599,8 +596,7 @@ void DialogBarTab1::OnBnClickedButton4()
 			int N=buf.GetSize(), n1=GetArrayIndex(buf.x,Xmin), n2=GetArrayIndex(buf.x,Xmax);
 			if(n1<0 || n2>=N)
 			{
-				str.Format("No valid points found %d+/-%d",X0,dX); 
-				log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+				str.Format("No valid points found %d+/-%d",X0,dX); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 				log->Dispatch(); 
 				return;
 			}				
@@ -608,8 +604,7 @@ void DialogBarTab1::OnBnClickedButton4()
 		}			
 		else
 		{
-			str.Format("No series matching criteria (ACTIVE) found"); 
-			log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+			str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 			log->Dispatch(); return;
 		}
 	}
@@ -621,7 +616,7 @@ void DialogBarTab1::OnBnClickedButton4()
 
 	str.Format("**********************************"); log->CreateEntry(CString('*'),str);
 	str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::high_pr);
+	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
 	str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
 	str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
 	for(i=0;i<out.GetParamsNum();i++)
@@ -629,7 +624,7 @@ void DialogBarTab1::OnBnClickedButton4()
 		str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
 	}
 	SimplePoint Top=out.GetTop(level);
-	str.Format("xmin = %g ymin = %g", Top.x,Top.y); log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+	str.Format("xmin = %g ymin = %g", Top.x,Top.y); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 	str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
 	str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
 	str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);

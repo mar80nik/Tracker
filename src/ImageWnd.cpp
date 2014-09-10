@@ -51,7 +51,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
-#define TEST2
+#define TEST1
 #ifdef DEBUG
 	#if defined TEST1
 	 	dark.LoadPic(CString("exe\\dark.png"));

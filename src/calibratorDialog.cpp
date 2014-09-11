@@ -7,12 +7,14 @@
 IMPLEMENT_DYNAMIC(CalibratorDialog, CDialog)
 
 CalibratorDialog::CalibratorDialog(CWnd* pParent /*=NULL*/)
-	: CDialog(CalibratorDialog::IDD, pParent)
+	: CDialog(CalibratorDialog::IDD, pParent), Nc(cal.N0), Lc(cal.L), dc(cal.d0), n_p(cal.n_p)
 {
 	for(int i=0;i<modes_num;i++) { N[i]=0; Q[i]=0; }
-	Nc=Lc=dc=fic=0;
+	Nc = Lc = dc = fic = alfa = n_p = 0.;
 	Series=NULL; 
+#if defined DEBUG
 	Q[0]=63.37; Q[1]=60.02; Q[2]=55.13; Q[3]=48.98;
+#endif
 }
 
 CalibratorDialog::~CalibratorDialog()
@@ -34,27 +36,24 @@ void CalibratorDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT17, Lc);
 	DDX_Text(pDX, IDC_EDIT18, dc);
 	DDX_Text(pDX, IDC_EDIT19, fic);
+	DDX_Text(pDX, IDC_EDIT15, alfa);
+	DDX_Text(pDX, IDC_EDIT20, n_p);
 	DDX_Control(pDX, IDC_COMBO1, SeriesCombo);
 	DDX_Control(pDX, IDC_COMBO3, SeriesCombo1);
 }
 
 
 BEGIN_MESSAGE_MAP(CalibratorDialog, CDialog)
-	ON_BN_CLICKED(IDC_BUTTON8, &CalibratorDialog::OnBnClickedButton8)
 	ON_MESSAGE(UM_SERIES_UPDATE,OnSeriesUpdate)	
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CalibratorDialog::OnCbnSelchangeCombo1)
 	ON_BN_CLICKED(IDC_BUTTON4, &CalibratorDialog::OnBnClickedCalculateCal)
 	ON_BN_CLICKED(IDC_BUTTON10, &CalibratorDialog::OnBnClickedSaveToConfig)
+	ON_BN_CLICKED(IDC_BUTTON15, &CalibratorDialog::OnBnClickedLoadFromConfig)
 	ON_CBN_SELCHANGE(IDC_COMBO3, &CalibratorDialog::OnCbnSelchangeCombo3)
 END_MESSAGE_MAP()
 
 
 // CalibratorDialog message handlers
-
-void CalibratorDialog::OnBnClickedButton8()
-{
-	OnOK();
-}
 
 LRESULT CalibratorDialog::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 {
@@ -124,13 +123,14 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 {
 	MyTimer Timer1; ms dt1,dt2; double t;
 	DoubleArray Nexp,teta; CString T;
-	cal.n_p=2.14044; cal.n_s=1.; 
+	cal.n_s=1.; 
 	UpdateData();
-	for(int i=0;i<modes_num;i++)
+	for(int i = 0; i < modes_num; i++)
 	{
 		t=N[i]; Nexp.Add(N[i]); 
 		t=Q[i]*DEGREE; teta.Add(t);
 	}
+	cal.n_p = n_p; cal.alfa = alfa*DEGREE; 
 
 	TChart *chart=(TChart*)&GlobalChart; 
 	ASSERT(chart != NULL);
@@ -166,7 +166,7 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 
 	CreateCalibration(Nexp, teta, cal);
 
-	Nc=cal.N0; Lc=cal.L; dc=cal.d0; fic=cal.fi0/DEGREE;
+	fic=cal.fi0/DEGREE; 
 	UpdateData(0);
 
 	T.Format("****Statistics***"); 
@@ -181,8 +181,22 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 
 void CalibratorDialog::OnBnClickedSaveToConfig()
 {
+	UpdateData(); cal.fi0 = fic*DEGREE; cal.alfa = alfa*DEGREE; 
 	MainCfg.SetCalibration(cal);	
 	MainFrame.pWND->PostMessage(UM_UPDATE_CONFIG,0,0);
+}
+
+void CalibratorDialog::OnBnClickedLoadFromConfig()
+{
+	int i;
+	MainCfg.GetCalibration(&cal); fic=cal.fi0/DEGREE; alfa = cal.alfa/DEGREE; 
+
+	for(i = 0; i < cal.Nexp.GetSize() && i < modes_num; i++)
+	{
+		N[i] = cal.Nexp[i];
+		Q[i] = cal.teta[i]/DEGREE;
+	}
+	UpdateData(FALSE);
 }
 
 

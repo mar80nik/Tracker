@@ -1,8 +1,6 @@
 #pragma once
 
-//#include "newwavelen.h"
 #include "mythread.h"
-//#include "globalheader.h"
 #include "metricon.h"
 
 class SystemConfig; class AbstractDevice;
@@ -50,7 +48,7 @@ public:
 	}
 	virtual void SetParamValue(CString& t);	
 	virtual void SetParamValue(T t) {val=t;UpdateParent();}	
-	virtual void Serialize(CArchive& ar);
+	virtual void Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;};
 };
 
 class CfgCalibrationParams: public CfgParamTypeBase
@@ -67,21 +65,21 @@ public:
 	virtual void FillCfgTree(CTreeCtrl* t,HTREEITEM l0);
 };
 
-//struct FilterHeadPos;
-
 typedef CArray<CfgParamTypeBase*> ParamsArray;
 
-typedef CfgParamType<bool> YesNoCfgParam;
-typedef CfgParamType<BYTE> ByteCfgParam;
-typedef CfgParamType<int> IntCfgParam;
-typedef CfgParamType<double> DblCfgParam;
-typedef CfgParamType<CString> StrCfgParam;
-//typedef CfgParamType<pm> wPicaCfgParam;
-//typedef CfgParamType<sNanoSec> sNanoSecCfgParam;
-//typedef CfgParamType<nmC> wCNanoCfgParam;
-//typedef CfgParamType<ms> msCfgParam;
-//typedef CfgParamType<sec> secCfgParam;
-//typedef CfgParamType<FilterHeadPos> FilterPosCfgParam;
+typedef CfgParamType<bool>		YesNoCfgParam;
+typedef CfgParamType<BYTE>		ByteCfgParam;
+typedef CfgParamType<int>		IntCfgParam;
+typedef CfgParamType<double>	DblCfgParam;
+typedef CfgParamType<CString>	StrCfgParam;
+
+struct AngleCfgParam: public DblCfgParam
+{
+	AngleCfgParam(CString n, CString u, double InitValue): DblCfgParam(n, u, InitValue) {}
+	virtual void GetParamValue(CString& t);
+	virtual void SetParamValue(CString& t);
+	virtual void SetParamValue(double t);
+};
 
 
 typedef TreeParamData TPD;
@@ -116,8 +114,8 @@ class CalibrationData: public AbstractDevice
 {
 	friend class SystemConfig;
 protected:	
-	DblCfgParam fi,d,N,L;
-	DblCfgParam* N_exp[CALIBRATION_MODES_NUM], *teta[CALIBRATION_MODES_NUM];
+	DblCfgParam d,N,L,n_p; AngleCfgParam fi, Q;
+	DblCfgParam* N_exp[CALIBRATION_MODES_NUM]; AngleCfgParam *teta[CALIBRATION_MODES_NUM];
 	
 	CalibrationParams cal;
 public:

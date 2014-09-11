@@ -153,11 +153,13 @@ BOOL ImageWnd::CtrlsTab::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
-ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent)
-, stroka(1224)
-, AvrRange(50)
-, Xmin(2)
-, Xmax(3263)
+ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent),
+#if defined DEBUG
+	stroka(1220), AvrRange(50), Xmin(500), Xmax(3050)
+#else
+	stroka(1224), AvrRange(50), Xmin(2), Xmax(3263)
+#endif
+
 {
 }
 
@@ -450,7 +452,7 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( org.HasImage() == FALSE ) return;
 	switch( nFlags )
 	{
-	case MK_SHIFT: tmpRgn.left = point.y; update=TRUE; break;
+	case MK_SHIFT: tmpRgn.left = point.x; update=TRUE; break;
 	case MK_CONTROL: tmpRgn.OffsetRect( 0, point.y - tmpRgnCntr.y ); update=TRUE; break;
 	case 0: tmpRgn.OffsetRect( point - tmpRgnCntr ); update=TRUE; break;	
 	}

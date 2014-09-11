@@ -31,16 +31,11 @@ protected:
 	DECLARE_MESSAGE_MAP()
 	LRESULT OnSeriesUpdate(WPARAM wParam, LPARAM lParam );
 public:
-	afx_msg void OnBnClickedButton4();
+	afx_msg void OnBnClickedConvertToAngles();
 	afx_msg void OnCbnSelchangeCombo1();
 public:
 	CComboBox SeriesCombo;
+	double nf, hf, lambda, n3;
 public:
-	afx_msg void OnBnClickedButton8();
-public:
-	double nf;
-public:
-	double hf;
-public:
-	afx_msg void OnBnClickedButton11();
+	afx_msg void OnBnClickedCalculate();
 };

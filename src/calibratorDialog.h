@@ -29,7 +29,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	double N[modes_num], Q[modes_num];
-	double Nc, Lc, dc, fic;
+	double &Nc, &Lc, &dc, fic, alfa, &n_p;
 	void * GetChartFromParent();;
 	
 	CComboBox SeriesCombo;
@@ -38,7 +38,7 @@ public:
 	afx_msg void OnCbnSelchangeCombo1();
 	afx_msg void OnBnClickedCalculateCal();
 	afx_msg void OnBnClickedSaveToConfig();
+	afx_msg void OnBnClickedLoadFromConfig();
 	afx_msg void OnCbnSelchangeCombo3();
-	afx_msg void OnBnClickedButton8();
 	LRESULT OnSeriesUpdate(WPARAM wParam, LPARAM lParam );
 };

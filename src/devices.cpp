@@ -3,9 +3,6 @@
 #include "systemconfig.h"
 #include "resource.h"
 
-//ByteArray PGA::PGAGainValues;
-//ByteArray PGA::ModeValues;
-
 void CfgParamTypeBase::UpdateParent() {if(Parent!=NULL) Parent->ParamUpdate(this);}
 
 void CfgParamTypeBase::FillCfgTree( CTreeCtrl* t,HTREEITEM l0 )
@@ -19,17 +16,22 @@ void CfgParamTypeBase::FillCfgTree( CTreeCtrl* t,HTREEITEM l0 )
 
 void YesNoCfgParam::GetParamValue(CString& t)	{t=(val ? "YES":"NO");}
 void DblCfgParam::GetParamValue(CString& t)		{t.Format("%g",val);}
-void AngleCfgParam::GetParamValue( CString& t )	{t.Format("%g", val*DEGREE);}
+void AngleCfgParam::GetParamValue( CString& t )	
+{
+	t.Format("%g", val/DEGREE);
+}
 void IntCfgParam::GetParamValue(CString& t)		{t.Format("%d",val);}
 void ByteCfgParam::GetParamValue(CString& t)	{t.Format("%d",val);}
 void StrCfgParam::GetParamValue(CString& t)		{t=val;}
 
 void YesNoCfgParam::SetParamValue(CString& t)	{if(IsEditable) {val=(t=="YES" ? true:false);UpdateParent();}}
 void DblCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=atof(t);UpdateParent();}}
-void AngleCfgParam::SetParamValue( CString& t )	{if(IsEditable) {val=atof(t)/DEGREE; UpdateParent();}}
+void AngleCfgParam::SetParamValue( CString& t )	{if(IsEditable) {val=atof(t)*DEGREE; UpdateParent();}}
 void IntCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=atoi(t);UpdateParent();}}
 void ByteCfgParam::SetParamValue(CString& t)	{if(IsEditable) {val=(BYTE)atoi(t);UpdateParent();}}
 void StrCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=t;UpdateParent();}}
+
+void AngleCfgParam::SetParamValue(double t) {val = t; UpdateParent();}	
 
 void AbstractDevice::FillCfgTree(CTreeCtrl* t,HTREEITEM l0)
 {
@@ -67,8 +69,8 @@ CalibrationData::CalibrationData( void ):
 	CString T;
 	for(int i=0;i<CALIBRATION_MODES_NUM; i++) 
 	{ 
-		T.Format("Nexp[%d]",i); N_exp[i]=new DblCfgParam(T,"пикс",0); RegisterParam(N_exp[i]);
-		T.Format("teta[%d]",i); teta[i]=new DblCfgParam(T,"пикс",0); RegisterParam(teta[i]);
+		T.Format("Nexp[%d]",i); N_exp[i] = new DblCfgParam(T,"пикс",0); RegisterParam(N_exp[i]);
+		T.Format("teta[%d]",i); teta[i] = new AngleCfgParam(T,"град",0); RegisterParam(teta[i]);
 	}
 }
 

@@ -106,6 +106,8 @@
 #define IDC_EDIT18                      1010
 #define IDC_EDIT19                      1011
 #define IDC_VOLTMETER_OUTPUT3           1012
+#define IDC_EDIT15                      1012
+#define IDC_EDIT20                      1013
 #define IDC_EDIT3                       1014
 #define IDC_EDIT4                       1015
 #define IDC_TREE1                       1016
@@ -118,6 +120,7 @@
 #define IDC_COMBO4                      1019
 #define IDC_COMBO3                      1020
 #define IDC_COMBO5                      1020
+#define IDC_BUTTON15                    1021
 #define IDC_BUTTON4                     1022
 #define IDC_BUTTON11                    1023
 #define IDC_LIST1                       1025

@@ -75,8 +75,10 @@ typedef CfgParamType<CString>	StrCfgParam;
 
 struct AngleCfgParam: public DblCfgParam
 {
+	AngleCfgParam(CString n, CString u, double InitValue): DblCfgParam(n, u, InitValue) {}
 	virtual void GetParamValue(CString& t);
 	virtual void SetParamValue(CString& t);
+	virtual void SetParamValue(double t);
 };
 
 
@@ -112,8 +114,8 @@ class CalibrationData: public AbstractDevice
 {
 	friend class SystemConfig;
 protected:	
-	DblCfgParam fi,d,N,L,Q,n_p;
-	DblCfgParam* N_exp[CALIBRATION_MODES_NUM], *teta[CALIBRATION_MODES_NUM];
+	DblCfgParam d,N,L,n_p; AngleCfgParam fi, Q;
+	DblCfgParam* N_exp[CALIBRATION_MODES_NUM]; AngleCfgParam *teta[CALIBRATION_MODES_NUM];
 	
 	CalibrationParams cal;
 public:

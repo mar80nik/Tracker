@@ -17,32 +17,19 @@ void CfgParamTypeBase::FillCfgTree( CTreeCtrl* t,HTREEITEM l0 )
 	t->SetItemData(TreeItem,r);
 }
 
-void YesNoCfgParam::GetParamValue(CString& t) {t=(val ? "YES":"NO");}
-void DblCfgParam::GetParamValue(CString& t) {t.Format("%g",val);}
-void IntCfgParam::GetParamValue(CString& t) {t.Format("%d",val);}
-void ByteCfgParam::GetParamValue(CString& t) {t.Format("%d",val);}
-void StrCfgParam::GetParamValue(CString& t) {t=val;}
+void YesNoCfgParam::GetParamValue(CString& t)	{t=(val ? "YES":"NO");}
+void DblCfgParam::GetParamValue(CString& t)		{t.Format("%g",val);}
+void AngleCfgParam::GetParamValue( CString& t )	{t.Format("%g", val*DEGREE);}
+void IntCfgParam::GetParamValue(CString& t)		{t.Format("%d",val);}
+void ByteCfgParam::GetParamValue(CString& t)	{t.Format("%d",val);}
+void StrCfgParam::GetParamValue(CString& t)		{t=val;}
 
-void YesNoCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=(t=="YES" ? true:false);UpdateParent();}}
-void DblCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=atof(t);UpdateParent();}}
-void IntCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=atoi(t);UpdateParent();}}
-void ByteCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=(BYTE)atoi(t);UpdateParent();}}
-void StrCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=t;UpdateParent();}}
-
-void AngleCfgParam::GetParamValue( CString& t )
-{
-
-}
-
-void AngleCfgParam::SetParamValue( CString& t )
-{
-
-}
-
-void YesNoCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
-void DblCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
-void IntCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
-void ByteCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
+void YesNoCfgParam::SetParamValue(CString& t)	{if(IsEditable) {val=(t=="YES" ? true:false);UpdateParent();}}
+void DblCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=atof(t);UpdateParent();}}
+void AngleCfgParam::SetParamValue( CString& t )	{if(IsEditable) {val=atof(t)/DEGREE; UpdateParent();}}
+void IntCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=atoi(t);UpdateParent();}}
+void ByteCfgParam::SetParamValue(CString& t)	{if(IsEditable) {val=(BYTE)atoi(t);UpdateParent();}}
+void StrCfgParam::SetParamValue(CString& t)		{if(IsEditable) {val=t;UpdateParent();}}
 
 void AbstractDevice::FillCfgTree(CTreeCtrl* t,HTREEITEM l0)
 {

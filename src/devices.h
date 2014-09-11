@@ -116,7 +116,7 @@ class CalibrationData: public AbstractDevice
 {
 	friend class SystemConfig;
 protected:	
-	DblCfgParam fi,d,N,L;
+	DblCfgParam fi,d,N,L,Q,n;
 	DblCfgParam* N_exp[CALIBRATION_MODES_NUM], *teta[CALIBRATION_MODES_NUM];
 	
 	CalibrationParams cal;

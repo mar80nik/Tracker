@@ -29,6 +29,16 @@ void IntCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=atoi(t);UpdateP
 void ByteCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=(BYTE)atoi(t);UpdateParent();}}
 void StrCfgParam::SetParamValue(CString& t) {if(IsEditable) {val=t;UpdateParent();}}
 
+void AngleCfgParam::GetParamValue( CString& t )
+{
+
+}
+
+void AngleCfgParam::SetParamValue( CString& t )
+{
+
+}
+
 void YesNoCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
 void DblCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
 void IntCfgParam::Serialize(CArchive& ar) {if (ar.IsStoring()) ar << val; else ar >> val;}
@@ -61,9 +71,10 @@ void AbstractDevice::ParamUpdate( CfgParamTypeBase* t )
 
 
 CalibrationData::CalibrationData( void ):
-	fi("fi","град",0), d("d","отн.ед",0), L("L","отн.ед",0), N("N","отн.ед",0), Q("Q", "град", 0), n("n_p", "", 0)//,
+	fi("fi","град",0), d("d","отн.ед",0), L("L","отн.ед",0), N("N","отн.ед",0), Q("Q", "град", 0), n_p("n_p", "", 0)//,
 {
 	Name="Calibration";
+	RegisterParam(&Q); RegisterParam(&n_p);
 	RegisterParam(&fi); RegisterParam(&d); RegisterParam(&L); RegisterParam(&N);   
 
 	CString T;
@@ -98,16 +109,21 @@ void CalibrationData::Serialize( CArchive& ar )
 
 void CalibrationData::FillCfgTree( CTreeCtrl* t,HTREEITEM l0 )
 {
-	int i; HTREEITEM l1,l2;
-	for(i=0;i<Params.GetSize() && i<4; i++)
+	int i, j = 0; HTREEITEM l1,l2;
+	l1 = t->InsertItem("Prism",l0); 
+	for(i = 0; i < Params.GetSize() && i < 2; i++)
 	{
-		Params[i]->FillCfgTree(t,l0);
+		Params[j++]->FillCfgTree(t, l1);
 	}
-	l1=t->InsertItem("Nexp",l0); l2=t->InsertItem("teta",l0); 
-	for(;i<Params.GetSize();)
+	for(i = 0; i < Params.GetSize() && i < 4; i++)
 	{
-		Params[i++]->FillCfgTree(t,l1);
-		Params[i++]->FillCfgTree(t,l2);
+		Params[j++]->FillCfgTree(t, l0);
+	}
+	l1 = t->InsertItem("Nexp",l0); l2 = t->InsertItem("teta",l0); 
+	for(;j < Params.GetSize();)
+	{
+		Params[j++]->FillCfgTree(t,l1);
+		Params[j++]->FillCfgTree(t,l2);
 	}
 }
 
@@ -119,6 +135,8 @@ void CalibrationData::SetCalibration( CalibrationParams& _cal )
 	d.SetParamValue(cal.d0); 
 	N.SetParamValue(cal.N0); 
 	L.SetParamValue(cal.L);
+	Q.SetParamValue(cal.alfa);
+	n_p.SetParamValue(cal.n_p);
 	for(i = 0; i < cal.Nexp.GetSize(); i++)
 	{
 		N_exp[i]->SetParamValue(cal.Nexp[i]);
@@ -137,4 +155,6 @@ void CalibrationData::SetCalibration( CalibrationParams& _cal )
 		teta[i]->SetParamValue(0);
 	}
 }
+
+
 

@@ -3,38 +3,46 @@
 #include "mythread\MyTime.h"
 #include "gsl\gsl_math.h"
 #include "gsl\gsl_multimin.h"
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_roots.h>
-#include <gsl/gsl_complex.h>
-#include <gsl/gsl_complex_math.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_multifit_nlin.h>
-#include <gsl/gsl_fft_real.h>
-#include <gsl/gsl_fft_halfcomplex.h>
+#include "gsl\gsl_errno.h"
+#include "gsl\gsl_math.h"
+#include "gsl\gsl_roots.h"
+#include "gsl\gsl_complex.h"
+#include "gsl\gsl_complex_math.h"
+#include "gsl\gsl_vector.h"
+#include "gsl\gsl_blas.h"
+#include "gsl\gsl_multifit_nlin.h"
+#include "gsl\gsl_fft_real.h"
+#include "gsl\gsl_fft_halfcomplex.h"
 
 #define DEGREE (M_PI/180.)
 class DoubleArray: public CArray<double>
 {
 public:
-	DoubleArray();
+	DoubleArray() {};
 	DoubleArray(DoubleArray&);
 	DoubleArray& operator << (double d) {(*this).Add(d); return (*this);}
 	operator double*() {return GetData();}
 	double* GetX() {return GetData();}
 	DoubleArray& operator=(DoubleArray& arr);
+	operator gsl_vector*();
+	void operator= (gsl_vector& vector);
 };
-struct GSLPerfomanceInformer 
+
+struct SolverErrors 
 {
-	MyTimer Timer1;
-	ms			dt;
+	double abs, rel; 
+	SolverErrors() {CleanUp();} SolverErrors(double _abs, double _rel = 0): abs(_abs), rel(_rel) {CleanUp();} 
+	void CleanUp() {abs = rel = 0.;}
 };
 
 struct PerfomanceInfoMk1 
 {
-	ms dt; int func_call_cntr; double epsabs,epsrel; int status, iter_num;
-	PerfomanceInfoMk1() {func_call_cntr=0; epsrel=epsrel=0; status=GSL_FAILURE; iter_num=0;}
+	SolverErrors err;
+	struct Counters {size_t func_call, iter; Counters() {CleanUp();} void CleanUp() {func_call = iter = 0;}} cntr;
+	ms dt; int status; size_t max_iter;
+	PerfomanceInfoMk1() {status = GSL_FAILURE; max_iter = 0; CleanUp();}
+	virtual ~PerfomanceInfoMk1() { CleanUp(); }
+	virtual void CleanUp() {status = GSL_FAILURE; max_iter = 0; err.CleanUp(); cntr.CleanUp();}
 };
 //////////////////////////////////////////////////////////////////////////
 struct ComplexImGSL {double Im; ComplexImGSL(double i=1.) {Im=i;}};
@@ -70,198 +78,130 @@ ComplexGSL pow2(ComplexGSL& c);
 ComplexGSL exp(ComplexGSL& c);
 
 //////////////////////////////////////////////////////////////////////////
-class Solver1d: public GSLPerfomanceInformer
+//	This class is not allowed for use.
+//	It is necessary to define [F.function] and [F.params] to be passed in this function.
+class Solver1d: public PerfomanceInfoMk1
 {
+public:
+	struct BoundaryConditions 
+	{
+		double min, max;
+		BoundaryConditions() {min = max = 0; }
+		BoundaryConditions(double _min, double _max) {min = _min; max = _max; }
+	};
+private:
+	gsl_root_fsolver *s;
 protected:
 	const gsl_root_fsolver_type *fsolver_type;
-	gsl_root_fsolver *s;
 	gsl_function F;
-	size_t iter;
-
-	int Init(double& x_lo, double& x_hi, double epsabs, double epsrel);
-	int Main();
-	void CleanUp();
 public:
-	double epsabs, epsrel, x_lo, x_hi;
-	int status; size_t max_iter; 
+	double root;
 public:
-	Solver1d(int _max_iter=100) { fsolver_type=NULL; s=NULL; F.function = NULL; F.params = NULL; max_iter=_max_iter; }	
-	virtual ~Solver1d() {CleanUp();}
+	Solver1d(int _max_iter=100) 
+	{ 
+		fsolver_type=gsl_root_fsolver_brent; 
+		s = NULL; F.function = NULL; F.params = NULL; 
+		max_iter = _max_iter; 
+	}	
+public:
+	virtual int Run(BoundaryConditions X, SolverErrors Err);
+	virtual void CleanUp();
+	//This function is reminder that FuncParam class should be provided in childs
+	void virtual DefineME() = 0;
 };
 //////////////////////////////////////////////////////////////////////////
+//  [F.params] is a pointer to instance of FuncParams class passed in cntor.
+//  [F.function] is a static function of FuncParams class. 
+enum SolverRegime {SINGLE_ROOT, MULTI_ROOT};
+typedef CArray<Solver1d::BoundaryConditions> BoundaryConditionsArray;
+
+class BaseForFuncParams
+{
+public:
+	virtual void PrepareBuffers() {}
+	virtual void DestroyBuffers() {}
+	BaseForFuncParams() {}
+	virtual ~BaseForFuncParams() {DestroyBuffers();}
+};
+
 template <class FuncParams>
 class Solver1dTemplate: public Solver1d
 {
+protected:
+	SolverRegime rgm; int subrgns_max;	
 public:
-	FuncParams	fparams;
-	double		root;
-	static int	func_call_cntr;
-	static double func (double x, void *params);
-protected:	
-	virtual int Init(double& x_lo, double& x_hi, double epsabs, double epsrel)
-	{
-		int ret=GSL_FAILURE; 
-		if( (ret=Solver1d::Init(x_lo, x_hi, epsabs, epsrel))==GSL_SUCCESS)
-		{
-			F.function=func; F.params=&fparams; func_call_cntr=0;
-		}
-		return ret;
-	}
-public:
-	Solver1dTemplate(FuncParams& p, int _max_iter=100): Solver1d(_max_iter), fparams(p)  {}
-	virtual ~Solver1dTemplate() {}
-	int Run(double x_lo, double x_hi, double epsabs, double epsrel=0)
-	{
-		int ret; Timer1.Start();
-		if( (ret=Init(x_lo, x_hi, epsabs, epsrel))==GSL_SUCCESS)
-		{
-			ret=Main();
-			root=gsl_root_fsolver_root (s); //root.status=status;
-			CleanUp();
-		}
-		dt=Timer1.StopStart();
-		return ret;
-	}
-};
-//////////////////////////////////////////////////////////////////////////
-template <class FuncParams>
-class Solver1dMULTITemplate: public Solver1dTemplate<FuncParams>
-{
-	struct RootArea {double lo, hi;};
-	typedef CArray<RootArea> RootsAray;
-public:
-	DoubleArray 		roots;
-	static int	func_call_cntr;
-	int			subs;
-	int			max_roots, min_roots;
-	static double func (double x, void *params);
+	DoubleArray Roots;	
 
-	virtual int Init(double& x_lo, double& x_hi, double epsabs, double epsrel)
+	static double func (double x, void *params) 
 	{
-		int ret=GSL_FAILURE; 
-		if( (ret=Solver1dTemplate<FuncParams>::Init(x_lo, x_hi, epsabs, epsrel))==GSL_SUCCESS)
-		{
-			F.function=func; func_call_cntr=0;
-		}
-		return ret;
+		cntr.func_call++; 
+		FuncParams::func(x, params);
+	};
+	Solver1dTemplate(SolverRegime _rgm, FuncParams* p, int _max_iter=100): 
+		Solver1d(_max_iter), rgm(_rgm)
+	{
+		F.params = p; F.function = func; subrgns_max = 50;
 	}
-	int HowManyRoots(RootsAray& arr)
+	virtual int Run(BoundaryConditions X, SolverErrors Err);
+	virtual void CleanUp();
+	void virtual DefineME() {}	
+	int FindSubRgns(BoundaryConditions X, BoundaryConditionsArray& SubRgns);
+	virtual int GetRoot(double * root) 
 	{
-		SimplePoint *buf=new SimplePoint[subs]; SimplePoint tpnt; arr.RemoveAll();
-		double t=(x_lo-x_hi)/(subs-1); RootArea ra; 
-		for(int i=0;i<subs;i++)
-		{
-			buf[i].x=x_hi+i*t;		
-			buf[i].y=func(buf[i].x,&fparams);
-		}
-		for(int i=0;i<subs-1;i++)
-		{
-			if( (buf[i].y*buf[i+1].y) <0 )
-			{
-				ra.hi=buf[i].x; ra.lo=buf[i+1].x; arr.Add(ra);
-			}
-		}
-		delete[] buf;	
-		return arr.GetSize();
-	}
-public:
-	Solver1dMULTITemplate(FuncParams& p, int _max_iter=100): Solver1dTemplate<FuncParams>(p,_max_iter)  
-	{
-		subs=50; max_roots=4, min_roots=4;
-	}
-	virtual ~Solver1dMULTITemplate() {}
-	int Run(double x_lo, double x_hi, double epsabs, double epsrel=0)
-	{
-		Timer1.Start();
-		if( (status=Init(x_lo, x_hi, epsabs, epsrel))==GSL_SUCCESS)
-		{
-			RootsAray arr; RootArea ra; roots.RemoveAll();
-			int roots_n=HowManyRoots(arr); 
-			if(roots_n>=min_roots && roots_n<=max_roots)
-			{
-				for(int i=0;i<arr.GetSize() && status==GSL_SUCCESS;i++)
-				{
-					ra=arr[i];
-					status=Solver1dTemplate<FuncParams>::Run(arr[i].lo,arr[i].hi,1e-6);
-					if(status==GSL_SUCCESS) roots << root;
-				}
-			}
-			else 
-				status=100+roots_n;
-		}
-		dt=Timer1.StopStart();
+		int status = GSL_SUCCESS;
+		if (Roots.GetSize() != 0) 
+			*root = Roots[0]; 
+		else 
+			status = GSL_FAILURE;
 		return status;
 	}
 };
-//////////////////////////////////////////////////////////////////////////
-class MultiDimMinimizer: public GSLPerfomanceInformer
-{
-protected:
-	const gsl_multimin_fminimizer_type *fminimizer_type;
-	gsl_multimin_fminimizer *s;
-	gsl_vector *ss, *x;
-	gsl_multimin_function F;
-	size_t iter, np; 
 
-	int Init(double epsabs);
-	int Main();
-	virtual int GetParamsNum()=0;
-	void CleanUp();
+//////////////////////////////////////////////////////////////////////////
+class MultiDimMinimizer: public PerfomanceInfoMk1
+{
+private:
+	gsl_vector *X, *dX;
+	gsl_multimin_fminimizer *s;	
+protected:
+	const gsl_multimin_fminimizer_type *fminimizer_type;	
+	gsl_multimin_function F;
 public:
-	double epsabs;
-	int status; size_t max_iter;
+	struct {DoubleArray x; double y; void CleanUp() {x.RemoveAll(); y = 0;}} Minimum;
 public:
 	MultiDimMinimizer(int _max_iter=100) 
 	{ 
-		fminimizer_type=NULL; s=NULL; F.f = NULL; F.n = 0; F.params = NULL; 
+		fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
+		s = NULL; X = dX = NULL; 
+		F.f = NULL; F.n = 0; F.params = NULL; 
 		max_iter=_max_iter;
 	}
-	virtual ~MultiDimMinimizer() {CleanUp();}
+	int Run(DoubleArray& intiX, DoubleArray& initdX, SolverErrors Err);
+	virtual void CleanUp();
+	//This function is reminder that FuncParam class should be provided in childs
+	void virtual DefineME() = 0;
 };
 //////////////////////////////////////////////////////////////////////////
-template <class Params, class FuncParams>
+template <class FuncParams>
 class MultiDimMinimizerTemplate: public MultiDimMinimizer
 {
 public:
-	FuncParams&	fparams;
-	Params		roots;
-	double		fval, size;
-	static int	func_call_cntr;
-protected:
-	static double func(const gsl_vector * x, void * params);	
+	static double func(const gsl_vector * x, void * params)
+	{
+		cntr.func_call++; 
+		FuncParams::func(x, params);
+	}
 
-	virtual int Init(Params& start, Params& init_step, double epsabs)
-	{
-		if( (status=MultiDimMinimizer::Init(epsabs))==GSL_SUCCESS)
-		{
-			if( (ss = init_step)==NULL ) return (status=GSL_FAILURE);
-			if( (x =  start)==NULL ) { gsl_vector_free(ss); return (status=GSL_FAILURE); }
-			F.f=func; F.params=&fparams; F.n=GetParamsNum();
-			fval=size=0; func_call_cntr=0;
-		}
-		return status;
+	MultiDimMinimizerTemplate(FuncParams* p, int _max_iter=100): MultiDimMinimizer(_max_iter)
+	{		
+		F.f = func; F.params = p; 
 	}
-	virtual int GetParamsNum() {return roots.GetParamsNum();}
-public:
-	MultiDimMinimizerTemplate(FuncParams& p, int _max_iter=100): MultiDimMinimizer(_max_iter), fparams(p)  {}
-	virtual ~MultiDimMinimizerTemplate() {}
-	int Run(Params& start, Params& init_step, double epsabs)
-	{
-		Timer1.Start();
-		if( (status=Init(start, init_step, epsabs))==GSL_SUCCESS)
-		{
-			status=Main();
-			roots=s->x; fval=s->fval; size=s->size; roots.status=status;
-			CleanUp();
-		}
-		dt=Timer1.StopStart();
-		return status;
-	}
+	void virtual DefineME() {}
 };
 //////////////////////////////////////////////////////////////////////////
 enum MultiFitter_mode {F_MODE, FDF_MODE};
 
-class MultiFitter: public GSLPerfomanceInformer
+class MultiFitter: public PerfomanceInfoMk1
 {
 protected:
 	const gsl_multifit_fdfsolver_type *multifit_fdfsolver_type; 
@@ -345,7 +285,7 @@ public:
 };
 //////////////////////////////////////////////////////////////////////////
 
-class FFTRealTransform: public GSLPerfomanceInformer
+class FFTRealTransform: public PerfomanceInfoMk1
 {
 public:
 	enum Direction {FORWARD, BACKWARD};

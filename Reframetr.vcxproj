@@ -379,6 +379,7 @@
     <ResourceCompile Include="mythread\errors.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram4.cd" />
     <None Include="res\bitmap1.bmp" />
     <None Include="res\KSVU3.ico" />
     <None Include="res\KSVU3Doc.ico" />

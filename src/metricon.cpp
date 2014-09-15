@@ -1,22 +1,12 @@
 #include "stdafx.h"
 #include "metricon.h"
-
-int CalibrationSolver::func_call_cntr=0;
-int CalibratorSolver::func_call_cntr=0;
-int DispEqTESolver::func_call_cntr=0;
-int DispEqTMSolver::func_call_cntr=0;
-int FilmMinimizerTE::func_call_cntr=0;
-int FilmMinimizerTM::func_call_cntr=0;
-int Solver1dTemplate<DispEqTEFuncParams>::func_call_cntr=0;
-int Solver1dTemplate<DispEqTMFuncParams>::func_call_cntr=0;
-int Fit_Ax2BxC::func_call_cntr=0;
-int Fit_Knee::func_call_cntr=0;
 //////////////////////////////////////////////////////////////////////////
-double CalibrationSolver::func( double x, void *params )
+//////////////////////////////////////////////////////////////////////////
+double CalibrationParams::Calculator::FuncParams::func( double x, void *params )
 {
-	struct CalibrationFuncParams *p = (CalibrationFuncParams *) params;
-	double *A = p->GetA(), *B = p->GetB(), *N = p->N, *teta=p->teta;
-	double &n_p=p->n_p, &n_s=p->n_s, &alfa=p->alfa, &fi=x;
+	CalibrationParams::Calculator::FuncParams *p = (CalibrationParams::Calculator::FuncParams *) params;
+	double *A = p->A, *B = p->B, *N = p->N, *teta = p->teta;
+	double &n_p = p->n_p, &n_s = p->n_s, &alfa = p->alfa, &fi = x;
 	double ret;
 
 	for(int i=0;i<p->size; i++)
@@ -29,37 +19,38 @@ double CalibrationSolver::func( double x, void *params )
 		((B[0]-B[3])*(A[2]-A[3]) - (B[2]-B[3])*(A[0]-A[3])) - 
 		((N[2]-N[3])*(A[0]-A[3]) - (N[0]-N[3])*(A[2]-A[3])) * 
 		((B[0]-B[3])*(A[1]-A[3]) - (B[1]-B[3])*(A[0]-A[3]));
-	func_call_cntr++;
 	return ret;
 }
-//////////////////////////////////////////////////////////////////////////
-int CreateCalibration( DoubleArray& Nexp, DoubleArray& teta, CalibrationParams& cal )
-{
-	CalibrationFuncParams in_params(Nexp.GetSize(), Nexp, teta, cal.n_p, cal.n_s, cal.alfa );
-	CalibrationSolver FindFI( in_params );
-	if( (cal.status=FindFI.Run(-45*DEGREE, 45*DEGREE, 1e-12))==GSL_SUCCESS ) 
+void CalibrationParams::Calculator::FuncParams::InitCalibrationParams( CalibrationParams& cal )
+{	
+	cal.L =	((N[1] - N[3])*(A[0] - A[3]) - (N[0] - N[3])*(A[1] - A[3])) / 
+		((B[0] - B[3])*(A[1] - A[3]) - (B[1] - B[3])*(A[0] - A[3])); 
+	cal.d0 = ((N[3] - N[0]) - cal.L*(B[0] - B[3]))/(A[0] - A[3]);
+	cal.N0 = N[0] + cal.d0*A[0] + cal.L*B[0];
+	cal.Nexp.RemoveAll(); cal.teta.RemoveAll();
+	for(int i = 0; i < size; i++) 
 	{
-		double *A = FindFI.fparams.GetA(), *B = FindFI.fparams.GetB(), *N = FindFI.fparams.N;
-
-		cal.fi0=FindFI.root;
-		cal.L =	((N[1] - N[3])*(A[0] - A[3]) - (N[0] - N[3])*(A[1] - A[3])) / 
-			((B[0] - B[3])*(A[1] - A[3]) - (B[1] - B[3])*(A[0] - A[3])); 
-		cal.d0 = ((N[3] - N[0]) - cal.L*(B[0] - B[3]))/(A[0] - A[3]);
-		cal.N0 = N[0] + cal.d0*A[0] + cal.L*B[0];
-
-		cal.dt=FindFI.dt;
-		cal.func_call_cntr=CalibrationSolver::func_call_cntr;
-		cal.epsabs=FindFI.epsabs; cal.epsrel=FindFI.epsrel;
-		cal.Nexp.RemoveAll(); cal.teta.RemoveAll();
-		for(int i=0;i<Nexp.GetSize();i++) cal.Nexp.Add(N[i]);
-		for(int i=0;i<teta.GetSize();i++) cal.teta.Add(teta[i]);
-	}	
-	return cal.status;
+		cal.Nexp << N[i]; cal.teta << teta[i];
+	}
+}
+int CalibrationParams::Calculator::Run(CalibrationParams& cal, Solver1d::BoundaryConditions X, SolverErrors Err)
+{
+	if( Solver.Run(X, Err) == GSL_SUCCESS) 
+	{
+		Params.InitCalibrationParams(cal);
+		Solver.status = Solver.GetRoot(&cal.fi0); 
+	}
+	return Solver.status;
+}
+int CalibrationParams::Init( DoubleArray& Nexp, DoubleArray& teta)
+{
+	Calculator FindFI( Nexp, teta, n_p, n_s, alfa );
+	return FindFI.Run(*this, Solver1d::BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12));
 }
 //////////////////////////////////////////////////////////////////////////
-double CalibratorSolver::func( double x, void *params )
+double CalibrationParams::PixelToAngleSolver::FuncParams::func( double x, void *params )
 {
-	struct CalibratorFuncParams *p = (CalibratorFuncParams *) params;
+	struct CalibrationParams::PixelToAngleSolver::FuncParams *p = (CalibrationParams::PixelToAngleSolver::FuncParams *) params;
 	double &n_p=p->cal.n_p, &n_s=p->cal.n_s, &alfa=p->cal.alfa, &tetax=x, &Npix=p->Npix;
 	double &fi0=p->cal.fi0, &N0=p->cal.N0, &d0=p->cal.d0, &L=p->cal.L;
 	double par1, par2, ret;
@@ -68,48 +59,42 @@ double CalibratorSolver::func( double x, void *params )
 	par1 = t / (cos(fi0)*sqrt(1-t*t)-sin(fi0)*t);
 	par2 = sin(alfa)*tan(alfa - tetax)/cos(fi0)*(sin(fi0)*par1 + 1);
 	ret = Npix - (N0 - d0*par1 - L*par2);
-	func_call_cntr++;
 	return ret;
 }
-//////////////////////////////////////////////////////////////////////////
-int Calibrator( CalibratorParams& params, CalibrationParams& cal )
+int CalibrationParams::PixelToAngleSolver::Run( double* teta, Solver1d::BoundaryConditions X, SolverErrors Err )
 {
-	CalibratorSolver FindTETA(CalibratorFuncParams(params.Npix,cal));
-	if( (params.status=FindTETA.Run(35*DEGREE, 68.*DEGREE, 1e-12)) ==GSL_SUCCESS) 
+	if (Solver.Run(X, Err) == GSL_SUCCESS) 
 	{
-		params.teta=FindTETA.root/DEGREE;
-		params.betta=cal.n_p*sin(FindTETA.root);
-		params.dt=FindTETA.dt;
-		params.func_call_cntr=CalibratorSolver::func_call_cntr;
-		params.epsabs=FindTETA.epsabs; params.epsrel=FindTETA.epsrel;
+		Solver.status = Solver.GetRoot(teta); *teta /= DEGREE;
 	}
-	return params.status;
+	return Solver.status;
+}
+int CalibrationParams::ConvertPixelToAngle( double Npix, double* teta )
+{
+	PixelToAngleSolver FindTETA(Npix, *this);
+	return FindTETA.Run(teta, Solver1d::BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12));
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-double Solver1dTemplate<DispEqTEFuncParams>::func( double x, void *params ) {return 0;}
-double DispEqTESolver::func( double x, void *params )
+double DispEqSolver::FuncParams::funcTE( double x, void *params )
 {
-	struct DispEqFuncParams *p = (DispEqFuncParams *) params;
+	DispEqSolver::FuncParams *p = (DispEqSolver::FuncParams *) params;
 	double gam2, gam3, gam4; double ret; double &betta=x;
 	double &n1=p->n1, &n2=p->n2, &n3=p->n3, &kHc=p->kHf;
 
 	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
 	ret = (gam3*gam3 - gam2*gam4)*sin(gam3*kHc) - gam3*(gam2 + gam4)*cos(gam3*kHc);
-	func_call_cntr++;
 	return ret;
 }
-double Solver1dTemplate<DispEqTMFuncParams>::func( double x, void *params ) {return 0;}
-double DispEqTMSolver::func( double x, void *params )
+double DispEqSolver::FuncParams::funcTM( double x, void *params )
 {
-	struct DispEqFuncParams *p = (DispEqFuncParams *) params;
+	DispEqSolver::FuncParams *p = (DispEqSolver::FuncParams *) params;
 	double gam2, gam3, gam4; double ret; double &betta=x;
 	double &n1=p->n1, &n2=p->n2, &n3=p->n3, &kHc=p->kHf; double t1,t2,t3;
 
 	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
     t1=n1*n1; t2=n2*n2; t3=n3*n3;
 	ret = ( gam3*gam3*t1*t3 - gam2*gam4*t2*t2 )*sin(gam3*kHc) - gam3*t2*(gam2*t3 + gam4*t1)*cos(gam3*kHc);
-	func_call_cntr++;
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////
@@ -120,9 +105,9 @@ double FilmMinimizerTE::func(const gsl_vector * x, void * params)
 	double &n1=p->n1, &n3=p->n3, &k=p->k, *bettaexp=p->bettaexp;
 	FilmParams film(x);
 
-	DispEqTESolver Solver(DispEqTEFuncParams(n1, film.n, n3, k*film.H));
-	Solver.min_roots=p->bettaexp.GetSize(); Solver.max_roots=Solver.min_roots+2;
-	if( (status=Solver.Run(n3,film.n, 1e-6)) == GSL_SUCCESS) 
+	DispEqSolver Solver(TE, n1, film.n, n3, k*film.H);
+	//Solver.min_roots=p->bettaexp.GetSize(); Solver.max_roots=Solver.min_roots+2;
+	if( (status=Solver.Run(Solver1d::BoundaryConditions(n3, film.n), SolverErrors(1e-6)))) == GSL_SUCCESS) 
 	{
 		int i,j,roots_n=Solver.roots.GetSize(),betta_n=Solver.min_roots; double cur_ret;
 		for(i=0;i<=roots_n-betta_n;i++)
@@ -188,7 +173,7 @@ int CalclFilmParamsTE(FilmFuncTEParams& in, FilmParams& out)
 	out.status=Minimizer.Run(FilmParams(1.8,1150), FilmParams(1e-4,1e-1), 1e-6);
 	out=Minimizer.roots;
 	out.dt=Minimizer.dt;
-	out.func_call_cntr=FilmMinimizerTE::func_call_cntr;
+	out.cntr.func_call=FilmMinimizerTE::cntr.func_call;
 	out.epsabs=Minimizer.epsabs; 
 	out.fval=Minimizer.fval; out.size=Minimizer.size;
 	return out.status;

@@ -1,64 +1,143 @@
 #include "stdafx.h"
 #include "my_gsl.h"
 
-
-int Solver1d::Main ()
+DoubleArray& DoubleArray::operator=( DoubleArray& arr )
 {
-	fsolver_type=gsl_root_fsolver_brent;
-	s = gsl_root_fsolver_alloc (fsolver_type);
-	gsl_root_fsolver_set (s, &F, x_lo, x_hi);
-	do
-	{
-		iter++;
-		status = gsl_root_fsolver_iterate (s);
-		x_lo = gsl_root_fsolver_x_lower (s);
-		x_hi = gsl_root_fsolver_x_upper (s);
-		status = gsl_root_test_interval (x_lo, x_hi, epsabs, epsrel);
-	}
-	while (status == GSL_CONTINUE && iter < max_iter);	
-	return status;
+	RemoveAll();
+	SetSize(arr.GetSize());
+	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
+	return *this;
 }
 
-int Solver1d::Init( double& _x_lo, double& _x_hi, double _epsabs, double _epsrel )
+void DoubleArray::operator=( gsl_vector& vector )
 {
-    x_lo=_x_lo; x_hi=_x_hi; epsabs=_epsabs; epsrel=_epsrel; iter=0;
-	return GSL_SUCCESS;
+	double t; RemoveAll();
+	for (size_t i = 0; i < vector.size; i++)  
+	{
+		t = gsl_vector_get (&vector, i);
+		(*this).Add(t);
+	}
+}
+
+DoubleArray::operator gsl_vector*()
+{
+	gsl_vector* ret=NULL; double* arr = GetData(); int size = GetSize();
+	ret = gsl_vector_alloc (size);
+
+	for (int i = 0; i < GetSize(); i++)  
+		gsl_vector_set (ret, i, arr[i]);
+	return ret;
+}
+
+int Solver1d::Run (BoundaryConditions X, SolverErrors Err)
+{
+	MyTimer Timer1; Timer1.Start();
+	CleanUp();	
+	s = gsl_root_fsolver_alloc (fsolver_type);
+	gsl_root_fsolver_set (s, &F, X.min, X.max);
+	do
+	{
+		cntr.iter++;
+		status = gsl_root_fsolver_iterate (s);
+		X.min = gsl_root_fsolver_x_lower (s); X.max = gsl_root_fsolver_x_upper (s);
+		status = gsl_root_test_interval (X.min, X.max, Err.abs, Err.rel);
+	}
+	while (status == GSL_CONTINUE && cntr.iter < max_iter);	
+	root = gsl_root_fsolver_root(s); 
+	dt = Timer1.StopStart();
+	return status;
 }
 
 void Solver1d::CleanUp()
 {
-	if(s!=NULL) { gsl_root_fsolver_free (s); s=NULL; }
+	if (s != NULL) { gsl_root_fsolver_free(s); s = NULL; }
+	PerfomanceInfoMk1::CleanUp();
 }
-//////////////////////////////////////////////////////////////////////////
-int MultiDimMinimizer::Main(void)
+
+template <class FuncParams>
+void Solver1dTemplate<FuncParams>::CleanUp()
 {
-	double size;
-	fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
-	s = gsl_multimin_fminimizer_alloc (fminimizer_type, np);
-	gsl_multimin_fminimizer_set (s, &F, x, ss);
-	do
+	Roots.RemoveAll(); Solver1d::CleanUp(); 
+}
+
+template <class FuncParams>
+int Solver1dTemplate<FuncParams>::FindSubRgns( BoundaryConditions X, BoundaryConditionsArray& SubRgns )
+{
+	if (rgm == SINGLE_ROOT)
 	{
-		iter++;
-		status = gsl_multimin_fminimizer_iterate(s);
-		if (status) break;
-		size = gsl_multimin_fminimizer_size (s);
-		status = gsl_multimin_test_size (size, epsabs);
+		SubRgns.Add(X);
 	}
-	while (status == GSL_CONTINUE && iter < max_iter);
+	else
+	{
+		double x, dx = (X.max - X.min)/(subrgns_max - 1); 
+		BoundaryConditions y(func(X.min, F.params), 0);
+
+		for(int i = 1; i < subrgns_max; i++)
+		{
+			x = X.min + i*dx; y.max = func(x, F.params);
+			if ((y.min < 0 && y.max > 0) || (y.min > 0 && y.max < 0))
+			{
+				SubRgns.Add(BoundaryConditions(x - dx, x));
+			}
+			y.min = y.max;
+		}
+	}
+}
+
+template <class FuncParams>
+int Solver1dTemplate<FuncParams>::Run( BoundaryConditions X, SolverErrors Err )
+{
+	MyTimer Timer1; double r; BoundaryConditionsArray SubRgns; int total_func_call = 0;
+	Timer1.Start(); 
+	CleanUp(); 
+	p->PrepareBuffers();
+	FindSubRgns(X, SubRgns); 
+	for(int i = 0; i < SubRgns.GetSize(); i++)
+	{
+		if( Solver1d::Run(SubRgns[i], Err) == GSL_SUCCESS) 
+		{		
+			Roots << Solve r;
+		}
+		total_func_calls += cntr.func_call;
+	}
+	dt=Timer1.StopStart(); cntr.func_call = total_func_call;
+	p->DestroyBuffers(); 
 	return status;
 }
 
-int MultiDimMinimizer::Init( double _epsabs )
+
+//////////////////////////////////////////////////////////////////////////
+int MultiDimMinimizer::Run(DoubleArray& initX, DoubleArray& initdX, SolverErrors Err)
 {
-	epsabs=_epsabs;	s = NULL; iter=0; np=GetParamsNum();
-	return GSL_SUCCESS;
+	MyTimer Timer1; Timer1.Start();
+	double size; X = initX; dX = initdX;
+	CleanUp();
+	s = gsl_multimin_fminimizer_alloc (fminimizer_type, initX.GetSize());
+	gsl_multimin_fminimizer_set (s, &F, X, dX);
+	do
+	{
+		cntr.iter++;
+		status = gsl_multimin_fminimizer_iterate(s);
+		if (status) break;
+		size = gsl_multimin_fminimizer_size (s);
+		status = gsl_multimin_test_size (size, Err.abs);
+	}
+	while (status == GSL_CONTINUE && cntr.iter < max_iter);
+	if (status == GSL_SUCCESS)
+	{
+		Minimum.x = *(s->x); Minimum.y = s->fval;
+	}
+	dt = Timer1.StopStart();
+	return status;
 }
 
 void MultiDimMinimizer::CleanUp()
 {
-	if(x!=NULL)		{gsl_vector_free(x); x=NULL;}
-	if(ss!=NULL)	{gsl_vector_free(ss);ss=NULL;}
-	if(s!=NULL)		{gsl_multimin_fminimizer_free (s); s=NULL;}
+	if (s != NULL)		{gsl_multimin_fminimizer_free (s); s = NULL;}
+	if (X != NULL)		{gsl_vector_free(X); X = NULL;}
+	if (dX != NULL)	{gsl_vector_free(dX); dX = NULL;}
+	Minimum.CleanUp();
+	PerfomanceInfoMk1::CleanUp();
 }
 
 ComplexGSL sqrt( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_sqrt(c.z)); }
@@ -136,7 +215,7 @@ void FFTRealTransform::CleanUp()
 
 int FFTRealTransform::Run( Params& params,Direction dir )
 {
-	Timer1.Start();
+	MyTimer Timer1; Timer1.Start();
 	if( (status=Init(params, dir))==GSL_SUCCESS)
 	{
 		status=Main();
@@ -159,15 +238,3 @@ int FFTRealTransform::Init( Params& _params, Direction _dir )
 
 //////////////////////////////////////////////////////////////////////////
 
-DoubleArray& DoubleArray::operator=( DoubleArray& arr )
-{
-	RemoveAll();
-	SetSize(arr.GetSize());
-	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
-	return *this;
-}
-
-DoubleArray::DoubleArray(): CArray<double>()
-{
-
-}

@@ -136,31 +136,31 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 	ASSERT(chart != NULL);
 	if (chart == NULL) return;
 	
-	void *xxx; 	CString str; TSimplePointSeries* t1=NULL; SimplePoint pnt;
+	//void *xxx; 	CString str; TSimplePointSeries* t1=NULL; SimplePoint pnt;
 	
-	if((xxx=chart->Series.GainAcsess(WRITE))!=NULL)
-	{
-		SeriesProtector guard(xxx); TSeriesArray& series(guard); str.Format("PolyFit%d",1234);
-		if((t1=new TSimplePointSeries(str))!=0)	
-		{
-			series.Add(t1); 
-			t1->_SymbolStyle::Set(NO_SYMBOL);
-			t1->AssignColors(ColorsStyle(clRED,series.GetRandomColor()));
-			t1->SetVisible(true); 
+	//if((xxx=chart->Series.GainAcsess(WRITE))!=NULL)
+	//{
+	//	SeriesProtector guard(xxx); TSeriesArray& series(guard); str.Format("PolyFit%d",1234);
+	//	if((t1=new TSimplePointSeries(str))!=0)	
+	//	{
+	//		series.Add(t1); 
+	//		t1->_SymbolStyle::Set(NO_SYMBOL);
+	//		t1->AssignColors(ColorsStyle(clRED,series.GetRandomColor()));
+	//		t1->SetVisible(true); 
 
-			CalibrationFuncParams in_params(Nexp.GetSize(), Nexp, teta, cal.n_p, cal.n_s, cal.alfa );
+	//		CalibrationFuncParams in_params(Nexp.GetSize(), Nexp, teta, cal.n_p, cal.n_s, cal.alfa );
 
-			t1->ParentUpdate(UPD_OFF);
-			for(double x=0; x<45.0; x+=0.1)
-			{
-				pnt.x=x;
-				pnt.y=CalibrationSolver::func(x*DEGREE,&in_params);
-				t1->AddXY(pnt);
-			}
-			t1->ParentUpdate(UPD_ON);
-		}	
-	}
-	chart->PostMessage(UM_CHART_SHOWALL);	
+	//		t1->ParentUpdate(UPD_OFF);
+	//		for(double x=0; x<45.0; x+=0.1)
+	//		{
+	//			pnt.x=x;
+	//			pnt.y=CalibrationSolver::func(x*DEGREE,&in_params);
+	//			t1->AddXY(pnt);
+	//		}
+	//		t1->ParentUpdate(UPD_ON);
+	//	}	
+	//}
+	//chart->PostMessage(UM_CHART_SHOWALL);	
 	
 	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
 

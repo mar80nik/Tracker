@@ -135,15 +135,12 @@ void ImageWnd::OnChildMove()
 //////////////////////////////////////////////////////////////////////////
 BEGIN_MESSAGE_MAP(ImageWnd::CtrlsTab, BarTemplate)
 	//{{AFX_MSG_MAP(DialogBarTab1)
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedScan)
-	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedCalibrate)
 	ON_WM_CREATE()
-	ON_BN_CLICKED(IDC_BUTTON4, &ImageWnd::CtrlsTab::OnBnClickedCalcTE)
-	ON_BN_CLICKED(IDC_BUTTON5, &ImageWnd::CtrlsTab::OnBnClickedButton5)
-	//}}AFX_MSG_MAP	
-	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)
-	ON_BN_CLICKED(IDC_BUTTON11, &ImageWnd::CtrlsTab::OnBnClickedCalcTM)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedScan)
+	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)	
 	ON_MESSAGE(UM_BUTTON_ITERCEPTED,&ImageWnd::CtrlsTab::OnButtonIntercepted)
+	ON_BN_CLICKED(IDC_BUTTON5, &ImageWnd::CtrlsTab::OnBnClickedButton5)	
+	//}}AFX_MSG_MAP	
 END_MESSAGE_MAP()
 
 BOOL ImageWnd::CtrlsTab::OnInitDialog() 
@@ -545,86 +542,10 @@ void ImageWnd::PicWnd::OnPicWndSave()
 	}
 }
 
-void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
-{
-	CalibratorDlg.ShowWindow(SW_SHOW);
-
-
-	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
-	DoubleArray N,teta; CString T;
-	CalibrationParams cal; cal.n_p=2.14044; cal.n_s=1.; 
-	N << 2933 << 2506 << 1922 << 1203;
-	teta << 63.34*DEGREE << 60.04*DEGREE << 55.16*DEGREE << 49.02*DEGREE;
-
-	double lambda, k, n1, n3; DoubleArray bettaexp_TE;
-	lambda = 632.8; k = 2.*M_PI/lambda;	n1 = 1.; n3 = 1.45705;
-	bettaexp_TE << 1.9129 << 1.8544 << 1.7568 << 1.6159; 
-	FilmFuncTEParams in_TE(bettaexp_TE, n1,n3,k);
-	FilmParams outTE,outTM;
-	DoubleArray bettaexp_TM;
-	bettaexp_TM << 1.82422 << 1.76110 << 1.65829 << 1.51765; 
-	FilmFuncTMParams in_TM(bettaexp_TM, n1,n3,k);
-
-	CalcRParams params;
-	params.i=FilmParams(1,150,0+1e-100); 
-	params.f=FilmParams(1.84,1082,5e-3+1e-100);  
-	params.s=FilmParams(1.45705,1e6,0+1e-100); 
-	params.lambda=632.8; params.Np=2.14044; params.teta_min=15; params.teta_max=85;
-
-	TSimplePointSeries *t1=NULL; 
-	TSimplePointSeries::DataImportMsg *CHM1, *CHM2; CHM1=CHM2=NULL; 
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
-	SimplePoint pnt; pnt.type.Set(GenericPnt);
-
-	CreateCalibration(N, teta, cal);
-	CalibratorParams calb_params(1000.203414900858);
-	Calibrator(calb_params,cal);
-	CalclFilmParamsTE(in_TE,outTE);
-	CalclFilmParamsTM(in_TM,outTM);
-	int a=5;
-
-	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::low_pr);
-	T.Format("---Calibration---"); log->CreateEntry("*",T);
-	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g",cal.N0,cal.L,cal.d0,cal.fi0,cal.epsabs,cal.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("---Calibrator----"); log->CreateEntry("*",T);
-	T.Format("Npix=%g teta=%.10f betta=%.10f errabs=%g errrel=%g",calb_params.Npix,calb_params.teta, calb_params.betta,calb_params.epsabs,calb_params.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",calb_params.dt.val(), calb_params.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("--FilmParamsTE---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTE.n, outTE.H, outTE.epsabs, outTE.epsrel ); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTE.epsabs, outTE.epsrel, outTE.fval, outTE.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTE.dt.val(), outTE.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TE.betta_teor.GetSize();i++)
-	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TE.betta_teor[i].n,in_TE.betta_teor[i].val,bettaexp_TE[i]); log->CreateEntry("*",T);
-	}		
-	T.Format("--FilmParamsTM---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTM.n, outTM.H, outTM.epsabs, outTM.epsrel); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTM.epsabs, outTM.epsrel, outTM.fval, outTM.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTM.dt.val(), outTM.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TM.betta_teor.GetSize();i++)
-	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TM.betta_teor[i].n,in_TM.betta_teor[i].val,bettaexp_TM[i]); log->CreateEntry("*",T);
-	}		
-	log->Dispatch();
-
-}
-
 int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	if (BarTemplate::OnCreate(lpCreateStruct) == -1)
 		return -1;
-
-	CalibratorDlg.Create(IDD_DIALOG_CAL,this);
-	CalibratorDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-
-	CalcTEDlg.Create(IDD_DIALOG_CALCTE,this);
-	CalcTEDlg.SetWindowPos(NULL,600,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-
-	CalcTMDlg.Create(IDD_DIALOG_CALCTE,this);
-	CalcTMDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-	CalcTMDlg.SetWindowText("TM Calculator"); CalcTMDlg.IsTM=TRUE;
 
 	return 0;
 }
@@ -762,21 +683,8 @@ ImageWnd::AvaPicRgn ImageWnd::PicWnd::Convert( const OrgPicRgn& rgn )
 
 BOOL ImageWnd::CtrlsTab::DestroyWindow()
 {
-	CalibratorDlg.DestroyWindow();
-
 	return BarTemplate::DestroyWindow();
 }
-
-void ImageWnd::CtrlsTab::OnBnClickedCalcTE()
-{
-	CalcTEDlg.ShowWindow(SW_SHOW);
-}
-
-void ImageWnd::CtrlsTab::OnBnClickedCalcTM()
-{
-	CalcTMDlg.ShowWindow(SW_SHOW);
-}
-
 
 void ImageWnd::CtrlsTab::OnBnClickedButton5()
 {

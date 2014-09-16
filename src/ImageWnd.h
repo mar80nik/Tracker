@@ -41,8 +41,6 @@ class ImageWnd : public CWnd
 	public:
 		enum { IDD = IDD_DIALOGBARTAB1 };
 
-		CalibratorDialog CalibratorDlg;
-		CalcTEDialog	CalcTEDlg, CalcTMDlg;
 		int stroka, AvrRange, Xmin, Xmax;
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
 
@@ -58,13 +56,10 @@ class ImageWnd : public CWnd
 		DECLARE_MESSAGE_MAP()
 	public:
 		afx_msg void OnBnClickedScan();
-		afx_msg void OnBnClickedCalibrate();
 		virtual BOOL DestroyWindow();
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-		afx_msg void OnBnClickedCalcTE();
 		afx_msg void OnBnClickedButton5();
 		afx_msg void OnEnKillfocusEdit1();
-		afx_msg void OnBnClickedCalcTM();		
 		LRESULT OnButtonIntercepted(WPARAM wParam, LPARAM lParam );
 	};
 

@@ -35,7 +35,7 @@ public:
 	afx_msg void OnCbnSelchangeCombo1();
 public:
 	CComboBox SeriesCombo;
-	double nf, hf, lambda, n3;
+	double nf, hf, lambda, n3, n_p;
 public:
 	afx_msg void OnBnClickedCalculate();
 };

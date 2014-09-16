@@ -39,6 +39,7 @@ void CalcTEDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT17, hf);
 	DDX_Text(pDX, IDC_EDIT18, lambda);
 	DDX_Text(pDX, IDC_EDIT19, n3);
+	DDX_Text(pDX, IDC_EDIT21, n_p);
 }
 
 
@@ -55,7 +56,7 @@ END_MESSAGE_MAP()
 void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
-	MainCfg.GetCalibration(&cal);
+	MainCfg.GetCalibration(&cal); cal.n_p = n_p;
 	for(int i=0;i<modes_num;i++)
 	{
 		CalibratorParams calb_params(N[i]);

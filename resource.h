@@ -98,6 +98,7 @@
 #define IDC_T_BUTTON2                   1007
 #define IDC_EDIT16                      1007
 #define IDC_EDIT14                      1008
+#define IDC_BUTTON9                     1008
 #define IDC_VOLTMETER_OUTPUT            1009
 #define IDC_EDIT17                      1009
 #define IDC_VOLTMETER_OUTPUT2           1010
@@ -107,6 +108,7 @@
 #define IDC_EDIT19                      1011
 #define IDC_VOLTMETER_OUTPUT3           1012
 #define IDC_EDIT15                      1012
+#define IDC_EDIT21                      1012
 #define IDC_EDIT20                      1013
 #define IDC_EDIT3                       1014
 #define IDC_EDIT4                       1015
@@ -123,6 +125,7 @@
 #define IDC_BUTTON15                    1021
 #define IDC_BUTTON4                     1022
 #define IDC_BUTTON11                    1023
+#define IDC_BUTTON16                    1024
 #define IDC_LIST1                       1025
 #define IDC_TAB1                        1026
 #define IDC_START_BUTTON                1027

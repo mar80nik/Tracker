@@ -55,8 +55,6 @@ public:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 	BOOL OnInit();
-protected:
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 };
 
 /////////////////////////////////////////////////////////////////////////////

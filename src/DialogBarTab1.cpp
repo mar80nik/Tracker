@@ -689,7 +689,7 @@ void DialogBarTab1::OnBnClickedKneeTest()
 void DialogBarTab1::OnBnClickedCalibrate()
 {
 	CalibratorDlg.ShowWindow(SW_SHOW);
-
+	/*
 	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
 	DoubleArray N,teta; CString T;
 	CalibrationParams cal; cal.n_p=2.14044; cal.n_s=1.; 
@@ -748,6 +748,7 @@ void DialogBarTab1::OnBnClickedCalibrate()
 		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TM.betta_teor[i].n,in_TM.betta_teor[i].val,bettaexp_TM[i]); log->CreateEntry("*",T);
 	}		
 	log->Dispatch();
+	*/
 
 }
 

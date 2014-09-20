@@ -1,7 +1,35 @@
 #include "stdafx.h"
 #include "metricon.h"
+
 //////////////////////////////////////////////////////////////////////////
+AngleFromCalibrationArray& AngleFromCalibrationArray::operator=( AngleFromCalibrationArray& arr )
+{
+	RemoveAll();
+	SetSize(arr.GetSize());
+	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
+	return *this;
+}
 //////////////////////////////////////////////////////////////////////////
+void CalibrationParams::Serialize( CArchive& ar )
+{
+	if(ar.IsStoring())
+	{
+		val.Serialize(ar);
+		Nexp.Serialize(ar);  teta.Serialize(ar);
+	}
+	else
+	{
+		val.Serialize(ar);
+		Nexp.Serialize(ar);  teta.Serialize(ar);	
+	}
+}
+
+CalibrationParams& CalibrationParams::operator=( CalibrationParams& t )
+{
+	val = t.val; Nexp = t.Nexp; teta = t.teta;
+	return *this;
+}
+
 double CalibrationParams::Calculator::FuncParams::func( double fi)
 {
 	double ret;
@@ -18,16 +46,17 @@ double CalibrationParams::Calculator::FuncParams::func( double fi)
 	return ret;
 }
 
-int CalibrationParams::CalculateFrom(DoubleArray& Nexp, DoubleArray& teta, double n_p, double n_s, double alfa, double lambda)
+int CalibrationParams::CalculateFrom(	DoubleArray& Nexp, DoubleArray& teta, 
+										double n_p, double n_i, double n_s, double alfa, double lambda)
 {
-	Calculator::FuncParams params(Nexp, teta, n_p, n_s, alfa, lambda);
+	Calculator::FuncParams params(Nexp, teta, n_p, n_i, n_s, alfa, lambda);
 	Solver1dTemplate<Calculator::FuncParams> FindFI(SINGLE_ROOT);
 
 	if( FindFI.Run(&params, BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12)) == GSL_SUCCESS) 
 	{
 		double *N = params.N, *A = params.A, *B = params.B;
 		val.RemoveAll();
-		val << params.alfa <<  params.n_p << params.n_s << params.lambda; 
+		val << params.alfa <<  params.n_p << params.n_i << params.n_s << params.lambda; 
 		Nexp = params.N; teta = params.teta;
 		val << FindFI.Roots[0]; 	
 		val << ((N[1] - N[3])*(A[0] - A[3]) - (N[0] - N[3])*(A[1] - A[3])) / 
@@ -48,7 +77,7 @@ double CalibrationParams::PixelToAngleSolver::FuncParams::func( double teta )
 	return ret;
 }
 
-CalibrationParams::AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
+AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
 {
 	AngleFromCalibration ret;
 	PixelToAngleSolver::FuncParams params(Npix, this->val);
@@ -66,15 +95,15 @@ CalibrationParams::AngleFromCalibration CalibrationParams::ConvertPixelToAngle(d
 double FilmParams::DispEqSolver::FuncParams::funcTE( double betta )
 {
 	double gam2, gam3, gam4, ret;
-	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
+	gam2 = sqrt(betta*betta - n_i*n_i); gam3 = sqrt(n_f*n_f - betta*betta); gam4 = sqrt(betta*betta - n_s*n_s);
 	ret = (gam3*gam3 - gam2*gam4)*sin(gam3*kHf) - gam3*(gam2 + gam4)*cos(gam3*kHf);
 	return ret;
 }
 double FilmParams::DispEqSolver::FuncParams::funcTM( double betta )
 {
 	double gam2, gam3, gam4, t1, t2, t3, ret; 
-	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
-    t1=n1*n1; t2=n2*n2; t3=n3*n3;
+	t1 = n_i*n_i; t2 = n_f*n_f; t3=n_s*n_s;
+	gam2 = sqrt(betta*betta - t1); gam3 = sqrt(t2 - betta*betta); gam4 = sqrt(betta*betta - t3);    
 	ret = ( gam3*gam3*t1*t3 - gam2*gam4*t2*t2 )*sin(gam3*kHf) - gam3*t2*(gam2*t3 + gam4*t1)*cos(gam3*kHf);
 	return ret;
 }
@@ -83,10 +112,13 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 {
     double ret=100; int status;	DoubleArray film; film = *x;
 
+	DoubleArray cal = bettaexp[0].cal; 
+	double k = 2*M_PI/cal[CalibrationParams::ind_lambda];
+	double n_i = cal[CalibrationParams::ind_n_i], n_s = cal[CalibrationParams::ind_n_s];
 	Solver1dTemplate<DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
-	FilmParams::DispEqSolver::FuncParams params(pol, n1, film[index_n], n3, k*film[index_H]);
+	FilmParams::DispEqSolver::FuncParams params(pol, n_i, film[index_n], n_s, k*film[index_H]);
 
-	if ((status = FindBettas.Run(&params, BoundaryConditions(n3, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 
+	if ((status = FindBettas.Run(&params, BoundaryConditions(n_s, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 
 	{
 		double cur_ret; 
 		int i, j, roots_n = FindBettas.Roots.GetSize(), betta_n = bettaexp.GetSize(); 
@@ -95,7 +127,7 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 			cur_ret = 0;			
 			for (j = 0; j < betta_n; j++)
 			{
-				cur_ret += abs(FindBettas.Roots[j + i] - bettaexp[j]);
+				cur_ret += abs(FindBettas.Roots[j + i] - bettaexp[j].teta);
 			}
 			if (cur_ret < ret) 
 			{
@@ -119,11 +151,10 @@ void FilmParams::FuncParams::CleanUp()
 
 //////////////////////////////////////////////////////////////////////////
 
-int FilmParams::Calculator(	Polarization pol, double n1, double n3, double k, 
-							DoubleArray& bettaexp,FilmParams initX, FilmParams initdX)
+int FilmParams::Calculator(	Polarization pol, AngleFromCalibrationArray& bettaexp,FilmParams initX, FilmParams initdX)
 {
 	MultiDimMinimizerTemplate<FuncParams> FindFilmParams(200);
-	FuncParams params(pol, n1, n3, k, bettaexp);
+	FuncParams params(pol,  bettaexp);
 	DoubleArray X0, dX0; 
 	switch (pol)
 	{
@@ -221,9 +252,10 @@ void CalcR_TM(CalcRParams& params)
 }
 
 //////////////////////////////////////////////////////////////////////////
+/*
 int Fit_Parabola( MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCParams& out )
 {
-    /*
+  
 	Fit_Ax2BxC fit(in,10);	
 	fit.Run(init, 1e-15, 1e-9); 
 	out=fit.roots;
@@ -231,9 +263,10 @@ int Fit_Parabola( MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCPa
 	out.func_call_cntr=Fit_Ax2BxC::func_call_cntr;
 	out.epsabs=fit.epsabs;  out.epsabs=fit.epsabs; 		
 	out.iter_num=fit.iter;
-	*/
+	
 	return out.status;
 }
+*/
 
 
 void FittingPerfomanceInfo::GetSolverResults( gsl_multifit_fdfsolver *s )
@@ -252,7 +285,7 @@ void FittingPerfomanceInfo::GetSolverResults( gsl_multifit_fdfsolver *s )
 		gsl_matrix_free(covar);
 	}
 }
-
+/*
 FittingPerfomanceInfo::FittingPerfomanceInfo( int _p )
 {
 	a=da=NULL; p=_p;
@@ -275,65 +308,58 @@ void FittingPerfomanceInfo::operator=( const FittingPerfomanceInfo& t )
 	ASSERT(p==t.p);
 	for(int i=0;i<p;i++) {a[i]=t.a[i]; da[i]=t.da[i];}
 }
+*/
 
 
-double Fit_Ax2BxCParams::f( double x, double* a )
+
+//Fit_Ax2BxC_FuncParams::Fit_Ax2BxC_FuncParams( double _a/*=0*/,double _b/*=0*/,double _c/*=0*/ ) : FittingPerfomanceInfo(GetParamsNum())
+//{
+//	a[2]=_a; a[1]=_b; a[0]=_c;
+//}
+
+SimplePoint Fit_Ax2BxC_FuncParams::GetTop()
 {
-	double ret=a[0],tx=x;
-	for(int j=1;j<3;j++) {ret+=(a[j]*tx); tx*=x;}
-	return ret;
+//	double t=(-a[1]/(2*a[2]));
+//	return SimplePoint(leftmostX+t*dx, a[0]-a[1]*a[1]/(a[2]*4));
+	return 0;
 }
 
-Fit_Ax2BxCParams::Fit_Ax2BxCParams( double _a/*=0*/,double _b/*=0*/,double _c/*=0*/ ) : FittingPerfomanceInfo(GetParamsNum())
+SimplePoint Fit_Ax2BxC_FuncParams::GetXabsY( double x )
 {
-	a[2]=_a; a[1]=_b; a[0]=_c;
+	//return SimplePoint(x, f((x - leftmostX)/dx,a));
+		return 0;
 }
 
-SimplePoint Fit_Ax2BxCParams::GetTop()
+SimplePoint Fit_Ax2BxC_FuncParams::GetXrelY( double x )
 {
-	double t=(-a[1]/(2*a[2]));
-	return SimplePoint(leftmostX+t*dx, a[0]-a[1]*a[1]/(a[2]*4));
-}
-
-SimplePoint Fit_Ax2BxCParams::GetXabsY( double x )
-{
-	return SimplePoint(x,f((x-leftmostX)/dx,a));
-}
-
-SimplePoint Fit_Ax2BxCParams::GetXrelY( double x )
-{
-	return SimplePoint(x+leftmostX,f(x,a));
+	//return SimplePoint(x + leftmostX,f(x,a));
+		return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
-int Fit_Ax2BxC::f (const gsl_vector * x, void *data, gsl_vector * f)
+double Fit_Ax2BxC_FuncParams::func( double x, double* a )
 {
-	MultiFitterFuncParams *params=(MultiFitterFuncParams *)data;
-	size_t& n = params->n, p = x->size, i; double Yi;
-	double *y = params->y, *sigma = params->sigma, *a=x->data;
+	double ret = a[ind_c], tx = x;
+	for(size_t j = 1; j < p; j++) { ret += (a[j]*tx); tx *= x;}
+	return ret;
+}
 
-	for (i = 0; i < n; i++)
+int Fit_Ax2BxC_FuncParams::f (const gsl_vector * x, gsl_vector * f)
+{
+	for (size_t i = 0; i < n; i++)
 	{
-		Yi=Fit_Ax2BxCParams::f(i,a);
-		gsl_vector_set (f, i, (Yi - y[i])/sigma[i]);
+		gsl_vector_set (f, i, (func(i, x->data) - y[i])/sigma[i]);
 	}
-	func_call_cntr++;
 	return GSL_SUCCESS;
 }
-int Fit_Ax2BxC::df (const gsl_vector * x, void *data, gsl_matrix * J)
+int Fit_Ax2BxC_FuncParams::df (const gsl_vector * x, gsl_matrix * J)
 {
-	MultiFitterFuncParams *params=(MultiFitterFuncParams *)data;
-	size_t& n = params->n, p = x->size, i,j;
-	double *sigma = params->sigma, *a=x->data;
-
-	for (i = 0; i < n; i++)
+	for (size_t i = 0; i < n; i++)
 	{
-		double tx=i; double s = sigma[i];
-		gsl_matrix_set (J, i, 0, 1/s);		
-		for(j=1;j<p;j++)
-		{
-			gsl_matrix_set (J, i, j, tx/s); tx*=i;
-		}
+		double tx = i; double s = sigma[i];
+		gsl_matrix_set (J, i, ind_c, 1/s);		
+		gsl_matrix_set (J, i, ind_b, tx/s); tx *= i;
+		gsl_matrix_set (J, i, ind_a, tx/s);
 	}
 	return GSL_SUCCESS;
 }
@@ -357,29 +383,10 @@ int FourierFilter( FFTRealTransform::Params& in, double spec_width, FFTRealTrans
 
 }
 
-void CalibrationParams::Serialize( CArchive& ar )
-{
-	if(ar.IsStoring())
-	{
-		val.Serialize(ar);
-		Nexp.Serialize(ar);  teta.Serialize(ar);
-	}
-	else
-	{
-		val.Serialize(ar);
-		Nexp.Serialize(ar);  teta.Serialize(ar);	
-	}
-}
-
-CalibrationParams& CalibrationParams::operator=( CalibrationParams& t )
-{
-	val = t.val; Nexp = t.Nexp; teta = t.teta;
-	return *this;
-}
 //////////////////////////////////////////////////////////////////////////
+/*
 int Fit_StepFunc( MultiFitterFuncParams& in, Fit_KneeParams& init,Fit_KneeParams& out )
 {
-/*
 	Fit_Knee fit(in,100);	
 	fit.Run(init, 1e-15, 1e-9); 
 	out=fit.roots;
@@ -387,7 +394,7 @@ int Fit_StepFunc( MultiFitterFuncParams& in, Fit_KneeParams& init,Fit_KneeParams
 	out.func_call_cntr=Fit_Knee::func_call_cntr;
 	out.epsabs=fit.epsabs;  out.epsabs=fit.epsabs; 		
 	out.iter_num=fit.iter;
-	*/
+
 	return out.status;
 }
 
@@ -403,7 +410,7 @@ double Fit_KneeParams::f( double x, double* a )
 	return ret;
 }
 
-Fit_KneeParams::Fit_KneeParams( double _a/*=0*/,double _b/*=0*/,double _c/*=0*/,double _k/*=0*/ ) : 
+//Fit_KneeParams::Fit_KneeParams( double _a,double _b,double _c,double _k) : 
 	FittingPerfomanceInfo(GetParamsNum()), A(a[0]), B(a[1]), C(a[2]), k(a[3])
 {
 	A=_a; B=_b; C=_c; k=_k;
@@ -461,3 +468,4 @@ int Fit_Knee::df (const gsl_vector * x, void *data, gsl_matrix * J)
 	}
 	return GSL_SUCCESS;
 }
+*/

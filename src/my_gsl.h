@@ -21,7 +21,7 @@ public:
 	DoubleArray() {};
 	DoubleArray(DoubleArray&);
 	DoubleArray& operator << (double d) {(*this).Add(d); return (*this);}
-	DoubleArray& operator=(DoubleArray& arr);
+	DoubleArray& operator=(const DoubleArray& arr);
 	operator double*() {return CArray<double>::GetData();}
 	operator gsl_vector*();
 	void operator= (const gsl_vector& vector);
@@ -179,89 +179,64 @@ public:
 	virtual void CleanUp();
 };
 //////////////////////////////////////////////////////////////////////////
-enum MultiFitter_mode {F_MODE, FDF_MODE};
-
-class MultiFitter: public PerfomanceInfoMk1
+struct BaseForMultiFitterFuncParams:public BaseForFuncParams
 {
-protected:
+	size_t n, p; double *y, *sigma, leftmostX, rightmostX, dx;
+
+	BaseForMultiFitterFuncParams(size_t _p, DoubleArray& _x, DoubleArray& _y, DoubleArray& _sigma): 
+		BaseForFuncParams(), p(_p)
+	{		
+		ASSERT(_y.GetSize() ==_sigma.GetSize());
+		y = _y; sigma = _sigma; n =_y.GetSize();
+		ASSERT(n >= p);
+		leftmostX = _x[0]; rightmostX = _x[n - 1];
+		dx = (rightmostX - leftmostX)/(n - 1);
+	}
+	size_t GetPointsNum() {return n;}
+};
+
+template <class FuncParams>
+class MultiFitterTemplate: public SolverData
+{
+private:
 	const gsl_multifit_fdfsolver_type *multifit_fdfsolver_type; 
-	const gsl_multifit_fsolver_type *multifit_fsolver_type; 
 	gsl_multifit_fdfsolver *s; 
-	gsl_multifit_fsolver *sf; 
 	size_t n, p;	
 	gsl_multifit_function_fdf F;
-	gsl_multifit_function Ff;
-	gsl_vector_view x;
-
-	int Init(double _epsabs, double _epsrel);
-	int (MultiFitter::*Main)();
-	int MainFDF();
-	int MainF();
-	virtual int GetParamsNum()=0;
-	void CleanUp();
-public:
-	double epsabs, epsrel;
-	int status; size_t max_iter, iter;
-public:
-	MultiFitter(MultiFitter_mode mode=FDF_MODE, int _max_iter=50) 
-	{ 
-		multifit_fdfsolver_type=NULL; s=NULL; sf=NULL; epsabs=epsrel=0;
-		F.f = NULL; F.df = NULL; F.fdf = NULL; F.n=F.p=0; F.params = NULL; 
-		max_iter=_max_iter; 
-		if(mode==FDF_MODE) Main=&MultiFitter::MainFDF;
-		else Main=&MultiFitter::MainF;
-	}
-	virtual ~MultiFitter() {CleanUp();}
-};
-//////////////////////////////////////////////////////////////////////////
-template <class Params, class FuncParams>
-class MultiFitterTemplate: public MultiFitter
-{
-public:
-	FuncParams	fparams;
-	Params		roots;
-
-	static int	func_call_cntr;
+	gsl_vector* initX;
 protected:
-	static int f (const gsl_vector * x, void *data, gsl_vector * f);
-	static int df (const gsl_vector * x, void *data, gsl_matrix * J);
-	static int fdf (const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)	
+	static int f(const gsl_vector * x, void *data, gsl_vector * f)
 	{
-		MultiFitterTemplate::f(x, data, f);
-		MultiFitterTemplate::df(x, data, J);
+		MultiFitterTemplate<FuncParams>* solver = (MultiFitterTemplate<FuncParams>*)data;
+		solver->params->func_call_cntr++;
+		return solver->params->f(x, f);
+	}
+	static int df(const gsl_vector * x, void *data, gsl_matrix * J)
+	{
+		MultiFitterTemplate<FuncParams>* solver = (MultiFitterTemplate<FuncParams>*)data;
+		solver->params->func_call_cntr++;
+		return solver->params->df(x, J);
+	}
+	static int fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)	
+	{
+		MultiFitterTemplate<FuncParams>* solver = (MultiFitterTemplate<FuncParams>*)data;
+		solver->params->f(x, f);
+		solver->params->df(x, J);
 		return GSL_SUCCESS;
 	}
-
-	virtual int Init(Params& start, double epsabs, double epsrel)
-	{
-		if( (status=MultiFitter::Init(epsabs,epsrel))==GSL_SUCCESS)
-		{
-			p=GetParamsNum(); n=GetPointsNum(); roots.n=n;
-			F.f=f; F.df=df; F.fdf=fdf; F.params=&fparams; F.p=p; F.n=n;
-			x = gsl_vector_view_array (start, p);	
-			func_call_cntr=0;
-		}
-		return status;
-	}
-	virtual int GetParamsNum() {return roots.GetParamsNum();}
-	virtual int GetPointsNum() {return fparams.GetPointsNum();}
 public:
-	MultiFitterTemplate(FuncParams& p, int _max_iter): MultiFitter(FDF_MODE,_max_iter), fparams(p)  {}
-	virtual ~MultiFitterTemplate() {}
-	int Run(Params& start, double epsabs, double epsrel)
-	{		
-		Timer1.Start();
-		if( (status=Init(start, epsabs,epsrel))==GSL_SUCCESS)
-		{
-			status=(this->*Main)();
-			roots.GetSolverResults(s); 
-			roots.leftmostX=fparams.leftmostX; roots.rightmostX=fparams.rightmostX; 
-			roots.status=status; roots.dx=fparams.dx;			
-			CleanUp();
-		}
-		dt=Timer1.StopStart();
-		return status;
+	FuncParams*	params;
+	DoubleArray a, da;
+
+public:
+	MultiFitterTemplate(int _max_iter): SolverData(_max_iter)
+	{
+		multifit_fdfsolver_type=gsl_multifit_fdfsolver_lmsder; s = NULL; initX = NULL;
+		F.f = f; F.df = df; F.fdf = fdf; F.params = this; 		
 	}
+	virtual ~MultiFitterTemplate() {CleanUp();}
+	virtual void CleanUp();
+	int Run(FuncParams* params, DoubleArray& init_a, SolverErrors Err);
 };
 //////////////////////////////////////////////////////////////////////////
 

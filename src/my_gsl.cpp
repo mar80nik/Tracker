@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "my_gsl.h"
 
-DoubleArray& DoubleArray::operator=( DoubleArray& arr )
+DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
 {
 	RemoveAll();
 	SetSize(arr.GetSize());
@@ -22,9 +22,9 @@ void DoubleArray::operator=( const gsl_vector& vector )
 DoubleArray::operator gsl_vector*()
 {
 	gsl_vector* ret=NULL; double* arr = GetData(); int size = GetSize();
-	ret = gsl_vector_alloc (size);
+	ret = gsl_vector_alloc (size); ASSERT(0);
 
-	for (int i = 0; i < GetSize(); i++)  
+	for (int i = 0; i < size; i++)  
 		gsl_vector_set (ret, i, arr[i]);
 	return ret;
 }
@@ -92,7 +92,7 @@ int Solver1dTemplate<FuncParams>::Run (FuncParams* _params, BoundaryConditions _
 		}
 		cntr.iter += iter; cntr.func_call += params->func_call_cntr; 
 	}
-	dt=Timer1.StopStart();
+	dt=Timer1.StopStart(); params->DestroyBuffers();
 	return status;
 }
 template <class FuncParams>
@@ -157,7 +157,7 @@ int MultiDimMinimizerTemplate<FuncParams>::Run(FuncParams* _params, DoubleArray&
 	{
 		Roots.x = *(s->x); minimum_value = s->fval;
 	}		
-	cntr.func_call = params->func_call_cntr;
+	cntr.func_call = params->func_call_cntr; params->DestroyBuffers();
 	dt = Timer1.StopStart();
 	return status;
 }
@@ -176,48 +176,73 @@ ComplexGSL sqrt( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_sqrt(c.z)); }
 ComplexGSL pow2( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_mul(c.z,c.z)); }
 ComplexGSL exp( ComplexGSL& c )		{ return ComplexGSL(gsl_complex_exp(c.z)); }
 //////////////////////////////////////////////////////////////////////////
+//int MultiFitter::MainFDF()
+//{	
+//
+//	x = gsl_vector_view_array (start, p);	
+//
+//	multifit_fdfsolver_type = gsl_multifit_fdfsolver_lmsder;
+//	s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
+//	gsl_multifit_fdfsolver_set (s, &F, &x.vector);
+//	do
+//	{
+//		iter++;
+//		status = gsl_multifit_fdfsolver_iterate (s);
+//		status = gsl_multifit_test_delta (s->dx, s->x, epsabs, epsrel);
+//	}
+//	while (status == GSL_CONTINUE && iter < max_iter);
+//    return status;	
+//}
 
-int MultiFitter::Init(double _epsabs, double _epsrel)
+template <class FuncParams>
+void MultiFitterTemplate<FuncParams>::CleanUp()
 {
-	epsabs=_epsabs; epsrel=_epsrel;	s = NULL; iter=0; p=GetParamsNum();
-	return GSL_SUCCESS;
+	SolverData::CleanUp();
+	if (s != NULL) { gsl_multifit_fdfsolver_free (s); s = NULL; }
+	if (initX != NULL) { gsl_vector_free(initX); initX = NULL; }
+	a.RemoveAll(); da.RemoveAll();
 }
 
-int MultiFitter::MainFDF()
-{	
-	multifit_fdfsolver_type = gsl_multifit_fdfsolver_lmsder;
+template <class FuncParams>
+int MultiFitterTemplate<FuncParams>::Run( FuncParams* params, DoubleArray& init_a, SolverErrors Err )
+{
+	Timer1.Start();
+	CleanUp(); params->PrepareBuffers();
+
+	F.p = p = init_a.GetSize(); F.n = n = params->GetPointsNum(); initX = init_a;
 	s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
-	gsl_multifit_fdfsolver_set (s, &F, &x.vector);
+	gsl_multifit_fdfsolver_set (s, &F, initX);
 	do
 	{
-		iter++;
+		cntr.iter++;
 		status = gsl_multifit_fdfsolver_iterate (s);
-		status = gsl_multifit_test_delta (s->dx, s->x, epsabs, epsrel);
+		status = gsl_multifit_test_delta (s->dx, s->x, Err.abs, Err.rel);
 	}
 	while (status == GSL_CONTINUE && iter < max_iter);
-    return status;	
-}
 
-int MultiFitter::MainF()
-{
-	multifit_fdfsolver_type = gsl_multifit_fdfsolver_lmsder;
-	sf = gsl_multifit_fsolver_alloc (multifit_fsolver_type, n, p);
-	gsl_multifit_fsolver_set (sf, &Ff, &x.vector);
-	do
+	if (status == GSL_SUCCESS)
 	{
-		iter++;
-		status = gsl_multifit_fsolver_iterate (sf);
-		status = gsl_multifit_test_delta (sf->dx, sf->x, epsabs, epsrel);
-	}
-	while (status == GSL_CONTINUE && iter < max_iter);
-	return status;	
+		gsl_matrix *covar = gsl_matrix_alloc(p, p);
+		if (covar != NULL)
+		{
+			gsl_multifit_covar(s->J, 0.0, covar);
+			double c = GSL_MAX_DBL(1, gsl_blas_dnrm2(s->f) / sqrt(n - p)); 
+			a = *(s->x); da = (gsl_matrix_diagonal (covar)).vector;
+			for (size_t i = 0; i < da.GetSize(); i++)
+			{
+				da[i] = fabs(c*sqrt(da[i]));
+			}
+			gsl_matrix_free(covar);
+		}
+//		roots.leftmostX=fparams.leftmostX; roots.rightmostX=fparams.rightmostX; 
+	//	roots.status=status; roots.dx=fparams.dx;					
+	}	
+	cntr.func_call = params->func_call_cntr;
+	dt=Timer1.StopStart(); params->DestroyBuffers();
+	return status;
 }
 
-void MultiFitter::CleanUp()
-{
-	if(s!=NULL) { gsl_multifit_fdfsolver_free (s); s=NULL; }
-	if(sf!=NULL) { gsl_multifit_fsolver_free (sf); sf=NULL; }
-}
+
 //////////////////////////////////////////////////////////////////////////
 int FFTRealTransform::Main()
 {

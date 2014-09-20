@@ -3,6 +3,8 @@
 #include "TChart/TChartSeries.h"
 #include "my_gsl.h"
 
+enum Polarization {TE, TM};
+
 //////////////////////////////////////////////////////////////////////////
 struct FittingPerfomanceInfo: public PerfomanceInfoMk1
 {	
@@ -19,26 +21,28 @@ public:
 	void operator= (const FittingPerfomanceInfo& t);
 };
 //////////////////////////////////////////////////////////////////////////
-struct CalibrationParams
+struct CalibrationParams: public SolverData
 {
 	class Calculator
 	{
 	public:
 		struct FuncParams: public BaseForFuncParams
 		{
+			friend struct CalibrationParams;
 		protected:
-			double *A, *B, *N, *teta, n_p, n_s, alfa;
+			double *A, *B; DoubleArray &N, &teta; double n_p, n_s, alfa, lambda;
 			int size;
-		public:
-			//This is callback function for GSL solver
-			static double func (double x, void *params);
-			FuncParams(DoubleArray& _N, DoubleArray& _teta, double _n_p, double _n_s, double _alfa)
+		public:			
+			double func (double x); //This is callback function for GSL solver
+			FuncParams(DoubleArray& _N, DoubleArray& _teta, double _n_p, double _n_s, double _alfa, double _lambda):
+				N(_N), teta(_teta), n_p(_n_p), n_s(_n_s), alfa(_alfa), lambda(_lambda)
 			{
-				A = B = NULL; size = _N.GetSize(); N = _N; teta=_teta; n_p=_n_p; n_s=_n_s; alfa=_alfa; 
+				A = B = NULL; size = N.GetSize();
 			}
-			FuncParams(FuncParams& p)
+			FuncParams(FuncParams& p):
+				N(p.N), teta(p.teta), n_p(p.n_p), n_s(p.n_s), alfa(p.alfa) 
 			{
-				A=B=NULL; size=p.size; N=p.N; teta=p.teta; n_p=p.n_p; n_s=p.n_s; alfa=p.alfa;
+				A = B = NULL; size = p.size;
 			}
 			virtual void PrepareBuffers() 
 			{ 
@@ -49,166 +53,113 @@ struct CalibrationParams
 			{
 				if(A!=NULL) {delete[] A; A=NULL;}
 				if(B!=NULL) {delete[] B; B=NULL;}
+			}	
+			virtual void CleanUp()
+			{
+				BaseForFuncParams::CleanUp();
+				DestroyBuffers();
 			}
-			void InitCalibrationParams(CalibrationParams& cal);
-		} Params;
-	public:
-		Solver1dTemplate<FuncParams> Solver;
-
-		Calculator(DoubleArray& _N, DoubleArray& _teta, double n_p, double n_s, double alfa): 
-			Params(_N, _teta, n_p, n_s, alfa), Solver(SINGLE_ROOT, &Params) {}
-		~Calculator() {}
-		int Run(CalibrationParams& cal, Solver1d::BoundaryConditions X, SolverErrors Err);
+		};
 	};
 
 	class PixelToAngleSolver
 	{
-		struct FuncParams
-		{
-		protected:
-			double Npix;
-			CalibrationParams& cal;
-		public:
-			//This is callback function for GSL solver
-			static double func (double x, void *params);
-			FuncParams(double _Npix, CalibrationParams& _cal): cal(_cal) { Npix = _Npix; }
-		} Params;	
 	public:
-		Solver1dTemplate<FuncParams> Solver;
+		struct FuncParams: public BaseForFuncParams
+		{		
+			double Npix; DoubleArray& cal;
 
-		PixelToAngleSolver(double Npix, CalibrationParams& cal): 
-			Params(Npix, cal), Solver(SINGLE_ROOT, &Params) {}
-		~PixelToAngleSolver() {}
-		int Run(double* teta, Solver1d::BoundaryConditions X, SolverErrors Err);
+			double func (double x); //This is callback function for GSL solver
+			FuncParams(double _Npix, DoubleArray& _cal): Npix(_Npix), cal(_cal) {}
+			FuncParams(FuncParams& _p): Npix(_p.Npix), cal(_p.cal) {}
+		};	
+	};
+	struct AngleFromCalibration 
+	{ 
+		int status; double teta; DoubleArray cal; 
+		AngleFromCalibration() {teta = 0; status = GSL_FAILURE;}
 	};
 
-//	This values are predefined
-	double alfa, n_p, n_s;
-	DoubleArray Nexp,teta;
-//	This values will be calculated
-	double N0, L, d0, fi0;
+	enum {ind_alfa, ind_n_p, ind_n_s, ind_lambda, ind_fi0, ind_L, ind_d0, ind_N0, ind_max};
+public:
+	DoubleArray val;
+	DoubleArray Nexp, teta;
 	
-	CalibrationParams() { alfa = 0; n_s = n_p = 0; N0 = L = d0 = fi0 = 0;}
+	CalibrationParams(): SolverData()  {val.SetSize(ind_max);}
 	virtual void Serialize(CArchive& ar);
 	CalibrationParams& operator=(CalibrationParams& t);
-	
-	int Init( DoubleArray& Nexp, DoubleArray& teta);
-	int ConvertPixelToAngle(double Npix, double* teta);
-	double ConertAngleToBeta(double teta) { return n_p*sin(teta); }
+
+	int CalculateFrom(DoubleArray& _Nexp, DoubleArray& _teta, double _n_p, double _n_s, double _alfa, double _lambda);
+	AngleFromCalibration ConvertPixelToAngle(double Npix);
+	double ConertAngleToBeta(double teta) { return val[ind_n_p]*sin(teta); }
 };
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-enum Polarization {TE, TM};
-
-class DispEqSolver
-{
-	struct FuncParams: public BaseForFuncParams
-	{
-	public:
-		double n1, n2, n3, kHf;
-	public:
-		//This is callback function for GSL solver
-		static double (*func) (double x, void *params);
-		static double funcTE (double x, void *params);
-		static double funcTM (double x, void *params);
-		FuncParams(Polarization pol, double _n1, double _n2, double _n3, double _kHf)
-		{
-			n1 = _n1; n2 = _n2; n3 = _n3; kHf = _kHf;
-			switch (pol)
-			{
-			case TE: func = funcTE; break;
-			case TM: func = funcTM; break;
-			default: func = NULL;
-			}
-		}
-	} Params;	
-public:
-	Solver1dTemplate<FuncParams> Solver;
-	
-	DispEqSolver(Polarization pol, double n1, double n2, double n3, double kHf): 
-		Params(pol, n1, n2, n3, kHf), Solver(MULTI_ROOT, &Params) {}
-	int Run(Solver1d::BoundaryConditions X, SolverErrors Err);
-};
-
-//////////////////////////////////////////////////////////////////////////
-struct FilmParams: public BaseForFuncParams
-{
-	double n, H, m; 
-	FilmParams(double _n = 0, double _H = 0, double _m = 0) { n=_n; H=_H; m=_m;}
-	//int GetParamsNum() {return 2;}
-	FilmParams(const gsl_vector* p) { n=gsl_vector_get (p, 0); H=gsl_vector_get (p, 1); }
-	operator gsl_vector*()
-	{
-		gsl_vector* ret=NULL;
-		ret = gsl_vector_alloc (GetParamsNum());
-		gsl_vector_set (ret, 0, n);
-		gsl_vector_set (ret, 1, H);
-		return ret;
-	}
-	FilmParams& operator=(gsl_vector* p) { n=gsl_vector_get (p, 0); H=gsl_vector_get (p, 1); return *this;}
-	
-};
-
 struct betta_info 
 {
 	double val; int n;
-	betta_info() {val=0; n=0;}
+	betta_info(double _val = 0, int _n = 0): val(_val), n(_n) {}
 };
 
-//class FilmFuncParams: public BaseForFuncParams
-//{ 
-//public:
-//	double n1, n3, k; DoubleArray& bettaexp; 
-//	CArray<betta_info> betta_teor;
-//
-//	FilmFuncParams(DoubleArray& _bettaexp, double _n1=0, double _n3=0, double _k=0): bettaexp(_bettaexp)
-//	{
-//		n1=_n1; n3=_n3; k=_k; 
-//	}
-//};
-
-//class FilmFuncTEParams: public FilmFuncParams
-//{
-//public:
-//	FilmFuncTEParams(DoubleArray& _bettaexp,double _n1=0, double _n3=0, double _k=0): FilmFuncParams(_bettaexp, _n1,_n3,_k) {}
-//};
-//class FilmFuncTMParams: public FilmFuncParams
-//{
-//public:
-//	FilmFuncTMParams(DoubleArray& _bettaexp,double _n1=0, double _n3=0, double _k=0): FilmFuncParams(_bettaexp, _n1,_n3,_k) {}
-//};
-
-class FilmMinimizer
+class FilmParams: public SolverData
 {
+public:
+	enum {index_n, index_H};
+public:
+	class DispEqSolver
+	{
+	public:
+		struct FuncParams: public BaseForFuncParams
+		{
+		public:
+			double n1, n2, n3, kHf;
+		public:
+			//This is callback function for GSL solver
+			double (DispEqSolver::FuncParams::*func) (double x); double funcTE (double x); double funcTM (double x);
+			void SetFunc(Polarization pol)
+			{
+				switch (pol)
+				{
+				case TE: func = &DispEqSolver::FuncParams::funcTE; break;
+				case TM: func = &DispEqSolver::FuncParams::funcTM; break;
+				default: func = NULL;
+				}
+			}
+			FuncParams(Polarization pol, double _n1, double _n2, double _n3, double _kHf):
+			n1(_n1), n2(_n2), n3(_n3), kHf(_kHf)
+			{
+				SetFunc(pol);
+			}
+			FuncParams(FuncParams& params):
+				n1(params.n1), n2(params.n2), n3(params.n3), kHf(params.kHf), func(params.func)
+			{}
+		};	
+	};
 	struct FuncParams: public BaseForFuncParams
 	{
 	public:
-		DoubleArray& bettaexp;
+		double n1, n3, k; DoubleArray& bettaexp; Polarization pol;
+		CArray<betta_info> betta_teor;
 	public:
-		//This is callback function for GSL solver
-		static double (*func) (const gsl_vector * x, void * params);
-		static double funcTE (const gsl_vector * x, void * params);
-		static double funcTM (const gsl_vector * x, void * params);
-		FuncParams(Polarization pol, DoubleArray& _bettaexp): bettaexp(_bettaexp)
-		{
-			switch (pol)
-			{
-			case TE: func = funcTE; break;
-			case TM: func = funcTM; break;
-			default: func = NULL;
-			}
-		}
-	} Params;	
-public:
-	MultiDimMinimizerTemplate<FuncParams> Solver;
+		double func(const gsl_vector * x);
+		FuncParams(Polarization _pol, double _n1, double _n3, double _k, DoubleArray& _bettaexp): 
+			pol(_pol), bettaexp(_bettaexp), n1(_n1), n3(_n3), k(_k)
+		{}
+		FuncParams(FuncParams& params): 
+			pol(params.pol), bettaexp(params.bettaexp), n1(params.n1), n3(params.n3), k(params.k)
+		{}
+		virtual void CleanUp();
 
-	FilmMinimizer(Polarization pol, double n1, double n2, double n3, double kHf): 
-		Params(pol, n1, n2, n3, kHf), Solver(&Params) {}
-	int Run(DoubleArray& intiX, DoubleArray& initdX, SolverErrors Err);
+	};	
+public:
+	double n, H, m, minimum_value;
+
+	FilmParams(double _n = 0, double _H = 0): n(_n), H(_H), SolverData() {minimum_value = 0; m = 0;}
+	int Calculator(	Polarization pol, double n1, double n3, double k, 
+					DoubleArray& bettaexp, 
+					FilmParams initX = FilmParams(), FilmParams initdX = FilmParams(1e-4, 1e-1));
 };
 
-//typedef MultiDimMinimizerTemplate<FilmParams, FilmFuncTEParams> FilmMinimizerTE;
-//typedef MultiDimMinimizerTemplate<FilmParams, FilmFuncTMParams> FilmMinimizerTM;
 //////////////////////////////////////////////////////////////////////////
 struct CalcRParams
 {
@@ -219,8 +170,6 @@ struct CalcRParams
 	CalcRParams() { num_pnts=7000; R=teta=NULL; }
 };
 
-int CalclFilmParamsTE(FilmFuncTEParams& in, FilmParams& out);
-int CalclFilmParamsTM(FilmFuncTMParams& in, FilmParams& out);
 void CalcR_TE(CalcRParams& params);
 void CalcR_TM(CalcRParams& params);
 //////////////////////////////////////////////////////////////////////////

@@ -21,11 +21,12 @@ public:
 	DoubleArray() {};
 	DoubleArray(DoubleArray&);
 	DoubleArray& operator << (double d) {(*this).Add(d); return (*this);}
-	operator double*() {return GetData();}
-	double* GetX() {return GetData();}
 	DoubleArray& operator=(DoubleArray& arr);
+	operator double*() {return CArray<double>::GetData();}
 	operator gsl_vector*();
-	void operator= (gsl_vector& vector);
+	void operator= (const gsl_vector& vector);
+	virtual void Serialize(CArchive& ar);
+	BOOL operator==(const CArray<double> &ref);
 };
 
 struct SolverErrors 
@@ -80,123 +81,102 @@ ComplexGSL exp(ComplexGSL& c);
 //////////////////////////////////////////////////////////////////////////
 //	This class is not allowed for use.
 //	It is necessary to define [F.function] and [F.params] to be passed in this function.
-class Solver1d: public PerfomanceInfoMk1
+
+struct SolverData 
 {
-public:
-	struct BoundaryConditions 
+	SolverErrors err;
+	struct Counters 
 	{
-		double min, max;
-		BoundaryConditions() {min = max = 0; }
-		BoundaryConditions(double _min, double _max) {min = _min; max = _max; }
-	};
-private:
-	gsl_root_fsolver *s;
-protected:
-	const gsl_root_fsolver_type *fsolver_type;
-	gsl_function F;
-public:
-	double root;
-public:
-	Solver1d(int _max_iter=100) 
-	{ 
-		fsolver_type=gsl_root_fsolver_brent; 
-		s = NULL; F.function = NULL; F.params = NULL; 
-		max_iter = _max_iter; 
-	}	
-public:
-	virtual int Run(BoundaryConditions X, SolverErrors Err);
-	virtual void CleanUp();
-	//This function is reminder that FuncParam class should be provided in childs
-	void virtual DefineME() = 0;
+		size_t func_call, iter; 
+		Counters() {CleanUp();} 
+		void CleanUp() {func_call = iter = 0;}
+	} cntr;
+	ms dt; int status; size_t max_iter;
+
+	SolverData(size_t _max_iter = 100): max_iter(_max_iter)	
+	{
+		status = GSL_FAILURE; CleanUp();
+	}
+	virtual ~SolverData() { CleanUp(); }
+	virtual void CleanUp() {status = GSL_FAILURE; max_iter = 0; err.CleanUp(); cntr.CleanUp();}
 };
-//////////////////////////////////////////////////////////////////////////
-//  [F.params] is a pointer to instance of FuncParams class passed in cntor.
-//  [F.function] is a static function of FuncParams class. 
+
 enum SolverRegime {SINGLE_ROOT, MULTI_ROOT};
-typedef CArray<Solver1d::BoundaryConditions> BoundaryConditionsArray;
 
 class BaseForFuncParams
 {
 public:
+	int func_call_cntr;
+
 	virtual void PrepareBuffers() {}
 	virtual void DestroyBuffers() {}
-	BaseForFuncParams() {}
+	BaseForFuncParams() {CleanUp();}
 	virtual ~BaseForFuncParams() {DestroyBuffers();}
+	virtual void CleanUp() {func_call_cntr = 0;}
+};
+
+struct BoundaryConditions
+{
+	double min, max;
+	BoundaryConditions() {min = max = 0; }
+	BoundaryConditions(double _min, double _max) {min = _min; max = _max; }
 };
 
 template <class FuncParams>
-class Solver1dTemplate: public Solver1d
+class Solver1dTemplate: public SolverData
 {
-protected:
-	SolverRegime rgm; int subrgns_max;	
-public:
-	DoubleArray Roots;	
-
-	static double func (double x, void *params) 
+//************************************************//	
+	static double func(double x, void * data)
 	{
-		cntr.func_call++; 
-		FuncParams::func(x, params);
+		Solver1dTemplate<FuncParams>* solver = (Solver1dTemplate<FuncParams>*)data;
+		solver->params->func_call_cntr++;
+		return solver->params->func(x);
 	};
-	Solver1dTemplate(SolverRegime _rgm, FuncParams* p, int _max_iter=100): 
-		Solver1d(_max_iter), rgm(_rgm)
-	{
-		F.params = p; F.function = func; subrgns_max = 50;
-	}
-	virtual int Run(BoundaryConditions X, SolverErrors Err);
+	typedef CArray<BoundaryConditions> BoundaryConditionsArray;
+//************************************************//
+private:
+	gsl_root_fsolver *s;
+	const gsl_root_fsolver_type *fsolver_type;
+	gsl_function F; int iter;
+	SolverRegime rgm; int subrgns_max;	
+	BoundaryConditionsArray SubRgns;
+	FuncParams* params;
+public:	
+	DoubleArray Roots;	
+public:
+	Solver1dTemplate(SolverRegime _rgm, int _max_iter=100);
+	virtual int Run(FuncParams* params, BoundaryConditions X, SolverErrors Err);
 	virtual void CleanUp();
-	void virtual DefineME() {}	
+protected:
 	int FindSubRgns(BoundaryConditions X, BoundaryConditionsArray& SubRgns);
-	virtual int GetRoot(double * root) 
-	{
-		int status = GSL_SUCCESS;
-		if (Roots.GetSize() != 0) 
-			*root = Roots[0]; 
-		else 
-			status = GSL_FAILURE;
-		return status;
-	}
 };
 
 //////////////////////////////////////////////////////////////////////////
-class MultiDimMinimizer: public PerfomanceInfoMk1
+//////////////////////////////////////////////////////////////////////////
+template <class FuncParams>
+class MultiDimMinimizerTemplate: public SolverData
 {
+//************************************************//
+public:
+	static double func(const gsl_vector * x, void * data)
+	{
+		MultiDimMinimizerTemplate<FuncParams>* solver = (MultiDimMinimizerTemplate<FuncParams>*)data;
+		solver->params->func_call_cntr++;
+		return solver->params->func(x);
+	};
+//************************************************//
 private:
 	gsl_vector *X, *dX;
 	gsl_multimin_fminimizer *s;	
-protected:
 	const gsl_multimin_fminimizer_type *fminimizer_type;	
 	gsl_multimin_function F;
+	FuncParams* params;
 public:
-	struct {DoubleArray x; double y; void CleanUp() {x.RemoveAll(); y = 0;}} Minimum;
-public:
-	MultiDimMinimizer(int _max_iter=100) 
-	{ 
-		fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
-		s = NULL; X = dX = NULL; 
-		F.f = NULL; F.n = 0; F.params = NULL; 
-		max_iter=_max_iter;
-	}
-	int Run(DoubleArray& intiX, DoubleArray& initdX, SolverErrors Err);
+	DoubleArray Roots; double minimum_value;
+//************************************************//
+	MultiDimMinimizerTemplate(int _max_iter=100);
+	int Run(FuncParams* params, DoubleArray& intiX, DoubleArray& initdX, SolverErrors Err);
 	virtual void CleanUp();
-	//This function is reminder that FuncParam class should be provided in childs
-	void virtual DefineME() = 0;
-};
-//////////////////////////////////////////////////////////////////////////
-template <class FuncParams>
-class MultiDimMinimizerTemplate: public MultiDimMinimizer
-{
-public:
-	static double func(const gsl_vector * x, void * params)
-	{
-		cntr.func_call++; 
-		FuncParams::func(x, params);
-	}
-
-	MultiDimMinimizerTemplate(FuncParams* p, int _max_iter=100): MultiDimMinimizer(_max_iter)
-	{		
-		F.f = func; F.params = p; 
-	}
-	void virtual DefineME() {}
 };
 //////////////////////////////////////////////////////////////////////////
 enum MultiFitter_mode {F_MODE, FDF_MODE};

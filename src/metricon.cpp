@@ -2,14 +2,10 @@
 #include "metricon.h"
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-double CalibrationParams::Calculator::FuncParams::func( double x, void *params )
+double CalibrationParams::Calculator::FuncParams::func( double fi)
 {
-	CalibrationParams::Calculator::FuncParams *p = (CalibrationParams::Calculator::FuncParams *) params;
-	double *A = p->A, *B = p->B, *N = p->N, *teta = p->teta;
-	double &n_p = p->n_p, &n_s = p->n_s, &alfa = p->alfa, &fi = x;
 	double ret;
-
-	for(int i=0;i<p->size; i++)
+	for(int i = 0; i < size; i++)
 	{
 		double t=(n_p/n_s)*sin(alfa - teta[i]);
 		A[i] = t / (cos(fi)*sqrt(1.-t*t)-sin(fi)*t);
@@ -21,175 +17,136 @@ double CalibrationParams::Calculator::FuncParams::func( double x, void *params )
 		((B[0]-B[3])*(A[1]-A[3]) - (B[1]-B[3])*(A[0]-A[3]));
 	return ret;
 }
-void CalibrationParams::Calculator::FuncParams::InitCalibrationParams( CalibrationParams& cal )
-{	
-	cal.L =	((N[1] - N[3])*(A[0] - A[3]) - (N[0] - N[3])*(A[1] - A[3])) / 
-		((B[0] - B[3])*(A[1] - A[3]) - (B[1] - B[3])*(A[0] - A[3])); 
-	cal.d0 = ((N[3] - N[0]) - cal.L*(B[0] - B[3]))/(A[0] - A[3]);
-	cal.N0 = N[0] + cal.d0*A[0] + cal.L*B[0];
-	cal.Nexp.RemoveAll(); cal.teta.RemoveAll();
-	for(int i = 0; i < size; i++) 
-	{
-		cal.Nexp << N[i]; cal.teta << teta[i];
-	}
-}
-int CalibrationParams::Calculator::Run(CalibrationParams& cal, Solver1d::BoundaryConditions X, SolverErrors Err)
+
+int CalibrationParams::CalculateFrom(DoubleArray& Nexp, DoubleArray& teta, double n_p, double n_s, double alfa, double lambda)
 {
-	if( Solver.Run(X, Err) == GSL_SUCCESS) 
+	Calculator::FuncParams params(Nexp, teta, n_p, n_s, alfa, lambda);
+	Solver1dTemplate<Calculator::FuncParams> FindFI(SINGLE_ROOT);
+
+	if( FindFI.Run(&params, BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12)) == GSL_SUCCESS) 
 	{
-		Params.InitCalibrationParams(cal);
-		Solver.status = Solver.GetRoot(&cal.fi0); 
+		double *N = params.N, *A = params.A, *B = params.B;
+		val.RemoveAll();
+		val << params.alfa <<  params.n_p << params.n_s << params.lambda; 
+		Nexp = params.N; teta = params.teta;
+		val << FindFI.Roots[0]; 	
+		val << ((N[1] - N[3])*(A[0] - A[3]) - (N[0] - N[3])*(A[1] - A[3])) / 
+			((B[0] - B[3])*(A[1] - A[3]) - (B[1] - B[3])*(A[0] - A[3])); 
+		val << ((N[3] - N[0]) - val[ind_L]*(B[0] - B[3]))/(A[0] - A[3]);
+		val << N[0] + val[ind_d0]*A[0] + val[ind_L]*B[0];
+		*((SolverData*)(this)) = *((SolverData*)&FindFI);
 	}
-	return Solver.status;
-}
-int CalibrationParams::Init( DoubleArray& Nexp, DoubleArray& teta)
-{
-	Calculator FindFI( Nexp, teta, n_p, n_s, alfa );
-	return FindFI.Run(*this, Solver1d::BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12));
+	return FindFI.status;
 }
 //////////////////////////////////////////////////////////////////////////
-double CalibrationParams::PixelToAngleSolver::FuncParams::func( double x, void *params )
+double CalibrationParams::PixelToAngleSolver::FuncParams::func( double teta )
 {
-	struct CalibrationParams::PixelToAngleSolver::FuncParams *p = (CalibrationParams::PixelToAngleSolver::FuncParams *) params;
-	double &n_p=p->cal.n_p, &n_s=p->cal.n_s, &alfa=p->cal.alfa, &tetax=x, &Npix=p->Npix;
-	double &fi0=p->cal.fi0, &N0=p->cal.N0, &d0=p->cal.d0, &L=p->cal.L;
-	double par1, par2, ret;
-
-	double t=(n_p/n_s)*sin(alfa - tetax);
-	par1 = t / (cos(fi0)*sqrt(1-t*t)-sin(fi0)*t);
-	par2 = sin(alfa)*tan(alfa - tetax)/cos(fi0)*(sin(fi0)*par1 + 1);
-	ret = Npix - (N0 - d0*par1 - L*par2);
+	double par1, par2, ret;	double t = (cal[ind_n_p]/cal[ind_n_s])*sin(cal[ind_alfa] - teta);	
+	par1 = t / (cos(cal[ind_fi0])*sqrt(1-t*t) - sin(cal[ind_fi0])*t);
+	par2 = sin(cal[ind_alfa])*tan(cal[ind_alfa] - teta)/cos(cal[ind_fi0])*(sin(cal[ind_fi0])*par1 + 1);
+	ret = Npix - (cal[ind_N0] - cal[ind_d0]*par1 - cal[ind_L]*par2);
 	return ret;
 }
-int CalibrationParams::PixelToAngleSolver::Run( double* teta, Solver1d::BoundaryConditions X, SolverErrors Err )
-{
-	if (Solver.Run(X, Err) == GSL_SUCCESS) 
-	{
-		Solver.status = Solver.GetRoot(teta); *teta /= DEGREE;
-	}
-	return Solver.status;
-}
-int CalibrationParams::ConvertPixelToAngle( double Npix, double* teta )
-{
-	PixelToAngleSolver FindTETA(Npix, *this);
-	return FindTETA.Run(teta, Solver1d::BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12));
-}
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-double DispEqSolver::FuncParams::funcTE( double x, void *params )
-{
-	DispEqSolver::FuncParams *p = (DispEqSolver::FuncParams *) params;
-	double gam2, gam3, gam4; double ret; double &betta=x;
-	double &n1=p->n1, &n2=p->n2, &n3=p->n3, &kHc=p->kHf;
 
+CalibrationParams::AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
+{
+	AngleFromCalibration ret;
+	PixelToAngleSolver::FuncParams params(Npix, this->val);
+	Solver1dTemplate<PixelToAngleSolver::FuncParams> FindTETA(SINGLE_ROOT);	
+
+	if ((ret.status = FindTETA.Run(&params, BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12))) == GSL_SUCCESS) 
+	{
+		ret.teta = FindTETA.Roots[0]/DEGREE;
+		ret.cal = params.cal;
+	}
+	return ret;
+}
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+double FilmParams::DispEqSolver::FuncParams::funcTE( double betta )
+{
+	double gam2, gam3, gam4, ret;
 	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
-	ret = (gam3*gam3 - gam2*gam4)*sin(gam3*kHc) - gam3*(gam2 + gam4)*cos(gam3*kHc);
+	ret = (gam3*gam3 - gam2*gam4)*sin(gam3*kHf) - gam3*(gam2 + gam4)*cos(gam3*kHf);
 	return ret;
 }
-double DispEqSolver::FuncParams::funcTM( double x, void *params )
+double FilmParams::DispEqSolver::FuncParams::funcTM( double betta )
 {
-	DispEqSolver::FuncParams *p = (DispEqSolver::FuncParams *) params;
-	double gam2, gam3, gam4; double ret; double &betta=x;
-	double &n1=p->n1, &n2=p->n2, &n3=p->n3, &kHc=p->kHf; double t1,t2,t3;
-
+	double gam2, gam3, gam4, t1, t2, t3, ret; 
 	gam2 = sqrt(betta*betta - n1*n1); gam3 = sqrt(n2*n2 - betta*betta); gam4 = sqrt(betta*betta - n3*n3);
     t1=n1*n1; t2=n2*n2; t3=n3*n3;
-	ret = ( gam3*gam3*t1*t3 - gam2*gam4*t2*t2 )*sin(gam3*kHc) - gam3*t2*(gam2*t3 + gam4*t1)*cos(gam3*kHc);
+	ret = ( gam3*gam3*t1*t3 - gam2*gam4*t2*t2 )*sin(gam3*kHf) - gam3*t2*(gam2*t3 + gam4*t1)*cos(gam3*kHf);
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////
-double FilmMinimizerTE::func(const gsl_vector * x, void * params)
+double FilmParams::FuncParams::func(const gsl_vector * x)
 {
-    double ret=100; int status;
-	FilmFuncParams* p=(FilmFuncParams*)params;
-	double &n1=p->n1, &n3=p->n3, &k=p->k, *bettaexp=p->bettaexp;
-	FilmParams film(x);
+    double ret=100; int status;	DoubleArray film; film = *x;
 
-	DispEqSolver Solver(TE, n1, film.n, n3, k*film.H);
-	//Solver.min_roots=p->bettaexp.GetSize(); Solver.max_roots=Solver.min_roots+2;
-	if( (status=Solver.Run(Solver1d::BoundaryConditions(n3, film.n), SolverErrors(1e-6)))) == GSL_SUCCESS) 
+	Solver1dTemplate<DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
+	FilmParams::DispEqSolver::FuncParams params(pol, n1, film[index_n], n3, k*film[index_H]);
+
+	if ((status = FindBettas.Run(&params, BoundaryConditions(n3, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 
 	{
-		int i,j,roots_n=Solver.roots.GetSize(),betta_n=Solver.min_roots; double cur_ret;
-		for(i=0;i<=roots_n-betta_n;i++)
+		double cur_ret; 
+		int i, j, roots_n = FindBettas.Roots.GetSize(), betta_n = bettaexp.GetSize(); 
+		for (i = 0; i <= roots_n - betta_n; i++)
 		{
-			cur_ret=0;			
-			for(j=0;j<betta_n;j++)
+			cur_ret = 0;			
+			for (j = 0; j < betta_n; j++)
 			{
-				cur_ret+=abs(Solver.roots[j+i]-bettaexp[j]);
+				cur_ret += abs(FindBettas.Roots[j + i] - bettaexp[j]);
 			}
-			if(cur_ret<ret) 
+			if (cur_ret < ret) 
 			{
-				ret=cur_ret;
-				p->betta_teor.RemoveAll(); betta_info t;
-				for(j=0;j<betta_n;j++)
+				ret = cur_ret;
+				betta_teor.RemoveAll();
+				for (j = 0; j < betta_n; j++)
 				{
-					t.val=Solver.roots[j+i]; t.n=j+i; p->betta_teor.Add(t);
+					betta_teor.Add(betta_info(FindBettas.Roots[j + i], j + i));
 				}
 			}
 		}
 	}
-	func_call_cntr+=DispEqTESolver::func_call_cntr;
+	func_call_cntr += params.func_call_cntr;
 	return ret;
 }
 
-double FilmMinimizerTM::func(const gsl_vector * x, void * params)
+void FilmParams::FuncParams::CleanUp()
 {
-	double ret=100; int status;
-	FilmFuncParams* p=(FilmFuncParams*)params;
-	double &n1=p->n1, &n3=p->n3, &k=p->k, *bettaexp=p->bettaexp;
-	FilmParams film(x);
-
-	DispEqTMSolver Solver(DispEqTMFuncParams(n1, film.n, n3, k*film.H));
-	if( (status=Solver.Run(n3,film.n, 1e-6)) ==GSL_SUCCESS) 
-	{
-		int i,j,roots_n=Solver.roots.GetSize(),betta_n=Solver.min_roots; double cur_ret;
-		for(i=0;i<=roots_n-betta_n;i++)
-		{
-			cur_ret=0;			
-			for(j=0;j<betta_n;j++)
-			{
-				cur_ret+=abs(Solver.roots[j+i]-bettaexp[j]);
-			}
-			if(cur_ret<ret) 
-			{
-				ret=cur_ret;
-				p->betta_teor.RemoveAll(); betta_info t;
-				for(j=0;j<betta_n;j++)
-				{
-					t.val=Solver.roots[j+i]; t.n=j+i; p->betta_teor.Add(t);
-				}
-			}
-		}
-	}
-	func_call_cntr+=DispEqTMSolver::func_call_cntr;
-	return ret;
+	BaseForFuncParams::CleanUp(); bettaexp.RemoveAll(); betta_teor.RemoveAll(); 
 }
+
 //////////////////////////////////////////////////////////////////////////
 
-int CalclFilmParamsTE(FilmFuncTEParams& in, FilmParams& out)
+int FilmParams::Calculator(	Polarization pol, double n1, double n3, double k, 
+							DoubleArray& bettaexp,FilmParams initX, FilmParams initdX)
 {
-	FilmMinimizerTE Minimizer(in,200);	
-//	out.status=Minimizer.Run(FilmParams(in.bettaexp[0],1430), FilmParams(1e-4,1e-1), 1e-6);
-	out.status=Minimizer.Run(FilmParams(1.8,1150), FilmParams(1e-4,1e-1), 1e-6);
-	out=Minimizer.roots;
-	out.dt=Minimizer.dt;
-	out.cntr.func_call=FilmMinimizerTE::cntr.func_call;
-	out.epsabs=Minimizer.epsabs; 
-	out.fval=Minimizer.fval; out.size=Minimizer.size;
-	return out.status;
-}
+	MultiDimMinimizerTemplate<FuncParams> FindFilmParams(200);
+	FuncParams params(pol, n1, n3, k, bettaexp);
+	DoubleArray X0, dX0; 
+	switch (pol)
+	{
+	case TE: 
+//		initX.n = bettaexp[0]; initX.H = 1430; 
+		initX.n = 1.8; initX.H = 1150; 
+		break;
+	case TM:
+//		initX.n = bettaexp[0]; initX.H = 1020; 
+		initX.n = 1.8; initX.H = 1250; 
+		break;
+	}
+	
+	if (pol == TM) { initX.n = 1.8; initX.H = 1250; }
+	X0 << initX.n << initX.H; dX0 << initdX.n << initdX.H;
 
-int CalclFilmParamsTM(FilmFuncTMParams& in, FilmParams& out)
-{
-	FilmMinimizerTM Minimizer(in,200);		
-//	out.status=Minimizer.Run(FilmParams(in.bettaexp[0],1020.), FilmParams(1e-4,1e-1), 1e-6);
-	out.status=Minimizer.Run(FilmParams(1.8,1250.), FilmParams(1e-4,1e-1), 1e-6);
-	out=Minimizer.roots;
-	out.dt=Minimizer.dt;
-	out.func_call_cntr=FilmMinimizerTM::func_call_cntr;
-	out.epsabs=Minimizer.epsabs; 
-	out.fval=Minimizer.fval; out.size=Minimizer.size;
-	return out.status;
+	if (FindFilmParams.Run(&params, X0, dX0, SolverErrors(1e-6)) == GSL_SUCCESS) 
+	{		
+		n = FindFilmParams.Roots[index_n]; H = FindFilmParams.Roots[index_H]; 
+		minimum_value = FindFilmParams.minimum_value;
+		*((SolverData*)(this)) = *((SolverData*)&FindFilmParams);
+	}
+	return FindFilmParams.status;
 }
 
 void CalcR_TE(CalcRParams& params)
@@ -217,15 +174,14 @@ void CalcR_TE(CalcRParams& params)
 		B=(gam3 - gam4)/(gam3 + gam4);
 		t=gam2*cJ; C=(t - CT)/(t + CT); C*=-1;
 
-		t=B*exp(gam3*(-2*k*f.H));
-		As=( A + t )/( A*t + 1. );
+		t=B*exp(gam3*(-2*k*f.H)); As=( A + t )/( A*t + 1. );
 
-		t=As*exp(gam2*(-2*k*i.H));
-		Ra=( C + t )/( C*t + 1 );
+		t=As*exp(gam2*(-2*k*i.H)); Ra=( C + t )/( C*t + 1 );
 		
 		if(params.R!=NULL) { pnt.x=teta; pnt.y=Ra.abs2(); params.R->Points.Add(pnt); }
 		if(params.teta!=NULL) { pnt.x=teta; pnt.y=sqrt(ST); params.teta->Points.Add(pnt); }
 	}	
+	
 }
 
 void CalcR_TM(CalcRParams& params)
@@ -261,18 +217,21 @@ void CalcR_TM(CalcRParams& params)
 
 		if(params.R!=NULL) { pnt.x=teta; pnt.y=Ra.abs2(); params.R->Points.Add(pnt); }
 		if(params.teta!=NULL) { pnt.x=teta; pnt.y=sqrt(ST); params.teta->Points.Add(pnt); }
-	}	
+	}		
 }
+
 //////////////////////////////////////////////////////////////////////////
 int Fit_Parabola( MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCParams& out )
 {
-    Fit_Ax2BxC fit(in,10);	
+    /*
+	Fit_Ax2BxC fit(in,10);	
 	fit.Run(init, 1e-15, 1e-9); 
 	out=fit.roots;
 	out.dt=fit.dt;
 	out.func_call_cntr=Fit_Ax2BxC::func_call_cntr;
 	out.epsabs=fit.epsabs;  out.epsabs=fit.epsabs; 		
 	out.iter_num=fit.iter;
+	*/
 	return out.status;
 }
 
@@ -402,30 +361,25 @@ void CalibrationParams::Serialize( CArchive& ar )
 {
 	if(ar.IsStoring())
 	{
-		ar << alfa << n_p << n_s << N0 << L << d0 << fi0;
-		ar << Nexp.GetSize(); for(int i=0;i<Nexp.GetSize();i++) ar << Nexp[i];
-		ar << teta.GetSize(); for(int i=0;i<teta.GetSize();i++) ar << teta[i];
+		val.Serialize(ar);
+		Nexp.Serialize(ar);  teta.Serialize(ar);
 	}
 	else
 	{
-		int n; double t;
-		ar >> alfa >> n_p >> n_s >> N0 >> L >> d0 >> fi0;
-		Nexp.RemoveAll(); ar >> n; for(int i=0;i<n;i++) { ar >> t; Nexp.Add(t); }
-		teta.RemoveAll(); ar >> n; for(int i=0;i<n;i++) { ar >> t; teta.Add(t); }
+		val.Serialize(ar);
+		Nexp.Serialize(ar);  teta.Serialize(ar);	
 	}
 }
 
 CalibrationParams& CalibrationParams::operator=( CalibrationParams& t )
 {
-	alfa=t.alfa; n_p=t.n_p; n_s=t.n_s;
-	N0=t.N0; L=t.L; d0=t.d0; fi0=t.fi0;	//	variables
-	Nexp.RemoveAll(); for(int i=0;i<t.Nexp.GetSize();i++) { Nexp.Add(t.Nexp[i]); }
-	teta.RemoveAll(); for(int i=0;i<t.teta.GetSize();i++) { teta.Add(t.teta[i]); }
+	val = t.val; Nexp = t.Nexp; teta = t.teta;
 	return *this;
 }
 //////////////////////////////////////////////////////////////////////////
 int Fit_StepFunc( MultiFitterFuncParams& in, Fit_KneeParams& init,Fit_KneeParams& out )
 {
+/*
 	Fit_Knee fit(in,100);	
 	fit.Run(init, 1e-15, 1e-9); 
 	out=fit.roots;
@@ -433,6 +387,7 @@ int Fit_StepFunc( MultiFitterFuncParams& in, Fit_KneeParams& init,Fit_KneeParams
 	out.func_call_cntr=Fit_Knee::func_call_cntr;
 	out.epsabs=fit.epsabs;  out.epsabs=fit.epsabs; 		
 	out.iter_num=fit.iter;
+	*/
 	return out.status;
 }
 

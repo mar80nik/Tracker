@@ -9,7 +9,7 @@ DoubleArray& DoubleArray::operator=( DoubleArray& arr )
 	return *this;
 }
 
-void DoubleArray::operator=( gsl_vector& vector )
+void DoubleArray::operator=( const gsl_vector& vector )
 {
 	double t; RemoveAll();
 	for (size_t i = 0; i < vector.size; i++)  
@@ -29,35 +29,78 @@ DoubleArray::operator gsl_vector*()
 	return ret;
 }
 
-int Solver1d::Run (BoundaryConditions X, SolverErrors Err)
+void DoubleArray::Serialize( CArchive& ar )
 {
-	MyTimer Timer1; Timer1.Start();
-	CleanUp();	
-	s = gsl_root_fsolver_alloc (fsolver_type);
-	gsl_root_fsolver_set (s, &F, X.min, X.max);
-	do
+	int i, n; double t;
+	if(ar.IsStoring())
 	{
-		cntr.iter++;
-		status = gsl_root_fsolver_iterate (s);
-		X.min = gsl_root_fsolver_x_lower (s); X.max = gsl_root_fsolver_x_upper (s);
-		status = gsl_root_test_interval (X.min, X.max, Err.abs, Err.rel);
+		n = GetSize(); ar << n; 
+		for(i = 0; i < n; i++) { t = operator[](i); ar << t; }
 	}
-	while (status == GSL_CONTINUE && cntr.iter < max_iter);	
-	root = gsl_root_fsolver_root(s); 
-	dt = Timer1.StopStart();
-	return status;
+	else
+	{		
+		RemoveAll(); ar >> n; 
+		for(i = 0; i < n; i++) { ar >> t; Add(t); }
+	}
 }
 
-void Solver1d::CleanUp()
+BOOL DoubleArray::operator==(const CArray<double> &ref)
 {
-	if (s != NULL) { gsl_root_fsolver_free(s); s = NULL; }
-	PerfomanceInfoMk1::CleanUp();
+	if (GetSize() != ref.GetSize()) return FALSE;
+	for (int i = 0; i < GetSize(); i++)
+	{
+		if (operator[](i) != ref[i]) return FALSE;
+	}
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+template <class FuncParams>
+Solver1dTemplate<FuncParams>::Solver1dTemplate(SolverRegime _rgm, int _max_iter): 
+	SolverData(_max_iter), rgm(_rgm)
+{ 
+	fsolver_type=gsl_root_fsolver_brent; s = NULL; 		
+	F.function = func; F.params = this; 
+	subrgns_max = 50;
 }
 
 template <class FuncParams>
+int Solver1dTemplate<FuncParams>::Run (FuncParams* _params, BoundaryConditions _X, SolverErrors Err)
+{
+	MyTimer Timer1; double r; params = _params; ASSERT(params);
+	Timer1.Start(); CleanUp(); 
+	params->PrepareBuffers(); FindSubRgns(_X, SubRgns); 
+	s = gsl_root_fsolver_alloc (fsolver_type);
+
+	for(int i = 0; i < SubRgns.GetSize(); i++)
+	{
+		BoundaryConditions& X = SubRgns[i]; callback.CleanUp(); iter = 0;
+		gsl_root_fsolver_set (s, &F, X.min, X.max);
+		do
+		{
+			iter++;
+			status = gsl_root_fsolver_iterate (s);
+			X.min = gsl_root_fsolver_x_lower (s); X.max = gsl_root_fsolver_x_upper (s);
+			status = gsl_root_test_interval (X.min, X.max, Err.abs, Err.rel);
+		}
+		while (status == GSL_CONTINUE && iter < max_iter);	
+
+		if( status == GSL_SUCCESS) 
+		{		
+			Roots << gsl_root_fsolver_root(s);
+		}
+		cntr.iter += iter; cntr.func_call += params->func_call_cntr; 
+	}
+	dt=Timer1.StopStart();
+	return status;
+}
+template <class FuncParams>
 void Solver1dTemplate<FuncParams>::CleanUp()
 {
-	Roots.RemoveAll(); Solver1d::CleanUp(); 
+	SolverData::CleanUp();
+	if (s != NULL) { gsl_root_fsolver_free(s); s = NULL; }
+	Roots.RemoveAll(); params->CleanUp(); SubRgns.RemoveAll();	
 }
 
 template <class FuncParams>
@@ -83,63 +126,52 @@ int Solver1dTemplate<FuncParams>::FindSubRgns( BoundaryConditions X, BoundaryCon
 		}
 	}
 }
-
-template <class FuncParams>
-int Solver1dTemplate<FuncParams>::Run( BoundaryConditions X, SolverErrors Err )
-{
-	MyTimer Timer1; double r; BoundaryConditionsArray SubRgns; int total_func_call = 0;
-	Timer1.Start(); 
-	CleanUp(); 
-	p->PrepareBuffers();
-	FindSubRgns(X, SubRgns); 
-	for(int i = 0; i < SubRgns.GetSize(); i++)
-	{
-		if( Solver1d::Run(SubRgns[i], Err) == GSL_SUCCESS) 
-		{		
-			Roots << Solve r;
-		}
-		total_func_calls += cntr.func_call;
-	}
-	dt=Timer1.StopStart(); cntr.func_call = total_func_call;
-	p->DestroyBuffers(); 
-	return status;
-}
-
-
 //////////////////////////////////////////////////////////////////////////
-int MultiDimMinimizer::Run(DoubleArray& initX, DoubleArray& initdX, SolverErrors Err)
+//////////////////////////////////////////////////////////////////////////
+template <class FuncParams>
+MultiDimMinimizerTemplate<FuncParams>::MultiDimMinimizerTemplate( int _max_iter/*=100*/ ) : 
+	SolverData(_max_iter)
 {
-	MyTimer Timer1; Timer1.Start();
-	double size; X = initX; dX = initdX;
-	CleanUp();
-	s = gsl_multimin_fminimizer_alloc (fminimizer_type, initX.GetSize());
-	gsl_multimin_fminimizer_set (s, &F, X, dX);
+	fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
+	s = NULL; X = dX = NULL; 
+	F.f = func; F.params = this;
+}
+template <class FuncParams>
+int MultiDimMinimizerTemplate<FuncParams>::Run(FuncParams* _params, DoubleArray& initX, DoubleArray& initdX, SolverErrors Err)
+{
+	MyTimer Timer1; double size; X = initX; dX = initdX; F.n = initX.GetSize(); params = _params; ASSERT(params);
+	Timer1.Start();
+	CleanUp(); params->PrepareBuffers();
+	s = gsl_multimin_fminimizer_alloc (fminimizer_type, F.n);
+	gsl_multimin_fminimizer_set (s, &F, X, dX); iter = 0;
 	do
 	{
 		cntr.iter++;
-		status = gsl_multimin_fminimizer_iterate(s);
+		status = gsl_multimin_fminimizr_iterate(s);
 		if (status) break;
 		size = gsl_multimin_fminimizer_size (s);
 		status = gsl_multimin_test_size (size, Err.abs);
 	}
-	while (status == GSL_CONTINUE && cntr.iter < max_iter);
+	while (status == GSL_CONTINUE && iter < max_iter);
 	if (status == GSL_SUCCESS)
 	{
-		Minimum.x = *(s->x); Minimum.y = s->fval;
-	}
+		Roots.x = *(s->x); minimum_value = s->fval;
+	}		
+	cntr.func_call = params->func_call_cntr;
 	dt = Timer1.StopStart();
 	return status;
 }
-
-void MultiDimMinimizer::CleanUp()
+template <class FuncParams>
+void MultiDimMinimizerTemplate<FuncParams>::CleanUp()
 {
+	SolverData::CleanUp();
 	if (s != NULL)		{gsl_multimin_fminimizer_free (s); s = NULL;}
 	if (X != NULL)		{gsl_vector_free(X); X = NULL;}
 	if (dX != NULL)	{gsl_vector_free(dX); dX = NULL;}
-	Minimum.CleanUp();
-	PerfomanceInfoMk1::CleanUp();
+	Roots.CleanUp(); params->CleanUp();	
 }
-
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 ComplexGSL sqrt( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_sqrt(c.z)); }
 ComplexGSL pow2( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_mul(c.z,c.z)); }
 ComplexGSL exp( ComplexGSL& c )		{ return ComplexGSL(gsl_complex_exp(c.z)); }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TChart/TChartSeries.h"
+#include "TChart\TChartSeries.h"
 #include "my_gsl.h"
 
 enum Polarization {TE, TM};
@@ -21,7 +21,7 @@ public:
 	void operator= (const FittingPerfomanceInfo& t);
 };
 //////////////////////////////////////////////////////////////////////////
-struct AngleFromCalibration 
+struct AngleFromCalibration: public SolverData
 { 
 	int status; double teta; DoubleArray cal; 
 	AngleFromCalibration() {teta = 0; status = GSL_FAILURE;}
@@ -188,65 +188,63 @@ struct CalcRParams
 void CalcR_TE(CalcRParams& params);
 void CalcR_TM(CalcRParams& params);
 //////////////////////////////////////////////////////////////////////////
-
-struct Fit_Ax2BxC_FuncParams: public BaseForMultiFitterFuncParams
+//////////////////////////////////////////////////////////////////////////
+class ParabolaFitFunc: public BaseForFitFunc
 {
+//f = a*x*x + b*x + c
 public:
 	enum {ind_c, ind_b, ind_a, ind_max};
-
-	int f(const gsl_vector * x, gsl_vector * f);
-	int df(const gsl_vector * x, gsl_matrix * J);
-
-	double func(double x, double *a);
-	
-	Fit_Ax2BxC_FuncParams(DoubleArray& x, DoubleArray& y, DoubleArray& sigma): 
-	  BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
+protected:
+	struct FuncParams: public BaseForMultiFitterFuncParams
 	{
-	}
-	
-	SimplePoint GetTop();	
-	SimplePoint GetXabsY(double x);
-	SimplePoint GetXrelY(double x);
-};
+		static double func(const double &x, const double *a, const size_t &p);	
 
-//struct MultiFitterFuncParams 
-//{
-//	size_t n;
-//	double *y, *sigma, leftmostX, rightmostX,dx;
-//	MultiFitterFuncParams(DoubleArray& _x, DoubleArray& _y, DoubleArray& _sigma) 
-//	{
-//		n=0; y=sigma=NULL;
-//		if(_y.GetSize()!=_sigma.GetSize()) return;
-//        y=_y.GetData(); sigma=_sigma.GetData(); n=_y.GetSize();
-//		leftmostX=_x[0]; 
-//		rightmostX=_x[(int)n-1];
-//		dx=(rightmostX-leftmostX)/n;
-//	}
-//	size_t GetPointsNum() {return n;}
-//};
-//typedef MultiFitterTemplate<Fit_Ax2BxCParams,MultiFitterFuncParams> Fit_Ax2BxC;
-//int Fit_Parabola(MultiFitterFuncParams& in, Fit_Ax2BxCParams& init,Fit_Ax2BxCParams& out);
-//////////////////////////////////////////////////////////////////////////
-//************************************************************************
-//////////////////////////////////////////////////////////////////////////
-/*
-struct Fit_KneeParams: public FittingPerfomanceInfo
-{
+		static double df_da(const double &x, const double *a, const size_t &p, double *c);	
+		static double df_db(const double &x, const double *a, const size_t &p, double *c);	
+		static double df_dc(const double &x, const double *a, const size_t &p, double *c);	
+
+		FuncParams( const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma ) : 
+			BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
+		{
+			pFunction = FuncParams::func;
+			pDerivatives[ind_a] = df_da; pDerivatives[ind_b] = df_db; pDerivatives[ind_c] = df_dc;
+		}
+	};
 public:
-	double &A, &B, &C, &k;
-
-	Fit_KneeParams(double _a=0,double _b=0,double _c=0,double _k=0);
-	void operator= (const Fit_KneeParams& t);
-	operator double*() {return a;}
-	virtual size_t GetParamsNum() {return 4;}
-	SimplePoint GetTop(double l);
-	static double f(double x, double* a);
-	SimplePoint GetXabsY(double x);
-	SimplePoint GetXrelY(double x);
+	double GetTop(double &x);	
+	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);
 };
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+class KneeFitFunc: public BaseForFitFunc
+{
+//f = C + (A/(1 + exp(-2*k*(x - B))));
+public:
+	enum {ind_A, ind_B, ind_C, ind_k, ind_max};
+protected:
+	double buf;
+	struct FuncParams: public BaseForMultiFitterFuncParams
+	{
+		static double func(const double &x, const double *a, const size_t &p);	
 
-typedef MultiFitterTemplate<Fit_KneeParams,MultiFitterFuncParams> Fit_Knee;
-int Fit_StepFunc(MultiFitterFuncParams& in, Fit_KneeParams& init,Fit_KneeParams& out);
-*/
+		static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
+		static double df_dB(const double &x, const double *a, const size_t &p, double *c);	
+		static double df_dC(const double &x, const double *a, const size_t &p, double *c);	
+		static double df_dk(const double &x, const double *a, const size_t &p, double *c);	
+
+		FuncParams( const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma ) : 
+		BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
+		{
+			pFunction = FuncParams::func;
+			pDerivatives[ind_A] = df_dA; pDerivatives[ind_B] = df_dB; 
+			pDerivatives[ind_C] = df_dC; pDerivatives[ind_k] = df_dk;
+		}
+	};
+	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);
+public:
+	double GetGetInflection(double &x, const double &level);	
+	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);
+};
+//////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 int FourierFilter(FFTRealTransform::Params& in, double spec_width, FFTRealTransform::Params& out);

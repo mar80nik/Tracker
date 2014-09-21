@@ -8,7 +8,6 @@ DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
 	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
 	return *this;
 }
-
 void DoubleArray::operator=( const gsl_vector& vector )
 {
 	double t; RemoveAll();
@@ -18,7 +17,6 @@ void DoubleArray::operator=( const gsl_vector& vector )
 		(*this).Add(t);
 	}
 }
-
 DoubleArray::operator gsl_vector*()
 {
 	gsl_vector* ret=NULL; double* arr = GetData(); int size = GetSize();
@@ -28,7 +26,6 @@ DoubleArray::operator gsl_vector*()
 		gsl_vector_set (ret, i, arr[i]);
 	return ret;
 }
-
 void DoubleArray::Serialize( CArchive& ar )
 {
 	int i, n; double t;
@@ -43,7 +40,6 @@ void DoubleArray::Serialize( CArchive& ar )
 		for(i = 0; i < n; i++) { ar >> t; Add(t); }
 	}
 }
-
 BOOL DoubleArray::operator==(const CArray<double> &ref)
 {
 	if (GetSize() != ref.GetSize()) return FALSE;
@@ -53,8 +49,51 @@ BOOL DoubleArray::operator==(const CArray<double> &ref)
 	}
 	return TRUE;
 }
-
 //////////////////////////////////////////////////////////////////////////
+BaseForMultiFitterFuncParams::BaseForMultiFitterFuncParams(
+	const size_t _p, const DoubleArray &_x, const DoubleArray &_y, const DoubleArray &_sigma): BaseForFuncParams(), p(_p)
+{		
+	ASSERT(_y.GetSize() ==_sigma.GetSize());
+	y = _y.GetData(); sigma = _sigma.GetData(); n =_y.GetSize(); 
+	ASSERT(n >= p);
+	leftmostX = _x[0]; rightmostX = _x[n - 1];
+	dx = (rightmostX - leftmostX)/(n - 1);
+	pDerivatives = NULL; pFunction = NULL; pDerivatives = new pDerivFunc[p];
+}
+int BaseForMultiFitterFuncParams::f( const gsl_vector * x, gsl_vector * f )
+{
+	for (size_t i = 0; i < n; i++)
+	{
+		gsl_vector_set (f, i, (pFunction(i, x->data, p) - y[i])/sigma[i]);
+	}
+	return GSL_SUCCESS;
+}
+int BaseForMultiFitterFuncParams::df( const gsl_vector * x, gsl_matrix * J )
+{
+	double *c;
+	for (size_t i = 0; i < n; i++)
+	{
+		c = PrepareDerivBuf(i, x->data, p);
+		for (size_t j = 0; j < p; j++)
+		{
+			gsl_matrix_set (J, i, j, pDerivatives[j](i, x->data, p, c)/sigma[i]);		
+		}
+	}
+	return GSL_SUCCESS;
+}
+BaseForMultiFitterFuncParams::~BaseForMultiFitterFuncParams()
+{
+	BaseForFuncParams::~BaseForFuncParams();
+	delete[] pDerivatives;
+}
+//////////////////////////////////////////////////////////////////////////
+void BaseForFitFunc::InitFrom( const BaseForMultiFitterFuncParams &params )
+{
+	leftmostX = params.leftmostX; rightmostX = params.rightmostX; dx = params.dx;
+}
+void BaseForFitFunc::InitFrom( const SolverData &data ) { *((SolverData*)this) = *((SolverData*)&data); }
+double BaseForFitFunc::GetXabsY( const double &x ) { return pFunction((x - leftmostX)/dx, a, a.GetSize()); }
+double BaseForFitFunc::GetXrelY( double &x ) { double ret = pFunction(x, a, a.GetSize()); x += leftmostX; return ret; }
 //////////////////////////////////////////////////////////////////////////
 template <class FuncParams>
 Solver1dTemplate<FuncParams>::Solver1dTemplate(SolverRegime _rgm, int _max_iter): 
@@ -68,7 +107,8 @@ Solver1dTemplate<FuncParams>::Solver1dTemplate(SolverRegime _rgm, int _max_iter)
 template <class FuncParams>
 int Solver1dTemplate<FuncParams>::Run (FuncParams* _params, BoundaryConditions _X, SolverErrors Err)
 {
-	MyTimer Timer1; double r; params = _params; ASSERT(params);
+	MyTimer Timer1; double r; params = _params; 
+	ASSERT(params); ASSERT(_params->Derivatives); ASSERT(_params->Function);
 	Timer1.Start(); CleanUp(); 
 	params->PrepareBuffers(); FindSubRgns(_X, SubRgns); 
 	s = gsl_root_fsolver_alloc (fsolver_type);
@@ -176,23 +216,6 @@ ComplexGSL sqrt( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_sqrt(c.z)); }
 ComplexGSL pow2( ComplexGSL& c )	{ return ComplexGSL(gsl_complex_mul(c.z,c.z)); }
 ComplexGSL exp( ComplexGSL& c )		{ return ComplexGSL(gsl_complex_exp(c.z)); }
 //////////////////////////////////////////////////////////////////////////
-//int MultiFitter::MainFDF()
-//{	
-//
-//	x = gsl_vector_view_array (start, p);	
-//
-//	multifit_fdfsolver_type = gsl_multifit_fdfsolver_lmsder;
-//	s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
-//	gsl_multifit_fdfsolver_set (s, &F, &x.vector);
-//	do
-//	{
-//		iter++;
-//		status = gsl_multifit_fdfsolver_iterate (s);
-//		status = gsl_multifit_test_delta (s->dx, s->x, epsabs, epsrel);
-//	}
-//	while (status == GSL_CONTINUE && iter < max_iter);
-//    return status;	
-//}
 
 template <class FuncParams>
 void MultiFitterTemplate<FuncParams>::CleanUp()
@@ -204,7 +227,7 @@ void MultiFitterTemplate<FuncParams>::CleanUp()
 }
 
 template <class FuncParams>
-int MultiFitterTemplate<FuncParams>::Run( FuncParams* params, DoubleArray& init_a, SolverErrors Err )
+int MultiFitterTemplate<FuncParams>::Run( FuncParams* params, const DoubleArray& init_a, const SolverErrors Err )
 {
 	Timer1.Start();
 	CleanUp(); params->PrepareBuffers();
@@ -234,15 +257,11 @@ int MultiFitterTemplate<FuncParams>::Run( FuncParams* params, DoubleArray& init_
 			}
 			gsl_matrix_free(covar);
 		}
-//		roots.leftmostX=fparams.leftmostX; roots.rightmostX=fparams.rightmostX; 
-	//	roots.status=status; roots.dx=fparams.dx;					
 	}	
 	cntr.func_call = params->func_call_cntr;
 	dt=Timer1.StopStart(); params->DestroyBuffers();
 	return status;
 }
-
-
 //////////////////////////////////////////////////////////////////////////
 int FFTRealTransform::Main()
 {
@@ -292,6 +311,3 @@ int FFTRealTransform::Init( Params& _params, Direction _dir )
 	params=_params; y=params.y->GetData(); n=params.y->GetSize(); params.dir=_dir; 
 	return GSL_SUCCESS;
 }
-
-//////////////////////////////////////////////////////////////////////////
-

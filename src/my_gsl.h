@@ -179,20 +179,33 @@ public:
 	virtual void CleanUp();
 };
 //////////////////////////////////////////////////////////////////////////
+typedef double (*pFunc)(const double &x, const double *a, const size_t &p);
+typedef double (*pDerivFunc)(const double &x, const double *a, const size_t &p, double *c);
 struct BaseForMultiFitterFuncParams:public BaseForFuncParams
 {
-	size_t n, p; double *y, *sigma, leftmostX, rightmostX, dx;
+public:
+	size_t n, p; const double *y, *sigma; double leftmostX, rightmostX, dx;
+	pDerivFunc *pDerivatives; pFunc pFunction;
 
-	BaseForMultiFitterFuncParams(size_t _p, DoubleArray& _x, DoubleArray& _y, DoubleArray& _sigma): 
-		BaseForFuncParams(), p(_p)
-	{		
-		ASSERT(_y.GetSize() ==_sigma.GetSize());
-		y = _y; sigma = _sigma; n =_y.GetSize();
-		ASSERT(n >= p);
-		leftmostX = _x[0]; rightmostX = _x[n - 1];
-		dx = (rightmostX - leftmostX)/(n - 1);
-	}
+	BaseForMultiFitterFuncParams(const size_t _p, const DoubleArray &_x, const DoubleArray &_y, const DoubleArray &_sigma);
+	virtual ~BaseForMultiFitterFuncParams();
+	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p) { return NULL; };
 	size_t GetPointsNum() {return n;}
+	int f(const gsl_vector * x, gsl_vector * f);
+	int df(const gsl_vector * x, gsl_matrix * J);
+};
+
+
+struct BaseForFitFunc: public SolverData
+{
+	double leftmostX, rightmostX, dx;
+	DoubleArray a, da; pFunc pFunction;
+
+	BaseForFitFunc(): SolverData() { leftmostX = rightmostX = dx = 0; pFunction = NULL;}
+	void InitFrom(const BaseForMultiFitterFuncParams &params);
+	void InitFrom(const SolverData &data);
+	double GetXabsY(const double &x);
+	double GetXrelY(double &x);
 };
 
 template <class FuncParams>
@@ -204,6 +217,7 @@ private:
 	size_t n, p;	
 	gsl_multifit_function_fdf F;
 	gsl_vector* initX;
+	FuncParams*	params;
 protected:
 	static int f(const gsl_vector * x, void *data, gsl_vector * f)
 	{
@@ -224,19 +238,18 @@ protected:
 		solver->params->df(x, J);
 		return GSL_SUCCESS;
 	}
-public:
-	FuncParams*	params;
+public:	
 	DoubleArray a, da;
 
 public:
-	MultiFitterTemplate(int _max_iter): SolverData(_max_iter)
+	MultiFitterTemplate(int _max_iter = 100): SolverData(_max_iter)
 	{
 		multifit_fdfsolver_type=gsl_multifit_fdfsolver_lmsder; s = NULL; initX = NULL;
 		F.f = f; F.df = df; F.fdf = fdf; F.params = this; 		
 	}
 	virtual ~MultiFitterTemplate() {CleanUp();}
 	virtual void CleanUp();
-	int Run(FuncParams* params, DoubleArray& init_a, SolverErrors Err);
+	int Run(FuncParams* params, const DoubleArray& init_a, const SolverErrors Err);
 };
 //////////////////////////////////////////////////////////////////////////
 

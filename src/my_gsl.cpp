@@ -1,13 +1,13 @@
 #include "stdafx.h"
 #include "my_gsl.h"
 
-DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
-{
-	RemoveAll();
-	SetSize(arr.GetSize());
-	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
-	return *this;
-}
+//DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
+//{
+//	RemoveAll();
+//	SetSize(arr.GetSize());
+//	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
+//	return *this;
+//}
 void DoubleArray::operator=( const gsl_vector& vector )
 {
 	double t; RemoveAll();
@@ -39,15 +39,6 @@ void DoubleArray::Serialize( CArchive& ar )
 		RemoveAll(); ar >> n; 
 		for(i = 0; i < n; i++) { ar >> t; Add(t); }
 	}
-}
-BOOL DoubleArray::operator==(const CArray<double> &ref)
-{
-	if (GetSize() != ref.GetSize()) return FALSE;
-	for (int i = 0; i < GetSize(); i++)
-	{
-		if (operator[](i) != ref[i]) return FALSE;
-	}
-	return TRUE;
 }
 //////////////////////////////////////////////////////////////////////////
 BaseForMultiFitterFuncParams::BaseForMultiFitterFuncParams(

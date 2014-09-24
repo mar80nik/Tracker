@@ -2,14 +2,6 @@
 #include "metricon.h"
 
 //////////////////////////////////////////////////////////////////////////
-AngleFromCalibrationArray& AngleFromCalibrationArray::operator=( AngleFromCalibrationArray& arr )
-{
-	RemoveAll();
-	SetSize(arr.GetSize());
-	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
-	return *this;
-}
-//////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 void CalibrationParams::Serialize( CArchive& ar )
 {
@@ -131,7 +123,7 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 				betta_teor.RemoveAll();
 				for (j = 0; j < betta_n; j++)
 				{
-					betta_teor.Add(betta_info(FindBettas.Roots[j + i], j + i));
+					betta_teor << betta_info(FindBettas.Roots[j + i], j + i);
 				}
 			}
 		}
@@ -143,7 +135,7 @@ void FilmParams::FuncParams::CleanUp()
 {
 	BaseForFuncParams::CleanUp(); bettaexp.RemoveAll(); betta_teor.RemoveAll(); 
 }
-int FilmParams::Calculator(	Polarization pol, AngleFromCalibrationArray& bettaexp,FilmParams initX, FilmParams initdX)
+int FilmParams::Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &bettaexp,FilmParams initX, FilmParams initdX)
 {
 	MultiDimMinimizerTemplate<FuncParams> FindFilmParams(200);
 	FuncParams params(pol,  bettaexp);
@@ -167,6 +159,7 @@ int FilmParams::Calculator(	Polarization pol, AngleFromCalibrationArray& bettaex
 	{		
 		n = FindFilmParams.Roots[index_n]; H = FindFilmParams.Roots[index_H]; 
 		minimum_value = FindFilmParams.minimum_value;
+		betta_teor = params.betta_teor;
 		*((SolverData*)(this)) = *((SolverData*)&FindFilmParams);
 	}
 	return FindFilmParams.status;

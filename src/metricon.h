@@ -31,13 +31,6 @@ struct AngleFromCalibration: public SolverData
 		return (*this);
 	}
 };
-
-class AngleFromCalibrationArray: public CArray<AngleFromCalibration>
-{
-public:
-	AngleFromCalibrationArray() {};
-	AngleFromCalibrationArray& operator=(AngleFromCalibrationArray& arr);
-};
 //////////////////////////////////////////////////////////////////////////
 struct CalibrationParams: public SolverData
 {
@@ -154,11 +147,11 @@ public:
 	struct FuncParams: public BaseForFuncParams
 	{
 	public:
-		AngleFromCalibrationArray& bettaexp; Polarization pol;
-		CArray<betta_info> betta_teor;
+		TypeArray<AngleFromCalibration> &bettaexp; Polarization pol;
+		TypeArray<betta_info> betta_teor;
 	public:
 		double func(const gsl_vector * x);
-		FuncParams(Polarization _pol, AngleFromCalibrationArray& _bettaexp): 
+		FuncParams(Polarization _pol, TypeArray<AngleFromCalibration> &_bettaexp): 
 			pol(_pol), bettaexp(_bettaexp)
 		{}
 		FuncParams(FuncParams& params): 
@@ -169,9 +162,10 @@ public:
 	};	
 public:
 	double n, H, m, minimum_value;
+	TypeArray<betta_info> betta_teor;
 
 	FilmParams(double _n = 0, double _H = 0): n(_n), H(_H), SolverData() {minimum_value = 0; m = 0;}
-	int Calculator(	Polarization pol, AngleFromCalibrationArray& bettaexp, 
+	int Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &bettaexp, 
 					FilmParams initX = FilmParams(), FilmParams initdX = FilmParams(1e-4, 1e-1));
 };
 

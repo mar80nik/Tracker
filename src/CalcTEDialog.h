@@ -14,7 +14,8 @@ class CalcTEDialog : public CDialog
 	DECLARE_DYNAMIC(CalcTEDialog)
 
 public:
-	double N[modes_num], Q[modes_num], beta[modes_num];
+	double N[modes_num]; TypeArray<AngleFromCalibration> betta_exp;
+	double Q[modes_num];
 	BOOL IsTM;
 
 	CalcTEDialog(CWnd* pParent = NULL);   // standard constructor

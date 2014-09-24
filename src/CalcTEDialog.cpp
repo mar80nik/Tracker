@@ -14,7 +14,7 @@ CalcTEDialog::CalcTEDialog(CWnd* pParent /*=NULL*/)
 	, nf(0)
 	, hf(0)
 {
-	for(int i=0;i<modes_num;i++) { N[i]=0; Q[i]=0; beta[i]=0; }
+	for(int i=0;i<modes_num;i++) { N[i]=0; }
 	Series=NULL; IsTM=FALSE; lambda = 632.8; n3 = 1.45705;
 //	N[0]=3128.82; N[1]=2714.61; N[2]=2149; N[3]=1426.4;
 }
@@ -56,12 +56,11 @@ void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
 	MainCfg.GetCalibration(&cal);
-	for(int i=0;i<modes_num;i++)
+	for(int i = 0; i < modes_num; i++)
 	{
-		CalibratorParams calb_params(N[i]);
-		Calibrator(calb_params,cal);	
-		Q[i]=calb_params.teta;
-		beta[i]=calb_params.betta;
+		betta_exp << cal.ConvertPixelToAngle(N[i]);
+		Q[i] = betta_exp[i].teta;
+		betta_exp[i].teta = cal.ConertAngleToBeta(Q[i]);
 	}
 	UpdateData(0);
 }
@@ -115,47 +114,41 @@ void CalcTEDialog::OnCbnSelchangeCombo1()
 
 void CalcTEDialog::OnBnClickedCalculate()
 {
-	CString T; LogMessage *log=new LogMessage(); FilmParams *outTX=NULL; FilmFuncParams *in_TX=NULL;
-	double k, n1; DoubleArray bettaexp_TX; 
+	CString T; LogMessage *log=new LogMessage(); FilmParams film;
+	double k, n1; Polarization pol;
 	UpdateData();
 	k = 2.*M_PI/lambda;	n1 = 1.; 
 
-	for(int i=0;i<modes_num;i++) bettaexp_TX << beta[i];	
-	outTX=new FilmParams();
-
-	if(IsTM)
+	if (IsTM)
 	{
-		in_TX=new FilmFuncTMParams(bettaexp_TX, n1,n3,k);
-		CalclFilmParamsTM(*((FilmFuncTMParams*)in_TX),*outTX);
-		T.Format("--FilmParamsTM---"); log->CreateEntry("*",T);
-	}
+		pol = TM; T.Format("--FilmParamsTM---"); 
+	} 
 	else
 	{
-		in_TX=new FilmFuncTEParams(bettaexp_TX, n1,n3,k);
-		CalclFilmParamsTE(*((FilmFuncTEParams*)in_TX),*outTX);
-		T.Format("--FilmParamsTE---"); log->CreateEntry("*",T);
+		pol = TE; T.Format("--FilmParamsTE---");
 	}
+	log->CreateEntry("*",T);
 
-	T.Format("status = %s", gsl_strerror (outTX->status)); 
-	if(outTX->status==GSL_SUCCESS)
+	film.Calculator(pol, betta_exp);
+	T.Format("status = %s", gsl_strerror (film.status)); 
+
+	if(film.Calculator(pol, betta_exp) == GSL_SUCCESS)
 	{
-		nf=outTX->n;
-		hf=outTX->H;
+		nf = film.n;
+		hf = film.H;
 		UpdateData(0);
 		log->CreateEntry(CString('*'),T);
 	}
 	else log->CreateEntry(CString('*'),T,LogMessage::high_pr);
 	
-	T.Format("n=%.10f H=%.10f nm",outTX->n, outTX->H, outTX->epsabs, outTX->epsrel ); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTX->epsabs, outTX->epsrel, outTX->fval, outTX->size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTX->dt.val(), outTX->func_call_cntr); log->CreateEntry("*",T);
-	
-	for(int i=0;i<in_TX->betta_teor.GetSize();i++)
+	T.Format("n=%.10f H=%.10f nm",film.n, film.H); log->CreateEntry("*",T);
+	T.Format("errabs=%g errrel=%g fval=%.10f",film.err.abs, film.err.rel, film.minimum_value); log->CreateEntry("*",T);
+	T.Format("dt=%.3f ms func_calls=%d",film.dt.val(), film.cntr.func_call); log->CreateEntry("*",T);
+
+	for(int i = 0; i < film.betta_teor.GetSize(); i++)
 	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TX->betta_teor[i].n,in_TX->betta_teor[i].val,bettaexp_TX[i]); log->CreateEntry("*",T);
-	}	
-	
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",film.betta_teor[i].n, film.betta_teor[i].val, betta_exp[i].teta); 
+		log->CreateEntry("*",T);
+	}		
 	log->Dispatch();
-	if(outTX!=NULL) delete outTX; 
-	if(in_TX!=NULL) delete in_TX;
 }

@@ -117,8 +117,7 @@ void DialogBarTab1::Serialize(CArchive& ar)
 
 void DialogBarTab1::OnBnClicked_Fit()
 {		
-		CString str; UpdateData(); TPointVsErrorSeries *graph; 
-		size_t i; 
+		CString str; UpdateData(); TPointVsErrorSeries *graph; SimplePoint pnt;
 		
 		PointVsErrorArray buf;		
 		LogMessage *log=new LogMessage(); 
@@ -147,28 +146,25 @@ void DialogBarTab1::OnBnClicked_Fit()
 		}
 		else return;
 
-		Fit_Ax2BxCParams init(1e-2,1e-1,1), out;
-		MultiFitterFuncParams params(buf.x,buf.y,buf.dy);
-		Fit_Parabola(params, init,  out);
+		DoubleArray init; ParabolaFitFunc fiting;
+		init << 1 << 1e-1 << 1e-2;		
+		fiting.CalculateFrom(buf.x, buf.y, buf.dy, init);
 		
-		str.Format("**********************************"); log->CreateEntry(CString('*'),str);
-		str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-		if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
-		str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
-		str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
-		for(i=0;i<out.GetParamsNum();i++)
+		str.Format("**********************************"); *log << str;
+		str.Format("status = %s", gsl_strerror (fiting.status)); *log << str;
+		str.Format("----------------------------------"); *log << str;
+		for(int i = 0; i < fiting.a.GetSize(); i++)
 		{
-			str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
+			str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
 		}
-		str.Format("xmin = %g ymin = %g", out.GetTop().x,out.GetTop().y);
-		log->CreateEntry(CString('*'),str,LogMessage::low_pr);
-		str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
-		str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
-		str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);
-
-		if(out.status==GSL_SUCCESS)
+		pnt.y = fiting.GetTop(pnt.x); str.Format("xmin = %g ymin = %g", pnt.x, pnt.y);
+		str.Format("time = %g ms", fiting.dt.val()); *log << str;
+		str.Format("func_cals = %d", fiting.cntr.func_call); *log << str;
+		str.Format("iter_num = %d", fiting.cntr.iter); *log << str;
+		
+		if(fiting.status==GSL_SUCCESS)
 		{
-			TSimplePointSeries* t1=NULL; 
+			TSimplePointSeries* t1 = NULL; log->SetPriority(lmprHIGH);
 			if((x=chart->Series.GainAcsess(WRITE))!=NULL)
 			{
 				SeriesProtector guard(x); TSeriesArray& series(guard); str.Format("PolyFit%d",PolinomOrder);
@@ -180,12 +176,9 @@ void DialogBarTab1::OnBnClicked_Fit()
 					t1->SetVisible(true); 
 
 					t1->ParentUpdate(UPD_OFF);
-					double x_min,x_max,dx,t;
-					t=x_min=out.leftmostX; x_max=out.rightmostX; dx=fabs(x_max-x_min)/out.n;
-					for(i=0;i<out.n;i++) 
+					for(int i = 0; i < buf.x.GetSize(); i++) 
 					{
-						t1->AddXY(out.GetXabsY(t));
-						t+=dx;
+						pnt.x = i; pnt.y = fiting.GetXrelY(pnt.x); t1->AddXY(pnt);
 					}
 					t1->ParentUpdate(UPD_ON);
 				}	
@@ -295,7 +288,7 @@ struct MinimumsFitFilterParams
 {	
 	ms dt;
 	int status; 
-	CArray<Fit_Ax2BxCParams> fitings;
+	TypeArray<ParabolaFitFunc> fitings;
 };
 
 #define INDEX_OUT_OF_RANGE -1;
@@ -323,42 +316,35 @@ int GetArrayIndex(DoubleArray& arr, double x )
 
 MinimumsFitFilterParams* MinimumsFitFilterFunc(PointVsErrorArray &data,SimplePointArray &mins, int dn)
 {
-	MinimumsFitFilterParams* ret=new MinimumsFitFilterParams();
-	MyTimer timer1; int i, dn_max=80, index; 
-	PointVsErrorArray buft; Fit_Ax2BxCParams init, out; MultiFitterFuncParams* params=NULL;
+	MinimumsFitFilterParams* ret = new MinimumsFitFilterParams(); 
+	MyTimer timer1; int i, dn_max=80, index; DoubleArray init; ParabolaFitFunc fiting;  init << 1 << 1e-1 << 1e-2;
+	PointVsErrorArray buft; 
 
 	timer1.Start();
-	SimplePoint data0=data[0]; 
-	for(i=0;i<mins.GetSize();i++)
+	SimplePoint data0=data[0]; 	
+	for(i = 0; i < mins.GetSize(); i++)
 	{
-		SimplePoint tt=mins[i];
-		index=GetArrayIndex(data.x,mins[i].x);
-		if( index<dn_max ) continue;
+		SimplePoint tt = mins[i];
+		index = GetArrayIndex(data.x,mins[i].x);
+		if( index < dn_max ) continue;
 
-		buft.CopyFrom(data,2*dn_max+1,index-dn_max); 
-		init=Fit_Ax2BxCParams(1e-2,1e-1,1);
-		if(params!=NULL) { delete params; params=NULL; }
-		params=new MultiFitterFuncParams(buft.x,buft.y,buft.dy);
-		Fit_Parabola(*params, init,  out);
-        if(out.status!=GSL_SUCCESS) continue;
-		if(out.a[2]<0) continue;
+		buft.CopyFrom(data, 2*dn_max + 1, index - dn_max); 
+		fiting.CalculateFrom(buft.x, buft.y, buft.dy, init);
+	    if(fiting.status != GSL_SUCCESS) continue;
+		if(fiting.a[2] < 0) continue;
 
 		buft.CopyFrom(data,2*dn+1,index-dn); 
-		init=Fit_Ax2BxCParams(1e-2,1e-1,1);
-		if(params!=NULL) { delete params; params=NULL; }
-		params=new MultiFitterFuncParams(buft.x,buft.y,buft.dy);
-		Fit_Parabola(*params, init,  out);
-		if(out.status!=GSL_SUCCESS) continue;
-		if(out.a[2]<0) continue;
+		fiting.CalculateFrom(buft.x, buft.y, buft.dy, init);
+        if(fiting.status != GSL_SUCCESS) continue;
+		if(fiting.a[2] < 0) continue;
 
-		SimplePoint top=out.GetTop();
-		if( top.x<out.leftmostX || top.x>out.rightmostX ) continue;
+		SimplePoint top; top.y = fiting.GetTop(top.x);
+		if( top.x < fiting.leftmostX || top.x > fiting.rightmostX ) continue;
 
-		ret->fitings.Add(out);
+		ret->fitings << fiting;
 	}
-	if(params!=NULL) { delete params; params=NULL; }
-	ret->dt=timer1.StopStart();
-	ret->status=S_OK;	
+	ret->dt = timer1.StopStart();
+	ret->status = S_OK;	
 	return ret;
 }
 
@@ -377,13 +363,12 @@ void ShowFittings(ProtectedSeriesArray &Series, MinimumsFitFilterParams &data)
 		t2->_LineStyle::Set(NO_LINE); t2->_SymbolStyle::Set(VERT_LINE);
 		t2->_SymbolStyle::dy=10;
 		t2->SetVisible(true); 
-
+		
 		t2->ParentUpdate(UPD_OFF);
-		for(i=0;i<data.fitings.GetSize() && t2!=NULL;i++)
+		for(int i = 0; i < data.fitings.GetSize() && t2 != NULL; i++)
 		{
-			Fit_Ax2BxCParams& out=data.fitings[i];
-			t2->AddXY(out.GetTop());
-		}			
+			val.y = data.fitings[i].GetTop(val.x); t2->AddXY(val);
+		}		
 		t2->ParentUpdate(UPD_ON);
 	}
 	
@@ -441,15 +426,14 @@ afx_msg void DialogBarTab1::OnBnClicked_Locate()
 	ShowFittings(chart->Series, *MinimumsFitFilter);
 	dt1=timer1.StopStart();
 
-	str.Format("********Fourier smooth*************"); log->CreateEntry(CString('*'),str);
-	str.Format("time=%g ms",FourierSmooth.dt.val()); log->CreateEntry(CString('*'),str);
-	str.Format("********Minimums 1stage*************"); log->CreateEntry(CString('*'),str);
-	str.Format("minimums=%d time=%g ms",
-		LocateMinimums.minimumN, LocateMinimums.dt.val()); log->CreateEntry(CString('*'),str);
-	str.Format("********Minimums 2stage*************"); log->CreateEntry(CString('*'),str);
-	str.Format("minimums=%d time=%g ms", MinimumsFitFilter->fitings.GetSize(), MinimumsFitFilter->dt.val()); log->CreateEntry(CString('*'),str);
-	str.Format("*********Total********************"); log->CreateEntry(CString('*'),str);
-	str.Format("time=%g ms",dt1.val()); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
+	str.Format("********Fourier smooth*************"); *log << str;
+	str.Format("time=%g ms",FourierSmooth.dt.val()); *log << str;
+	str.Format("********Minimums 1stage*************"); *log << str;
+	str.Format("minimums=%d time=%g ms", LocateMinimums.minimumN, LocateMinimums.dt.val()); *log << str;
+	str.Format("********Minimums 2stage*************"); *log << str;
+	str.Format("minimums=%d time=%g ms", MinimumsFitFilter->fitings.GetSize(), MinimumsFitFilter->dt.val()); *log << str;
+	str.Format("*********Total********************"); *log << str;
+	str.Format("time=%g ms",dt1.val()); *log << str;
 
 	log->Dispatch();
 	delete MinimumsFitFilter;
@@ -582,7 +566,7 @@ LRESULT DialogBarTab1::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 void DialogBarTab1::OnBnClickedKneeTest()
 {
 	CString str; UpdateData(); TPointVsErrorSeries *graph; 
-	LogMessage *log=new LogMessage(); size_t i;
+	LogMessage *log=new LogMessage(); size_t i = 0;
 
 	PointVsErrorArray buf;		
 	void *x; TChart *chart=(TChart *)Parent;
@@ -610,11 +594,11 @@ void DialogBarTab1::OnBnClickedKneeTest()
 	}
 	else return;
 
-	Fit_KneeParams init(1,0.1,0.1,.1), out;
+	/*Fit_KneeParams init(1,0.1,0.1,.1), out;
 	MultiFitterFuncParams params(buf.x,buf.y,buf.dy);
-	Fit_StepFunc(params, init,  out);
+	Fit_StepFunc(params, init,  out);*/
 
-	str.Format("**********************************"); log->CreateEntry(CString('*'),str);
+	/*str.Format("**********************************"); log->CreateEntry(CString('*'),str);
 	str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
 	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
 	str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
@@ -660,6 +644,6 @@ void DialogBarTab1::OnBnClickedKneeTest()
 			t1->AddXY(Top);
 		}
 	}
-	chart->PostMessage(UM_CHART_SHOWALL);	
+	chart->PostMessage(UM_CHART_SHOWALL);*/	
 	log->Dispatch();
 }

@@ -15,18 +15,38 @@
 #include "gsl\gsl_fft_halfcomplex.h"
 
 #define DEGREE (M_PI/180.)
-class DoubleArray: public CArray<double>
+
+template<class type>
+class TypeArray: public CArray<type>
 {
 public:
-	DoubleArray() {};
-	DoubleArray(DoubleArray&);
-	DoubleArray& operator << (double d) {(*this).Add(d); return (*this);}
-	DoubleArray& operator=(const DoubleArray& arr);
-	operator double*() {return CArray<double>::GetData();}
+	TypeArray()	{}
+	TypeArray(const TypeArray& ref)	{ *this = ref; }
+	TypeArray& operator << (const type &d) {(*this).Add(d); return (*this);}
+	TypeArray& operator =(const TypeArray &arr)
+	{
+		RemoveAll(); SetSize(arr.GetSize());
+		for(int i = 0; i < arr.GetSize(); i++) Add(arr[i]);
+		return *this;
+	}
+	operator type*() {return CArray<type>::GetData();}
+	BOOL operator==(const TypeArray &ref)
+	{
+		if (GetSize() != ref.GetSize()) return FALSE;
+		for (int i = 0; i < GetSize(); i++)
+		{
+			if (operator[](i) != ref[i]) return FALSE;
+		}
+		return TRUE;
+	}
+};
+
+class DoubleArray: public TypeArray<double>
+{
+public:
 	operator gsl_vector*();
 	void operator= (const gsl_vector& vector);
 	virtual void Serialize(CArchive& ar);
-	BOOL operator==(const CArray<double> &ref);
 };
 
 struct SolverErrors 

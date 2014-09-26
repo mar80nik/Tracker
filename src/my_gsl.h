@@ -126,13 +126,11 @@ enum SolverRegime {SINGLE_ROOT, MULTI_ROOT};
 class BaseForFuncParams
 {
 public:
-	int func_call_cntr;
-
 	virtual void PrepareBuffers() {}
 	virtual void DestroyBuffers() {}
 	BaseForFuncParams() {CleanUp();}
 	virtual ~BaseForFuncParams() {DestroyBuffers();}
-	virtual void CleanUp() {func_call_cntr = 0;}
+	virtual void CleanUp() {}
 };
 
 struct BoundaryConditions
@@ -149,7 +147,7 @@ class Solver1dTemplate: public SolverData
 	static double func(double x, void * data)
 	{
 		Solver1dTemplate<FuncParams>* solver = (Solver1dTemplate<FuncParams>*)data;
-		solver->params->func_call_cntr++;
+		solver->cntr.func_call++;
 		return solver->params->func(x);
 	};
 	typedef CArray<BoundaryConditions> BoundaryConditionsArray;
@@ -181,7 +179,7 @@ public:
 	static double func(const gsl_vector * x, void * data)
 	{
 		MultiDimMinimizerTemplate<FuncParams>* solver = (MultiDimMinimizerTemplate<FuncParams>*)data;
-		solver->params->func_call_cntr++;
+		solver->cntr.func_call++;
 		return solver->params->func(x);
 	};
 //************************************************//
@@ -242,13 +240,13 @@ protected:
 	static int f(const gsl_vector * x, void *data, gsl_vector * f)
 	{
 		MultiFitterTemplate<FuncParams>* solver = (MultiFitterTemplate<FuncParams>*)data;
-		solver->params->func_call_cntr++;
+		solver->cntr.func_call++;
 		return solver->params->f(x, f);
 	}
 	static int df(const gsl_vector * x, void *data, gsl_matrix * J)
 	{
 		MultiFitterTemplate<FuncParams>* solver = (MultiFitterTemplate<FuncParams>*)data;
-		solver->params->func_call_cntr++;
+		solver->cntr.func_call++;
 		return solver->params->df(x, J);
 	}
 	static int fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)	

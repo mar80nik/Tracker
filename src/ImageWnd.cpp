@@ -549,66 +549,69 @@ void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 {
 	CalibratorDlg.ShowWindow(SW_SHOW);
 
-
 	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
-	DoubleArray N,teta; CString T;
-	CalibrationParams cal; cal.n_p=2.14044; cal.n_s=1.; 
-	N << 2933 << 2506 << 1922 << 1203;
-	teta << 63.34*DEGREE << 60.04*DEGREE << 55.16*DEGREE << 49.02*DEGREE;
+	DoubleArray Nexp_TE, Nexp_TM, teta_exp; CString T; FilmParams filmTE, filmTM;
+	CalibrationParams cal; AngleFromCalibration angle;
+	
+	Nexp_TE << 3077 << 2594 << 1951 << 1161; Nexp_TM << 2990 << 2514 << 1856 << 1014;
+	teta_exp << 64.02*DEGREE << 60.43*DEGREE << 55.24*DEGREE << 48.62*DEGREE;
 
-	double lambda, k, n1, n3; DoubleArray bettaexp_TE;
-	lambda = 632.8; k = 2.*M_PI/lambda;	n1 = 1.; n3 = 1.45705;
-	bettaexp_TE << 1.9129 << 1.8544 << 1.7568 << 1.6159; 
-	FilmFuncTEParams in_TE(bettaexp_TE, n1,n3,k);
-	FilmParams outTE,outTM;
-	DoubleArray bettaexp_TM;
-	bettaexp_TM << 1.82422 << 1.76110 << 1.65829 << 1.51765; 
-	FilmFuncTMParams in_TM(bettaexp_TM, n1,n3,k);
-
+	TypeArray<AngleFromCalibration> bettaexp_TE, bettaexp_TM; 
+	for(int i = 0; i < Nexp_TM.GetSize(); i++)
+	{
+		AngleFromCalibration t;
+		t = cal.ConvertPixelToAngle(Nexp_TE[i]); t.teta = cal.ConertAngleToBeta(t.teta); bettaexp_TE << t;
+		t = cal.ConvertPixelToAngle(Nexp_TM[i]); t.teta = cal.ConertAngleToBeta(t.teta); bettaexp_TM << t;
+	}
+	
 	CalcRParams params;
-	params.i=FilmParams(1,150,0+1e-100); 
-	params.f=FilmParams(1.84,1082,5e-3+1e-100);  
-	params.s=FilmParams(1.45705,1e6,0+1e-100); 
+	params.i=FilmParams(1,			150,	0+1e-100); 
+	params.f=FilmParams(1.84,		1082,	5e-3+1e-100);  
+	params.s=FilmParams(1.45705,	1e6,	0+1e-100); 
 	params.lambda=632.8; params.Np=2.14044; params.teta_min=15; params.teta_max=85;
 
 	TSimplePointSeries *t1=NULL; 
 	TSimplePointSeries::DataImportMsg *CHM1, *CHM2; CHM1=CHM2=NULL; 
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
+	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); LogMessage *log=new LogMessage(); 
 	SimplePoint pnt; pnt.type.Set(GenericPnt);
 
-	CreateCalibration(N, teta, cal);
-	CalibratorParams calb_params(1000.203414900858);
-	Calibrator(calb_params,cal);
-	CalclFilmParamsTE(in_TE,outTE);
-	CalclFilmParamsTM(in_TM,outTM);
-	int a=5;
-
-	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::low_pr);
-	T.Format("---Calibration---"); log->CreateEntry("*",T);
-	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g",cal.N0,cal.L,cal.d0,cal.fi0,cal.epsabs,cal.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("---Calibrator----"); log->CreateEntry("*",T);
-	T.Format("Npix=%g teta=%.10f betta=%.10f errabs=%g errrel=%g",calb_params.Npix,calb_params.teta, calb_params.betta,calb_params.epsabs,calb_params.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",calb_params.dt.val(), calb_params.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("--FilmParamsTE---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTE.n, outTE.H, outTE.epsabs, outTE.epsrel ); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTE.epsabs, outTE.epsrel, outTE.fval, outTE.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTE.dt.val(), outTE.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TE.betta_teor.GetSize();i++)
+	T.Format("Log: Speed tests results"); *log << T;	
+	// tetsing calibration creation
+	cal.CalculateFrom(Nexp_TE, teta_exp, 2.15675, 1., 1.45705, 51*DEGREE, 632.8);
+	// testing pixel to angle conversion with calibration
+	angle = cal.ConvertPixelToAngle(Nexp_TM[0]);
+	// test film parameters calculation
+	filmTE.Calculator(TE, bettaexp_TE); filmTM.Calculator(TM, bettaexp_TM);
+	
+	T.Format("****Statistics***"); *log << T;
+	T.Format("---Calibration---"); *log << T;
+	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g", 
+		cal.val[CalibrationParams::ind_N0], cal.val[CalibrationParams::ind_L], 
+		cal.val[CalibrationParams::ind_d0],	cal.val[CalibrationParams::ind_fi0], cal.err.abs, cal.err.rel); *log << T;
+	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.cntr.func_call); *log << T;
+	T.Format("---Calibrator----"); *log << T;
+	T.Format("Npix=%g teta=%.10f betta=%.10f errabs=%g errrel=%g", angle.Npix, angle.teta/DEGREE, 
+				angle.err.abs, angle.err.rel); *log << T;
+	T.Format("dt=%.3f ms func_calls=%d", angle.dt.val(), angle.cntr.func_call); *log << T;
+	T.Format("--FilmParamsTE---"); *log << T;	
+	T.Format("n=%.10f H=%.10f nm", filmTE.n, filmTE.H); *log << T;
+	T.Format("errabs=%g errrel=%g fval=%.10f", filmTE.err.abs, filmTE.err.rel, filmTE.minimum_value); *log << T;
+	T.Format("dt=%.3f ms func_calls=%d", filmTE.dt.val(), filmTE.cntr.func_call); *log << T;
+	for( int i = 0; i < filmTE.betta_teor.GetSize(); i++)
 	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TE.betta_teor[i].n,in_TE.betta_teor[i].val,bettaexp_TE[i]); log->CreateEntry("*",T);
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f", filmTE.betta_teor[i].n, filmTE.betta_teor[i].val, bettaexp_TE[i]); 
+		*log << T;
 	}		
-	T.Format("--FilmParamsTM---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTM.n, outTM.H, outTM.epsabs, outTM.epsrel); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTM.epsabs, outTM.epsrel, outTM.fval, outTM.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTM.dt.val(), outTM.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TM.betta_teor.GetSize();i++)
+	T.Format("--FilmParamsTM---"); *log << T;
+	T.Format("n=%.10f H=%.10f nm", filmTM.n, filmTM.H); *log << T;
+	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f", filmTM.err.abs, filmTM.err.rel, filmTM.minimum_value); *log << T;
+	T.Format("dt=%.3f ms func_calls=%d", filmTM.dt.val(), filmTM.cntr.func_call); *log << T;
+	for(int i = 0; i < filmTM.betta_teor.GetSize(); i++)
 	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TM.betta_teor[i].n,in_TM.betta_teor[i].val,bettaexp_TM[i]); log->CreateEntry("*",T);
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",filmTM.betta_teor[i].n, filmTM.betta_teor[i].val, bettaexp_TM[i]); 
+		*log << T;
 	}		
 	log->Dispatch();
-
 }
 
 int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )

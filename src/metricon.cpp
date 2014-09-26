@@ -74,7 +74,7 @@ AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
 	if ((ret.status = FindTETA.Run(&params, BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12))) == GSL_SUCCESS) 
 	{
 		ret.teta = FindTETA.Roots[0]/DEGREE;
-		ret.cal = params.cal;
+		ret.cal = params.cal; ret.Npix = Npix;
 		*((SolverData*)(&ret)) = *((SolverData*)&FindTETA);
 	}
 	return ret;
@@ -128,7 +128,6 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 			}
 		}
 	}
-	func_call_cntr += params.func_call_cntr;
 	return ret;
 }
 void FilmParams::FuncParams::CleanUp()
@@ -287,7 +286,7 @@ double KneeFitFunc::FuncParams::df_dk(const double &x, const double *a, const si
 	double t0 = *c;
 	return 2*(x - a[ind_B])*a[ind_A]*t0/((1 + t0)*(1 + t0));
 }
-double KneeFitFunc::GetGetInflection( double &x, const double &level )
+double KneeFitFunc::GetInflection( double &x, const double &level )
 {
 	x = a[ind_B] + log(level/(1-level))/(2*a[ind_k]);
 	return GetXrelY(x);

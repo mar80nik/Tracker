@@ -1,13 +1,6 @@
 #include "stdafx.h"
 #include "my_gsl.h"
 
-//DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
-//{
-//	RemoveAll();
-//	SetSize(arr.GetSize());
-//	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
-//	return *this;
-//}
 void DoubleArray::operator=( const gsl_vector& vector )
 {
 	double t; RemoveAll();
@@ -121,7 +114,7 @@ int Solver1dTemplate<FuncParams>::Run (FuncParams* _params, BoundaryConditions _
 		{		
 			Roots << gsl_root_fsolver_root(s);
 		}
-		cntr.iter += iter; cntr.func_call += params->func_call_cntr; 
+		cntr.iter += iter;
 	}
 	dt=Timer1.StopStart(); params->DestroyBuffers();
 	return status;
@@ -183,12 +176,12 @@ int MultiDimMinimizerTemplate<FuncParams>::Run(FuncParams* _params, DoubleArray&
 		size = gsl_multimin_fminimizer_size (s);
 		status = gsl_multimin_test_size (size, Err.abs);
 	}
-	while (status == GSL_CONTINUE && iter < max_iter);
+	while (status == GSL_CONTINUE && cntr.iter < max_iter);
 	if (status == GSL_SUCCESS)
 	{
 		Roots.x = *(s->x); minimum_value = s->fval;
 	}		
-	cntr.func_call = params->func_call_cntr; params->DestroyBuffers();
+	params->DestroyBuffers();
 	dt = Timer1.StopStart();
 	return status;
 }
@@ -232,7 +225,7 @@ int MultiFitterTemplate<FuncParams>::Run( FuncParams* params, const DoubleArray&
 		status = gsl_multifit_fdfsolver_iterate (s);
 		status = gsl_multifit_test_delta (s->dx, s->x, Err.abs, Err.rel);
 	}
-	while (status == GSL_CONTINUE && iter < max_iter);
+	while (status == GSL_CONTINUE && cntr.iter < max_iter);
 
 	if (status == GSL_SUCCESS)
 	{

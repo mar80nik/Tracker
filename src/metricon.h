@@ -6,28 +6,28 @@
 enum Polarization {TE, TM};
 
 //////////////////////////////////////////////////////////////////////////
-struct FittingPerfomanceInfo: public PerfomanceInfoMk1
-{	
-protected:
-	int p;
-public:
-	double *a,*da;
-	double chisq_dof, leftmostX, rightmostX, dx;
-	size_t n;
-
-	FittingPerfomanceInfo(int p);
-	virtual ~FittingPerfomanceInfo();
-	void GetSolverResults(gsl_multifit_fdfsolver *s);	
-	void operator= (const FittingPerfomanceInfo& t);
-};
+//struct FittingPerfomanceInfo: public PerfomanceInfoMk1
+//{	
+//protected:
+//	int p;
+//public:
+//	double *a,*da;
+//	double chisq_dof, leftmostX, rightmostX, dx;
+//	size_t n;
+//
+//	FittingPerfomanceInfo(int p);
+//	virtual ~FittingPerfomanceInfo();
+//	void GetSolverResults(gsl_multifit_fdfsolver *s);	
+//	void operator= (const FittingPerfomanceInfo& t);
+//};
 //////////////////////////////////////////////////////////////////////////
 struct AngleFromCalibration: public SolverData
 { 
-	int status; double teta; DoubleArray cal; 
-	AngleFromCalibration() {teta = 0; status = GSL_FAILURE;}
+	int status; double teta, Npix; DoubleArray cal; 
+	AngleFromCalibration() {teta = Npix = 0; status = GSL_FAILURE;}
 	AngleFromCalibration& operator=(const AngleFromCalibration& ref) 
 	{
-		status = ref.status; teta = ref.teta; cal = ref.cal;
+		status = ref.status; teta = ref.teta; cal = ref.cal; Npix = ref.Npix;
 		return (*this);
 	}
 };
@@ -164,7 +164,7 @@ public:
 	double n, H, m, minimum_value;
 	TypeArray<betta_info> betta_teor;
 
-	FilmParams(double _n = 0, double _H = 0): n(_n), H(_H), SolverData() {minimum_value = 0; m = 0;}
+	FilmParams(double _n = 0, double _H = 0, double _m = 0): n(_n), H(_H), m(_m), SolverData() {minimum_value = 0; m = 0;}
 	int Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &bettaexp, 
 					FilmParams initX = FilmParams(), FilmParams initdX = FilmParams(1e-4, 1e-1));
 };
@@ -236,7 +236,7 @@ protected:
 	};
 	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);
 public:
-	double GetGetInflection(double &x, const double &level);	
+	double GetInflection(double &x, const double &level);	
 	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);
 };
 //////////////////////////////////////////////////////////////////////////

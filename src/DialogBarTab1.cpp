@@ -462,8 +462,7 @@ int AnalyzeString(CString &str, double *arr, int max_arr)
 	while( (last=str.Find(',',first)) >=0 && n<MAX_VALUES) 
 	{
 		val_str=str.Mid(first,last-first); arr[n++]=atof(val_str);
-		first=last+1;
-		
+		first=last+1;		
 	}
 	val_str=str.Mid(first,str.GetLength()-first); if(n<MAX_VALUES) arr[n++]=atof(val_str);
 	return n;
@@ -565,8 +564,8 @@ LRESULT DialogBarTab1::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 
 void DialogBarTab1::OnBnClickedKneeTest()
 {
-	CString str; UpdateData(); TPointVsErrorSeries *graph; 
-	LogMessage *log=new LogMessage(); size_t i = 0;
+	CString str; UpdateData(); TPointVsErrorSeries *graph; KneeFitFunc fiting;  DoubleArray init;
+	LogMessage *log=new LogMessage(); size_t i = 0; SimplePoint pnt;
 
 	PointVsErrorArray buf;		
 	void *x; TChart *chart=(TChart *)Parent;
@@ -580,43 +579,48 @@ void DialogBarTab1::OnBnClickedKneeTest()
 			int N=buf.GetSize(), n1=GetArrayIndex(buf.x,Xmin), n2=GetArrayIndex(buf.x,Xmax);
 			if(n1<0 || n2>=N)
 			{
-				str.Format("No valid points found %d+/-%d",X0,dX); log->CreateEntry("ERR",str,LogMessage::high_pr);	
-				log->Dispatch(); 
-				return;
+				str.Format("ERR: No valid points found %d+/-%d",X0,dX); *log << str;	
+				log->SetPriority(lmprHIGH); log->Dispatch(); return;
 			}				
 			buf.RemoveAll(); graph->GetValues(buf,n1,n2);					
 		}			
 		else
 		{
-			str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
-			log->Dispatch(); return;
+			str.Format("ERR: No series matching criteria (ACTIVE) found"); *log << str;	
+			log->SetPriority(lmprHIGH); log->Dispatch(); return;
 		}
 	}
 	else return;
-
-	/*Fit_KneeParams init(1,0.1,0.1,.1), out;
-	MultiFitterFuncParams params(buf.x,buf.y,buf.dy);
-	Fit_StepFunc(params, init,  out);*/
-
-	/*str.Format("**********************************"); log->CreateEntry(CString('*'),str);
-	str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
-	str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
-	str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
-	for(i=0;i<out.GetParamsNum();i++)
+	
+	init << 1 << 1 << 1 << 1; fiting.CalculateFrom(buf.x, buf.y, buf.dy, init);
+	
+	str.Format("**********************************"); *log << str;
+	str.Format("status = %s", gsl_strerror (fiting.status)); *log << str;
+	if (fiting.status != GSL_SUCCESS) log->SetPriority(lmprHIGH);
+	str.Format("----------------------------------"); *log << str;
+	
+	for(int i = 0; i < fiting.a.GetSize(); i++)
 	{
-		str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
+		str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
 	}
-	SimplePoint Top=out.GetTop(level);
-	str.Format("xmin = %g ymin = %g", Top.x,Top.y); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
-	str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
-	str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
-	str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);
-
+	pnt.y = fiting.GetInflection(pnt.x, level);
+	str.Format("xmin = %g ymin = %g", pnt.x, pnt.y); *log << str;
+	str.Format("time = %g ms", fiting.dt.val()); *log << str;
+	str.Format("func_cals = %d", fiting.cntr.func_call); *log << str;
+	str.Format("iter_num = %d", fiting.cntr.iter); *log << str;
+	
 	TSimplePointSeries* t1=NULL; 
 	if((x=chart->Series.GainAcsess(WRITE))!=NULL)
 	{
 		SeriesProtector guard(x); TSeriesArray& series(guard); str.Format("PolyFit%d",PolinomOrder);
+		if( (t1=new TSimplePointSeries("FinalMins"))!=0)	
+		{
+			series.Add(t1); t1->AssignColors(ColorsStyle(clWHITE,clWHITE));
+			t1->_LineStyle::Set(NO_LINE); t1->_SymbolStyle::Set(VERT_LINE);
+			t1->_SymbolStyle::dy=10;
+			t1->SetVisible(true); 
+			t1->AddXY(pnt);
+		}
 		if((t1=new TSimplePointSeries(str))!=0)	
 		{
 			series.Add(t1); 
@@ -625,25 +629,14 @@ void DialogBarTab1::OnBnClickedKneeTest()
 			t1->SetVisible(true); 
 
 			t1->ParentUpdate(UPD_OFF);
-			double x_min,x_max,dx,t;
-			t=x_min=out.leftmostX; x_max=out.rightmostX; dx=fabs(x_max-x_min)/out.n;
-			for(i=0;i<out.n;i++) 
+
+			for(int i = 0; i < buf.x.GetSize(); i++) 
 			{
-				t1->AddXY(out.GetXabsY(t));
-				t+=dx;
+				pnt.x = i; pnt.y = fiting.GetXrelY(pnt.x); t1->AddXY(pnt);
 			}
 			t1->ParentUpdate(UPD_ON);
 		}
-
-		if( (t1=new TSimplePointSeries("FinalMins"))!=0)	
-		{
-			series.Add(t1); t1->AssignColors(ColorsStyle(clWHITE,clWHITE));
-			t1->_LineStyle::Set(NO_LINE); t1->_SymbolStyle::Set(VERT_LINE);
-			t1->_SymbolStyle::dy=10;
-			t1->SetVisible(true); 
-			t1->AddXY(Top);
-		}
 	}
-	chart->PostMessage(UM_CHART_SHOWALL);*/	
+	chart->PostMessage(UM_CHART_SHOWALL);
 	log->Dispatch();
 }

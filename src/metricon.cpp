@@ -40,7 +40,7 @@ int CalibrationParams::CalculateFrom(	DoubleArray& Nexp, DoubleArray& teta,
 										double n_p, double n_i, double n_s, double alfa, double lambda)
 {
 	Calculator::FuncParams params(Nexp, teta, n_p, n_i, n_s, alfa, lambda);
-	Solver1dTemplate<Calculator::FuncParams> FindFI(SINGLE_ROOT);
+	Solver1dTemplate<CalibrationParams::Calculator::FuncParams> FindFI(SINGLE_ROOT);
 
 	if( FindFI.Run(&params, BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12)) == GSL_SUCCESS) 
 	{
@@ -103,7 +103,7 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 	DoubleArray cal = bettaexp[0].cal; 
 	double k = 2*M_PI/cal[CalibrationParams::ind_lambda];
 	double n_i = cal[CalibrationParams::ind_n_i], n_s = cal[CalibrationParams::ind_n_s];
-	Solver1dTemplate<DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
+	Solver1dTemplate<FilmParams::DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
 	FilmParams::DispEqSolver::FuncParams params(pol, n_i, film[index_n], n_s, k*film[index_H]);
 
 	if ((status = FindBettas.Run(&params, BoundaryConditions(n_s, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 

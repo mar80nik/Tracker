@@ -44,7 +44,7 @@ public:
 class DoubleArray: public TypeArray<double>
 {
 public:
-	operator gsl_vector*();
+	gsl_vector* CreateGSLReplica();
 	void operator= (const gsl_vector& vector);
 	virtual void Serialize(CArchive& ar);
 };
@@ -146,27 +146,88 @@ class Solver1dTemplate: public SolverData
 //************************************************//	
 	static double func(double x, void * data)
 	{
-		Solver1dTemplate<FuncParams>* solver = (Solver1dTemplate<FuncParams>*)data;
-		solver->cntr.func_call++;
-		return solver->params->func(x);
+		Solver1dTemplate<FuncParams> *solver = (Solver1dTemplate<FuncParams>*)data; FuncParams *params = solver->params;
+		solver->cntr.func_call++;		
+		return (params->*(params->funcCB))(x);
 	};
 	typedef CArray<BoundaryConditions> BoundaryConditionsArray;
 //************************************************//
 private:
 	gsl_root_fsolver *s;
 	const gsl_root_fsolver_type *fsolver_type;
-	gsl_function F; int iter;
+	gsl_function F; size_t iter;
 	SolverRegime rgm; int subrgns_max;	
 	BoundaryConditionsArray SubRgns;
 	FuncParams* params;
 public:	
 	DoubleArray Roots;	
 public:
-	Solver1dTemplate(SolverRegime _rgm, int _max_iter=100);
-	virtual int Run(FuncParams* params, BoundaryConditions X, SolverErrors Err);
-	virtual void CleanUp();
+	Solver1dTemplate(const SolverRegime _rgm, const int _max_iter=100):
+		SolverData(_max_iter), rgm(_rgm)
+	{ 
+		fsolver_type=gsl_root_fsolver_brent; s = NULL; 		
+		F.function = func; F.params = this; 
+		subrgns_max = 50;
+	}
+		virtual int Run(FuncParams *_params, const BoundaryConditions &_X, const SolverErrors &Err)
+	{
+		MyTimer Timer1; params = _params; ASSERT(params); 
+		Timer1.Start(); CleanUp(); 
+		params->PrepareBuffers(); FindSubRgns(_X, SubRgns); 
+		s = gsl_root_fsolver_alloc (fsolver_type);
+
+		for(int i = 0; i < SubRgns.GetSize(); i++)
+		{
+			BoundaryConditions& X = SubRgns[i]; iter = 0;
+			gsl_root_fsolver_set (s, &F, X.min, X.max);
+			do
+			{
+				iter++;
+				status = gsl_root_fsolver_iterate (s);
+				X.min = gsl_root_fsolver_x_lower (s); X.max = gsl_root_fsolver_x_upper (s);
+				status = gsl_root_test_interval (X.min, X.max, Err.abs, Err.rel);
+			}
+			while (status == GSL_CONTINUE && iter < max_iter);	
+
+			if( status == GSL_SUCCESS) 
+			{		
+				Roots << gsl_root_fsolver_root(s);
+			}
+			cntr.iter += iter;
+		}
+		dt=Timer1.StopStart(); params->DestroyBuffers();
+		return status;
+	}
+	virtual void CleanUp()
+	{
+		SolverData::CleanUp();
+		if (s != NULL) { gsl_root_fsolver_free(s); s = NULL; }
+		Roots.RemoveAll(); params->CleanUp(); SubRgns.RemoveAll();	
+	}
 protected:
-	int FindSubRgns(BoundaryConditions X, BoundaryConditionsArray& SubRgns);
+	int FindSubRgns(const BoundaryConditions &X, BoundaryConditionsArray& SubRgns)
+	{
+		if (rgm == SINGLE_ROOT)
+		{
+			SubRgns.Add(X);
+		}
+		else
+		{
+			double x, dx = (X.max - X.min)/(subrgns_max - 1); 
+			BoundaryConditions y(func(X.min, F.params), 0);
+
+			for(int i = 1; i < subrgns_max; i++)
+			{
+				x = X.min + i*dx; y.max = func(x, F.params);
+				if ((y.min < 0 && y.max > 0) || (y.min > 0 && y.max < 0))
+				{
+					SubRgns.Add(BoundaryConditions(x - dx, x));
+				}
+				y.min = y.max;
+			}
+		}
+		return GSL_SUCCESS;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -187,14 +248,51 @@ private:
 	gsl_vector *X, *dX;
 	gsl_multimin_fminimizer *s;	
 	const gsl_multimin_fminimizer_type *fminimizer_type;	
-	gsl_multimin_function F;
+	gsl_multimin_function F; size_t iter;
 	FuncParams* params;
 public:
 	DoubleArray Roots; double minimum_value;
 //************************************************//
-	MultiDimMinimizerTemplate(int _max_iter=100);
-	int Run(FuncParams* params, DoubleArray& intiX, DoubleArray& initdX, SolverErrors Err);
-	virtual void CleanUp();
+	MultiDimMinimizerTemplate(const int _max_iter=100): SolverData(_max_iter)
+	{
+		fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
+		s = NULL; X = dX = NULL; 
+		F.f = func; F.params = this;
+	}
+	int Run(FuncParams* _params, DoubleArray &initX, DoubleArray &initdX, const SolverErrors &Err)
+	{
+		MyTimer Timer1; double size; 
+		X = initX.CreateGSLReplica(); dX = initdX.CreateGSLReplica(); 
+		F.n = initX.GetSize(); params = _params; ASSERT(params);
+		Timer1.Start();
+		CleanUp(); params->PrepareBuffers();
+		s = gsl_multimin_fminimizer_alloc (fminimizer_type, F.n);
+		gsl_multimin_fminimizer_set (s, &F, X, dX); iter = 0;
+		do
+		{
+			cntr.iter++;
+			status = gsl_multimin_fminimizer_iterate(s);
+			if (status) break;
+			size = gsl_multimin_fminimizer_size (s);
+			status = gsl_multimin_test_size (size, Err.abs);
+		}
+		while (status == GSL_CONTINUE && cntr.iter < max_iter);
+		if (status == GSL_SUCCESS)
+		{
+			Roots = *(s->x); minimum_value = s->fval;
+		}		
+		params->DestroyBuffers();
+		dt = Timer1.StopStart();
+		return status;
+	}
+	virtual void CleanUp()
+	{
+		SolverData::CleanUp();
+		if (s != NULL)		{gsl_multimin_fminimizer_free (s); s = NULL;}
+		if (X != NULL)		{gsl_vector_free(X); X = NULL;}
+		if (dX != NULL)	{gsl_vector_free(dX); dX = NULL;}
+		Roots.RemoveAll(); params->CleanUp();	
+	}
 };
 //////////////////////////////////////////////////////////////////////////
 typedef double (*pFunc)(const double &x, const double *a, const size_t &p);
@@ -260,14 +358,54 @@ public:
 	DoubleArray a, da;
 
 public:
-	MultiFitterTemplate(int _max_iter = 100): SolverData(_max_iter)
+	MultiFitterTemplate(const int _max_iter = 100): SolverData(_max_iter)
 	{
 		multifit_fdfsolver_type=gsl_multifit_fdfsolver_lmsder; s = NULL; initX = NULL;
 		F.f = f; F.df = df; F.fdf = fdf; F.params = this; 		
 	}
 	virtual ~MultiFitterTemplate() {CleanUp();}
-	virtual void CleanUp();
-	int Run(FuncParams* params, const DoubleArray& init_a, const SolverErrors Err);
+	virtual void CleanUp()
+	{
+		SolverData::CleanUp();
+		if (s != NULL) { gsl_multifit_fdfsolver_free (s); s = NULL; }
+		if (initX != NULL) { gsl_vector_free(initX); initX = NULL; }
+		a.RemoveAll(); da.RemoveAll();
+	}
+	int Run(FuncParams* params, DoubleArray& init_a, const SolverErrors &Err)
+	{
+		MyTimer Timer1; Timer1.Start();
+		CleanUp(); params->PrepareBuffers();
+
+		F.p = p = init_a.GetSize(); F.n = n = params->GetPointsNum(); 
+		initX = init_a.CreateGSLReplica();
+		s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
+		gsl_multifit_fdfsolver_set (s, &F, initX);
+		do
+		{
+			cntr.iter++;
+			status = gsl_multifit_fdfsolver_iterate (s);
+			status = gsl_multifit_test_delta (s->dx, s->x, Err.abs, Err.rel);
+		}
+		while (status == GSL_CONTINUE && cntr.iter < max_iter);
+
+		if (status == GSL_SUCCESS)
+		{
+			gsl_matrix *covar = gsl_matrix_alloc(p, p);
+			if (covar != NULL)
+			{
+				gsl_multifit_covar(s->J, 0.0, covar);
+				double c = GSL_MAX_DBL(1, gsl_blas_dnrm2(s->f) / sqrt((double)(n - p))); 
+				a = *(s->x); da = (gsl_matrix_diagonal (covar)).vector;
+				for (int i = 0; i < da.GetSize(); i++)
+				{
+					da[i] = fabs(c*sqrt(da[i]));
+				}
+				gsl_matrix_free(covar);
+			}
+		}	
+		dt=Timer1.StopStart(); params->DestroyBuffers();
+		return status;
+	}
 };
 //////////////////////////////////////////////////////////////////////////
 

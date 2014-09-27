@@ -43,18 +43,21 @@ struct CalibrationParams: public SolverData
 		protected:
 			double *A, *B; DoubleArray &N, &teta; double n_p, n_i, n_s, alfa, lambda;
 			int size;
-		public:			
+		public:	
+			double (FuncParams::*funcCB)(double x);
 			double func (double x); //This is callback function for GSL solver
+
 			FuncParams(	DoubleArray& _N, DoubleArray& _teta, 
 						double _n_p, double _n_i, double _n_s, double _alfa, double _lambda):
 							N(_N), teta(_teta), n_p(_n_p), n_i(_n_i), n_s(_n_s), alfa(_alfa), lambda(_lambda)
 			{
-				A = B = NULL; size = N.GetSize();
+				A = B = NULL; size = N.GetSize(); 
+				funcCB = &FuncParams::func;
 			}
 			FuncParams(FuncParams& p):
-				N(p.N), teta(p.teta), n_p(p.n_p), n_s(p.n_s), alfa(p.alfa) 
+				N(p.N), teta(p.teta), n_p(p.n_p), n_s(p.n_s), alfa(p.alfa), funcCB(p.funcCB)
 			{
-				A = B = NULL; size = p.size;
+				A = B = NULL; size = p.size; 
 			}
 			virtual void PrepareBuffers() 
 			{ 
@@ -80,10 +83,14 @@ struct CalibrationParams: public SolverData
 		struct FuncParams: public BaseForFuncParams
 		{		
 			double Npix; DoubleArray& cal;
+			double (FuncParams::*funcCB)(double x);
 
-			double func (double x); //This is callback function for GSL solver
-			FuncParams(double _Npix, DoubleArray& _cal): Npix(_Npix), cal(_cal) {}
-			FuncParams(FuncParams& _p): Npix(_p.Npix), cal(_p.cal) {}
+			double func(double x); //This is callback function for GSL solver
+			FuncParams(double _Npix, DoubleArray& _cal): Npix(_Npix), cal(_cal) 
+			{ 
+				funcCB = &FuncParams::func;
+			}
+			FuncParams(FuncParams& p): Npix(p.Npix), cal(p.cal), funcCB(p.funcCB) { }
 		};	
 	};
 
@@ -124,14 +131,15 @@ public:
 			double n_i, n_f, n_s, kHf;
 		public:
 			//This is callback function for GSL solver
-			double (DispEqSolver::FuncParams::*func) (double x); double funcTE (double x); double funcTM (double x);
+			double (FuncParams::*funcCB) (double x); 
+			double funcTE (double x); double funcTM (double x);
 			void SetFunc(Polarization pol)
 			{
 				switch (pol)
 				{
-				case TE: func = &DispEqSolver::FuncParams::funcTE; break;
-				case TM: func = &DispEqSolver::FuncParams::funcTM; break;
-				default: func = NULL;
+				case TE: funcCB = &FuncParams::funcTE; break;
+				case TM: funcCB = &FuncParams::funcTM; break;
+				default: funcCB = NULL;
 				}
 			}
 			FuncParams(Polarization pol, double _n1, double _n2, double _n3, double _kHf):
@@ -140,7 +148,7 @@ public:
 				SetFunc(pol);
 			}
 			FuncParams(FuncParams& params):
-				n_i(params.n_i), n_f(params.n_f), n_s(params.n_s), kHf(params.kHf), func(params.func)
+				n_i(params.n_i), n_f(params.n_f), n_s(params.n_s), kHf(params.kHf), funcCB(params.funcCB)
 			{}
 		};	
 	};

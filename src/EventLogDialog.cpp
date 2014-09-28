@@ -34,13 +34,6 @@ END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // EventLogDialog message handlers
-/*
-void EventLogDialog::OnOK() 
-{
-
-	CDialog::OnOK();
-}
-*/
 void EventLogDialog::OnClearBtn() 
 {	
 	m_ListBox1.ResetContent();
@@ -48,7 +41,12 @@ void EventLogDialog::OnClearBtn()
 
 void EventLogDialog::Add(LogMessage& Msg)
 {	
-	for(int i=0;i<Msg.Msgs.GetSize();i++) m_ListBox1.AddString(Msg.Msgs[i]); 
+	COLORREF col = 0;
+	if(Msg.priority==LogMessage::high_pr) col = RGB(255,0,0);
+	for(int i=0;i<Msg.Msgs.GetSize();i++) 
+	{
+		m_ListBox1.AddString(Msg.Msgs[i], col); 
+	}
 	if(Msg.priority==LogMessage::high_pr) 
 		ShowWindow(SW_SHOW);	
 }
@@ -88,12 +86,7 @@ void EventLogDialog::OnSaveButton()
 		f.Close();
 	}
 }
-/*
-void EventLogDialog::OnCancel()
-{
-	CDialog::OnCancel();
-}
-*/
+
 void EventLogDialog::OnContextMenu(CWnd* pWnd, CPoint point)
 {
 	CMenu* menu = menu1.GetSubMenu(0);

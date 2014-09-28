@@ -56,6 +56,14 @@ CKSVU3App theApp;
 /////////////////////////////////////////////////////////////////////////////
 // CKSVU3App initialization
 
+static void my_handler (const char * reason, const char * file, int line, int gsl_errno)
+{
+	CString T; LogMessage *log=new LogMessage();	
+	T.Format("%d:%s %s(%d)", gsl_errno, reason, file, line); 
+	log->CreateEntry("ERR", T, LogMessage::high_pr);
+	log->Dispatch();
+}
+
 BOOL CKSVU3App::InitInstance()
 {
 	AfxEnableControlContainer(); //myThread.Config.Terminate=None;
@@ -94,6 +102,8 @@ BOOL CKSVU3App::InitInstance()
 	if(cmdInfo.m_strFileName=="") MainWnd->TabCtrl1.ChangeTab(1);	
 	else MainWnd->TabCtrl1.ChangeTab(0);	
 	CString ProgPortName;
+
+	gsl_error_handler_t * old_handler = gsl_set_error_handler (&my_handler);
 
 	return TRUE;
 }

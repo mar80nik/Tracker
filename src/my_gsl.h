@@ -172,7 +172,7 @@ public:
 	virtual int Run(FuncParams *_params, const BoundaryConditions &_X, const SolverErrors &Err)
 	{
 		MyTimer Timer1; Timer1.Start(); CleanUp(); 
-		params = _params; ASSERT(params); err = Err; 		 
+		params = _params; ASSERT(params); err = Err; size_t iter;
 		params->PrepareBuffers(); FindSubRgns(_X, SubRgns); 
 		s = gsl_root_fsolver_alloc (fsolver_type);
 
@@ -252,7 +252,7 @@ private:
 	gsl_vector *X, *dX;
 	gsl_multimin_fminimizer *s;	
 	const gsl_multimin_fminimizer_type *fminimizer_type;	
-	gsl_multimin_function F; size_t iter;
+	gsl_multimin_function F; 
 	FuncParams* params;
 public:
 	DoubleArray Roots; double minimum_value;
@@ -269,7 +269,7 @@ public:
 		X = initX.CreateGSLReplica(); dX = initdX.CreateGSLReplica(); F.n = initX.GetSize(); 
 		params = _params; ASSERT(params); params->PrepareBuffers(); err = Err;
 		s = gsl_multimin_fminimizer_alloc (fminimizer_type, F.n);
-		gsl_multimin_fminimizer_set (s, &F, X, dX); iter = 0;
+		gsl_multimin_fminimizer_set (s, &F, X, dX); 
 		do
 		{
 			cntr.iter++;
@@ -279,10 +279,8 @@ public:
 			status = gsl_multimin_test_size (size, err.abs);
 		}
 		while (status == GSL_CONTINUE && cntr.iter < max_iter);
-		if (status == GSL_SUCCESS)
-		{
-			Roots = *(s->x); minimum_value = s->fval;
-		}		
+
+		Roots = *(s->x); minimum_value = s->fval;
 		params->DestroyBuffers();
 		dt = Timer1.StopStart();
 		return status;

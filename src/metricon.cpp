@@ -150,7 +150,6 @@ int FilmParams::Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &b
 		break;
 	}
 	
-	if (pol == TM) { initX.n = 1.8; initX.H = 1250; }
 	X0 << initX.n << initX.H; dX0 << initdX.n << initdX.H;
 
 	if (FindFilmParams.Run(&params, X0, dX0, SolverErrors(1e-6)) == GSL_SUCCESS) 

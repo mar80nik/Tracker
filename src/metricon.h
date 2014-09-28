@@ -99,7 +99,7 @@ public:
 	DoubleArray val;
 	DoubleArray Nexp, teta;
 	
-	CalibrationParams(): SolverData()  {val.SetSize(ind_max);}
+	CalibrationParams(): SolverData()  {CleanUp();}
 	virtual void Serialize(CArchive& ar);
 	CalibrationParams& operator=(CalibrationParams& t);
 
@@ -108,6 +108,10 @@ public:
 	AngleFromCalibration ConvertPixelToAngle(double Npix);
 	double ConertAngleToBeta(double teta) { return val[ind_n_p]*sin(teta); }
 	static double Get_k(const DoubleArray& cal_val) {return 2*M_PI/cal_val[ind_lambda];}
+	void CleanUp()
+	{
+		val.RemoveAll(); Nexp.RemoveAll(); teta.RemoveAll();	
+	}
 };
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -223,10 +227,11 @@ class KneeFitFunc: public BaseForFitFunc
 //f = C + (A/(1 + exp(-2*k*(x - B))));
 public:
 	enum {ind_A, ind_B, ind_C, ind_k, ind_max};
-protected:
-	double buf;
+protected:	
 	struct FuncParams: public BaseForMultiFitterFuncParams
 	{
+		double buf;
+		
 		static double func(const double &x, const double *a, const size_t &p);	
 
 		static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
@@ -235,14 +240,15 @@ protected:
 		static double df_dk(const double &x, const double *a, const size_t &p, double *c);	
 
 		FuncParams( const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma ) : 
-		BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
+			BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
 		{
 			pFunction = FuncParams::func;
 			pDerivatives[ind_A] = df_dA; pDerivatives[ind_B] = df_dB; 
 			pDerivatives[ind_C] = df_dC; pDerivatives[ind_k] = df_dk;
 		}
+		virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);	
 	};
-	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);
+	
 public:
 	double GetInflection(double &x, const double &level);	
 	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);

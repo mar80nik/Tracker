@@ -13,7 +13,7 @@ void DoubleArray::operator=( const gsl_vector& vector )
 gsl_vector* DoubleArray::CreateGSLReplica()
 {
 	gsl_vector* ret=NULL; double* arr = GetData(); int size = GetSize();
-	ret = gsl_vector_alloc (size); ASSERT(0);
+	ret = gsl_vector_alloc (size); ASSERT(ret);
 
 	for (int i = 0; i < size; i++)  
 		gsl_vector_set (ret, i, arr[i]);
@@ -73,7 +73,7 @@ BaseForMultiFitterFuncParams::~BaseForMultiFitterFuncParams()
 //////////////////////////////////////////////////////////////////////////
 void BaseForFitFunc::InitFrom( const BaseForMultiFitterFuncParams &params )
 {
-	leftmostX = params.leftmostX; rightmostX = params.rightmostX; dx = params.dx;
+	leftmostX = params.leftmostX; rightmostX = params.rightmostX; dx = params.dx; pFunction = params.pFunction;
 }
 void BaseForFitFunc::InitFrom( const SolverData &data ) { *((SolverData*)this) = *((SolverData*)&data); }
 double BaseForFitFunc::GetXabsY( const double &x ) { return pFunction((x - leftmostX)/dx, a, a.GetSize()); }

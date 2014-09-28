@@ -14,9 +14,12 @@ CalcTEDialog::CalcTEDialog(CWnd* pParent /*=NULL*/)
 	, nf(0)
 	, hf(0)
 {
-	for(int i=0;i<modes_num;i++) { N[i]=0; }
-	Series=NULL; IsTM=FALSE; lambda = 632.8; n3 = 1.45705;
-//	N[0]=3128.82; N[1]=2714.61; N[2]=2149; N[3]=1426.4;
+	for(int i=0;i<modes_num;i++) { N[i] = 0; Q[i] = 0;}
+	Series=NULL; IsTM=FALSE; 
+#if defined DEBUG
+	N[0]=3077; N[1]=2594; N[2]=1951; N[3]=1161;
+#endif
+	lambda = 632.8; n3 = 1.45705;
 }
 
 CalcTEDialog::~CalcTEDialog()

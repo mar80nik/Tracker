@@ -13,7 +13,9 @@ CalibratorDialog::CalibratorDialog(CWnd* pParent /*=NULL*/)
 	N0 = L = d0 = fi0 = alfa = n_p = 0.;
 	Series=NULL; 
 #if defined DEBUG
-	Q[0]=63.37; Q[1]=60.02; Q[2]=55.13; Q[3]=48.98;
+	N[0]=3077; N[1]=2594; N[2]=1951; N[3]=1161;
+	Q[0]=64.02; Q[1]=60.43; Q[2]=55.24; Q[3]=48.62;
+	alfa = 51; n_p = 2.15675;
 #endif
 }
 
@@ -161,7 +163,7 @@ void CalibratorDialog::OnBnClickedCalculateCal()
 	
 	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
 
-	cal.CalculateFrom(Nexp, teta, n_p, 1, 1.45705, alfa, 632.8);
+	cal.CalculateFrom(Nexp, teta, n_p, 1, 1.45705, alfa*DEGREE, 632.8);
 
 	fi0 = cal.val[CalibrationParams::ind_fi0]/DEGREE;
 	N0 = cal.val[CalibrationParams::ind_N0]; L = cal.val[CalibrationParams::ind_L]; d0 = cal.val[CalibrationParams::ind_d0]; 

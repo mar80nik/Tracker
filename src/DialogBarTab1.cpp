@@ -55,8 +55,8 @@ DialogBarTab1::DialogBarTab1(CWnd* pParent /*=NULL*/)
 	, dX(20)
 	, PolinomOrder(2)
 	, minimum_widht_2(20)
-	, Xmin(860)
-	, Xmax(3000)
+	, Xmin(380)
+	, Xmax(790)
 	, level(0.95)
 {
 	//Message1.body.Object="MainControl";
@@ -117,8 +117,7 @@ void DialogBarTab1::Serialize(CArchive& ar)
 
 void DialogBarTab1::OnBnClicked_Fit()
 {		
-		CString str; UpdateData(); TPointVsErrorSeries *graph; SimplePoint pnt;
-		
+		CString str; UpdateData(); TPointVsErrorSeries *graph; SimplePoint pnt;		
 		PointVsErrorArray buf;		
 		LogMessage *log=new LogMessage(); 
 		void *x; TChart *chart=(TChart *)Parent;
@@ -150,41 +149,45 @@ void DialogBarTab1::OnBnClicked_Fit()
 		init << 1 << 1e-1 << 1e-2;		
 		fiting.CalculateFrom(buf.x, buf.y, buf.dy, init);
 		
-		str.Format("**********************************"); *log << str;
+		str.Format("************ ParabolaFit ******************"); *log << str;
 		str.Format("status = %s", gsl_strerror (fiting.status)); *log << str;
 		str.Format("----------------------------------"); *log << str;
-		for(int i = 0; i < fiting.a.GetSize(); i++)
+		if (fiting.status == GSL_SUCCESS)
 		{
-			str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
+			for(int i = 0; i < fiting.a.GetSize(); i++)
+			{
+				str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
+			}
+			pnt.y = fiting.GetTop(pnt.x); str.Format("xmin = %g ymin = %g", pnt.x, pnt.y);
 		}
-		pnt.y = fiting.GetTop(pnt.x); str.Format("xmin = %g ymin = %g", pnt.x, pnt.y);
+		else
+		{
+			log->SetPriority(lmprHIGH);
+		}
 		str.Format("time = %g ms", fiting.dt.val()); *log << str;
 		str.Format("func_cals = %d", fiting.cntr.func_call); *log << str;
 		str.Format("iter_num = %d", fiting.cntr.iter); *log << str;
 		
-		if(fiting.status==GSL_SUCCESS)
+		if(fiting.status == GSL_SUCCESS && (x=chart->Series.GainAcsess(WRITE))!=NULL)
 		{
-			TSimplePointSeries* t1 = NULL; log->SetPriority(lmprHIGH);
-			if((x=chart->Series.GainAcsess(WRITE))!=NULL)
+			SeriesProtector guard(x); TSeriesArray& series(guard); str.Format("PolyFit%d",PolinomOrder);
+			TSimplePointSeries* t1 = NULL; 
+			if((t1=new TSimplePointSeries(str))!=0)	
 			{
-				SeriesProtector guard(x); TSeriesArray& series(guard); str.Format("PolyFit%d",PolinomOrder);
-				if((t1=new TSimplePointSeries(str))!=0)	
-				{
-					series.Add(t1); 
-					t1->_SymbolStyle::Set(NO_SYMBOL);
-					t1->AssignColors(ColorsStyle(clRED,series.GetRandomColor()));
-					t1->SetVisible(true); 
+				series.Add(t1); 
+				t1->_SymbolStyle::Set(NO_SYMBOL);
+				t1->AssignColors(ColorsStyle(clRED,series.GetRandomColor()));
+				t1->SetVisible(true); 
 
-					t1->ParentUpdate(UPD_OFF);
-					for(int i = 0; i < buf.x.GetSize(); i++) 
-					{
-						pnt.x = i; pnt.y = fiting.GetXrelY(pnt.x); t1->AddXY(pnt);
-					}
-					t1->ParentUpdate(UPD_ON);
-				}	
-			}
-			chart->PostMessage(UM_CHART_SHOWALL);		
+				t1->ParentUpdate(UPD_OFF);
+				for(int i = 0; i < buf.x.GetSize(); i++) 
+				{
+					pnt.x = i; pnt.y = fiting.GetXrelY(pnt.x); t1->AddXY(pnt);
+				}
+				t1->ParentUpdate(UPD_ON);
+			}	
 		}
+		chart->PostMessage(UM_CHART_SHOWALL);		
 		log->Dispatch();
 }
 
@@ -317,7 +320,8 @@ int GetArrayIndex(DoubleArray& arr, double x )
 MinimumsFitFilterParams* MinimumsFitFilterFunc(PointVsErrorArray &data,SimplePointArray &mins, int dn)
 {
 	MinimumsFitFilterParams* ret = new MinimumsFitFilterParams(); 
-	MyTimer timer1; int i, dn_max=80, index; DoubleArray init; ParabolaFitFunc fiting;  init << 1 << 1e-1 << 1e-2;
+	MyTimer timer1; int i, dn_max=80, index; DoubleArray init; init << 1 << 1e-1 << 1e-2;
+	ParabolaFitFunc fiting;  
 	PointVsErrorArray buft; 
 
 	timer1.Start();
@@ -592,27 +596,30 @@ void DialogBarTab1::OnBnClickedKneeTest()
 	}
 	else return;
 	
-	init << 1 << 1 << 1 << 1; fiting.CalculateFrom(buf.x, buf.y, buf.dy, init);
+	init << 1 << 0.1 << 0.1 << 0.1; fiting.CalculateFrom(buf.x, buf.y, buf.dy, init);
 	
-	str.Format("**********************************"); *log << str;
+	str.Format("************ KneeFit **********************"); *log << str;
 	str.Format("status = %s", gsl_strerror (fiting.status)); *log << str;
 	if (fiting.status != GSL_SUCCESS) log->SetPriority(lmprHIGH);
 	str.Format("----------------------------------"); *log << str;
 	
-	for(int i = 0; i < fiting.a.GetSize(); i++)
+	if (fiting.status == GSL_SUCCESS)
 	{
-		str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
+		for(int i = 0; i < fiting.a.GetSize(); i++)
+		{
+			str.Format("x%d = %g +/- %g%%", i, fiting.a[i], 100*fiting.da[i]/fiting.a[i]); *log << str;
+		}
+		pnt.y = fiting.GetInflection(pnt.x, level);
+		str.Format("xmin = %g ymin = %g", pnt.x, pnt.y); *log << str;
 	}
-	pnt.y = fiting.GetInflection(pnt.x, level);
-	str.Format("xmin = %g ymin = %g", pnt.x, pnt.y); *log << str;
 	str.Format("time = %g ms", fiting.dt.val()); *log << str;
 	str.Format("func_cals = %d", fiting.cntr.func_call); *log << str;
 	str.Format("iter_num = %d", fiting.cntr.iter); *log << str;
-	
-	TSimplePointSeries* t1=NULL; 
-	if((x=chart->Series.GainAcsess(WRITE))!=NULL)
+		
+	if(fiting.status == GSL_SUCCESS && (x=chart->Series.GainAcsess(WRITE))!=NULL)
 	{
 		SeriesProtector guard(x); TSeriesArray& series(guard); str.Format("PolyFit%d",PolinomOrder);
+		TSimplePointSeries* t1=NULL; 
 		if( (t1=new TSimplePointSeries("FinalMins"))!=0)	
 		{
 			series.Add(t1); t1->AssignColors(ColorsStyle(clWHITE,clWHITE));
@@ -640,3 +647,4 @@ void DialogBarTab1::OnBnClickedKneeTest()
 	chart->PostMessage(UM_CHART_SHOWALL);
 	log->Dispatch();
 }
+ 

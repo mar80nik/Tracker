@@ -36,16 +36,15 @@ double CalibrationParams::Calculator::FuncParams::func( double fi)
 		((B[0]-B[3])*(A[1]-A[3]) - (B[1]-B[3])*(A[0]-A[3]));
 	return ret;
 }
-int CalibrationParams::CalculateFrom(	DoubleArray& Nexp, DoubleArray& teta, 
+int CalibrationParams::CalculateFrom(	DoubleArray& _Nexp, DoubleArray& _teta, 
 										double n_p, double n_i, double n_s, double alfa, double lambda)
 {
-	Calculator::FuncParams params(Nexp, teta, n_p, n_i, n_s, alfa, lambda);
+	Calculator::FuncParams params(_Nexp, _teta, n_p, n_i, n_s, alfa, lambda);
 	Solver1dTemplate<CalibrationParams::Calculator::FuncParams> FindFI(SINGLE_ROOT);
-
+	CleanUp();
 	if( FindFI.Run(&params, BoundaryConditions(-45*DEGREE, 45*DEGREE), SolverErrors(1e-12)) == GSL_SUCCESS) 
 	{
 		double *N = params.N, *A = params.A, *B = params.B;
-		val.RemoveAll();
 		val << params.alfa <<  params.n_p << params.n_i << params.n_s << params.lambda; 
 		Nexp = params.N; teta = params.teta;
 		val << FindFI.Roots[0]; 	
@@ -251,18 +250,18 @@ double ParabolaFitFunc::GetTop(double &x)
 int ParabolaFitFunc::CalculateFrom(	const DoubleArray& x, const DoubleArray& y, 
 									const DoubleArray& sigma, DoubleArray& init_a)
 {
-	FuncParams params(x, y, sigma); DoubleArray init;
-	MultiFitterTemplate<FuncParams> solver;
+	FuncParams params(x, y, sigma);	MultiFitterTemplate<FuncParams> solver;
 
-	if (solver.Run(&params, init_a, SolverErrors(1e-6)))
+	if (solver.Run(&params, init_a, SolverErrors(1e-6)) == GSL_SUCCESS)
 	{
-		a = solver.a; da = solver.da; 
-		InitFrom(params); InitFrom(solver);
+		da = solver.da; 		
 	}
+	a = solver.a; InitFrom(params); InitFrom(solver);
 	return solver.status;
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+//f = C + (A/(1 + exp(-2*k*(x - B))));
 double KneeFitFunc::FuncParams::func( const double &x, const double *a, const size_t &p )
 {
 	return a[ind_C] + (a[ind_A]/( 1 + exp(-2*a[ind_k]*(x - a[ind_B])) ));	
@@ -275,7 +274,7 @@ double KneeFitFunc::FuncParams::df_dA(const double &x, const double *a, const si
 double KneeFitFunc::FuncParams::df_dB(const double &x, const double *a, const size_t &p, double *c)
 {
 	double t0 = *c;
-	return -2*a[ind_A]*a[ind_k]*t0/((1 + t0)*(1 + t0));
+	return -2*a[ind_k]*a[ind_A]*t0/((1 + t0)*(1 + t0));
 }
 double KneeFitFunc::FuncParams::df_dC(const double &x, const double *a, const size_t &p, double *c)
 {
@@ -292,20 +291,19 @@ double KneeFitFunc::GetInflection( double &x, const double &level )
 	return GetXrelY(x);
 }
 int KneeFitFunc::CalculateFrom(	const DoubleArray& x, const DoubleArray& y, 
-								const DoubleArray& sigma, DoubleArray& init_a)
+	const DoubleArray& sigma, DoubleArray& init_a)
 {
-	FuncParams params(x, y, sigma); DoubleArray init;
-	MultiFitterTemplate<FuncParams> solver;
+	FuncParams params(x, y, sigma);	MultiFitterTemplate<FuncParams> solver;
 
-	if (solver.Run(&params, init_a, SolverErrors(1e-6)))
+	if (solver.Run(&params, init_a, SolverErrors(1e-6)) == GSL_SUCCESS)
 	{
-		a = solver.a; da = solver.da; 
-		InitFrom(params); InitFrom(solver);
+		da = solver.da; 		
 	}
+	a = solver.a; InitFrom(params); InitFrom(solver);
 	return solver.status;
 }
 
-double * KneeFitFunc::PrepareDerivBuf( const double &x, const double *a, const size_t &p )
+double * KneeFitFunc::FuncParams::PrepareDerivBuf( const double &x, const double *a, const size_t &p )
 {
 	buf = exp(-2*a[ind_k]*(x - a[ind_B]));
 	return &buf;

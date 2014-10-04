@@ -12,6 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <Keyword>ManagedCProj</Keyword>
+    <ProjectGuid>{AD8AD6F2-9F98-11A2-D71E-A29125711EF2}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -21,12 +22,14 @@
     <UseOfMfc>Dynamic</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
     <UseOfAtl>false</UseOfAtl>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CLRSupport>true</CLRSupport>
     <UseOfMfc>Dynamic</UseOfMfc>
+    <PlatformToolset>v110</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -41,16 +44,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\gsl-1.16\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
-    <OutDir>$(SolutionDir)exe\</OutDir>
+    <OutDir>$(SolutionDir)\..\exe\</OutDir>
+    <IntDir>..\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\gsl-1.16\lib;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)exe\</OutDir>
+    <OutDir>$(SolutionDir)\..\exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+    <IntDir>..\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -60,6 +65,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <DisableSpecificWarnings>4065;4482;4793</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -79,6 +85,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4065;4482;4793;4248</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>

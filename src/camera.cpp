@@ -14,7 +14,9 @@ void GetWH(eDcm800Size& size, int& w, int &h)
 	case eDcm800Size_640_480:   w=640; h=480; break;
 	}
 }
-
+// This is callback for the thread which runs Grabber. 
+// It makes setup then runs it and wait for control signals from user via CEvents. 
+// All the grabbing makes in callback
 UINT CaptureThread::proc(void* p)
 {
 	UINT ret=444; CString T;
@@ -28,12 +30,12 @@ UINT CaptureThread::proc(void* p)
 
 	CoInitialize(NULL);
 	hr = Grabber.Create(Src);
-	if(hr==S_OK) 
+	if (SUCCEEDED(hr)) 
 	{
 		hr = Src->Setup(&(thrd->params)); 		
 		hr = Grabber.Render(Src);	
 		hr = Grabber.Setup(&(thrd->params));		
-		if(Grabber.status==S_OK)
+		if (SUCCEEDED(Grabber.status))
 		{
 			Params.StopCapture.ResetEvent();	
 			hr=Grabber.Run();
@@ -41,19 +43,23 @@ UINT CaptureThread::proc(void* p)
 			{		
 				if ( (n=Grabber.WaitForHandles(1000))!=WAIT_TIMEOUT )
 				{ 
-					switch(n-WAIT_OBJECT_0)
+					switch (n - WAIT_OBJECT_0)
 					{
-					case 0: if(Grabber.StreamIsCOMPLETE()==S_OK) bDone=true; break;
-					case 1: bDone=true; Params.StopCapture.ResetEvent(); break;
+					case 0: if (SUCCEEDED(Grabber.StreamIsCOMPLETE())) 
+							{
+								bDone=true; 
+							}
+							break;
+					case 1: bDone = true; Params.StopCapture.ResetEvent(); break;
 					case 2: Grabber.Pause(); Params.PauseCapture.ResetEvent(); break;
 					case 3: Grabber.Run(); Params.ResumeCapture.ResetEvent(); break;
-					case 4: hr=Src->ShowFilterProperties(); Params.ShowFilterParams.ResetEvent(); break;
+					case 4: hr = Src->ShowFilterProperties(); Params.ShowFilterParams.ResetEvent(); break;
 					}	
 				}
-				if(hr!=S_OK) bDone=TRUE;
+				if (FAILED(hr)) bDone=TRUE;
 			}
 			hr=Grabber.Stop();
-			if(hr!=S_OK) { T="GRAPH RUN error"; log->CreateEntry("Err",T); }
+			if (FAILED(hr)) { T="GRAPH RUN error"; log->CreateEntry("Err",T); }
 		}
 		else { T="GRAPH SETUP error"; log->CreateEntry("Err",T); }
 	}
@@ -80,14 +86,9 @@ STDMETHODIMP FrameGrabCallback::SampleCB( double n,IMediaSample *pms )
 		BMPanvasGuard guard1(x); BMPanvas &buf(guard1); t2.Start();		
 		ret=buf.SetBitmapArray(BMPanvas::MIN_SCANLINE,BMPanvas::MAX_SCANLINE,pbuf);
 		ASSERT(ret==header.bmiHeader.biHeight);
-
-		//dt2=t2.StopStart();		
-
 		BMPanvasTAGSmk1* tags=(BMPanvasTAGSmk1*)buf.tags;
-		tags->d1=n; tags->i1=header.bmiHeader.biWidth; tags->i2=header.bmiHeader.biHeight; 
-		tags->i3=header.bmiHeader.biBitCount;
+		tags->d1=n; tags->i1=header.bmiHeader.biWidth; tags->i2=header.bmiHeader.biHeight; tags->i3=header.bmiHeader.biBitCount;
 		tags->d2=(1./dt1.val()); 
-		//tags->d3=dt2.val();
 		tags->timel=t2.StopStart();
 
 		MessageForWindow* msg=new MessageForWindow(UM_DATA_UPDATE,Params.Parent);
@@ -194,13 +195,13 @@ HRESULT DSGraphBuilder::SaveGraph( CStringW filename )
 
 HRESULT DSGraphBuilder::StreamIsCOMPLETE()
 {
-	HRESULT hr, ret=S_FALSE; DWORD n=0; long    evCode, param1, param2;
-	while ((hr = pEvent->GetEvent(&evCode, &param1, &param2, 0))==S_OK) 
-	{
-		hr = pEvent->FreeEventParams(evCode, param1, param2);
-		if(evCode==EC_COMPLETE) ret=S_OK;
+	long evCode, param1, param2;
+	while (SUCCEEDED(pEvent->GetEvent(&evCode, &param1, &param2, 0))) 
+	{		
+		if (evCode == EC_COMPLETE) return S_OK;
+		pEvent->FreeEventParams(evCode, param1, param2);
 	}
-	return ret;
+	return E_FAIL;
 }
 
 HRESULT DSGraphBuilder::Pause() {if(status==S_OK) pControl->Pause(); return status;}

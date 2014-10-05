@@ -111,7 +111,7 @@ void CMainFrame::InitChart()
 	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); Chart1.SeriesDataWnd=&SeriesList;
 
 #ifdef DEBUG
-	Img.CameraWnd.SelectCaptureSrc(CString("WebCam SCB-0340N"));
+	Img.CameraWnd.SelectCaptureSrc(CString("Logitech HD Webcam C270"));
 #else
 	Img.CameraWnd.SelectCaptureSrc(CString("ScopeTek DCM800"));
 #endif	

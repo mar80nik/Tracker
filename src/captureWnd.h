@@ -98,14 +98,26 @@ class CaptureWnd : public CWnd, public PerfomanceStaff
 {
 	friend class CaptureWndCtrlsTab;
 	DECLARE_DYNAMIC(CaptureWnd)
+public:
+	struct Accumulator
+	{
+		unsigned short *buf;
+		unsigned short n, w, h; int wbyte;
+		Accumulator(): buf(NULL) {Reset();};
+		~Accumulator() {Reset();};
+		void Reset();
+		void Create(int _w, int _h);
+		void FillAccum(BMPanvas *src);
+	};
 protected:
 	CaptureThread thrd;	
 	DSCaptureSource* Src;
-	CPen penRed,penBlue,penGreen;
+	CPen penRed, penBlue, penGreen, penWhite;
     
 	ProtectedBMPanvas Pbuf,LevelsScanBuf;
 	BMPanvas grayscaleBuf, truecolorBuf;
-	RGBQUAD pal[256];
+	RGBQUAD pal[256], palLevelsScan[256];
+	Accumulator accum;
 	CaptureRequestStack Stack;
 	CRect CameraOutWnd, LevelsScanWnd;
 public:
@@ -125,7 +137,7 @@ public:
 	LRESULT OnCaptureRequest( WPARAM wParam, LPARAM lParam );
 	void SelectCaptureSrc(CString name);
 	afx_msg void OnDestroy();
-	void ScanLevels(BMPanvas* src,BMPanvas *dest);
+	void ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWndCtrlsTab::ColorTransformModes mode);
 };
 
 

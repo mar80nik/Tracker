@@ -19,6 +19,7 @@ CaptureWnd::CaptureWnd(): thrd(444)
 	penRed.CreatePen(PS_SOLID,1,clRED);
 	penBlue.CreatePen(PS_SOLID,1,clBLUE);
 	penGreen.CreatePen(PS_SOLID,1,clGREEN);
+	penWhite.CreatePen(PS_SOLID,1,clWHITE);
 }
 
 CaptureWnd::~CaptureWnd()
@@ -29,6 +30,20 @@ CaptureWnd::~CaptureWnd()
 	}
 }
 
+void CaptureWnd::Accumulator::Reset()
+{
+	if (buf != NULL)
+	{
+		delete[] buf; buf = NULL;
+	}
+	n = 0; wbyte = 0;
+}
+
+void CaptureWnd::Accumulator::Create(int _w, int _h)
+{
+	Reset(); w = _w; h = _h; wbyte = w*sizeof(unsigned short);
+	buf = new unsigned short[w*h];
+}
 
 BEGIN_MESSAGE_MAP(CaptureWnd, CWnd)
 	ON_WM_CREATE()
@@ -134,6 +149,8 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		pParent->grayscaleBuf.CreateGrayPallete();		
 		pParent->truecolorBuf.Create(this,r.Width(),r.Height(),24);		
 
+		pParent->accum.Create(r.Width(), r.Height());
+
 		pParent->thrd.Start();	
 		BtnCapture.EnableWindow(FALSE);
 		BtnStop.EnableWindow(TRUE);
@@ -238,9 +255,12 @@ int CaptureWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if((x=LevelsScanBuf.GainAcsess(WRITE))!=NULL)
 	{
 		BMPanvasGuard guard1(x); BMPanvas &buf(guard1);
-		buf.Create(this,LevelsScanWnd.Width(),LevelsScanWnd.Height(),24);
+		buf.Create(this, LevelsScanWnd.Width(),LevelsScanWnd.Height(), 8);
+		memset(palLevelsScan, 0, sizeof(palLevelsScan));
+		palLevelsScan[1].rgbBlue = palLevelsScan[1].rgbGreen = palLevelsScan[1].rgbRed = 255;
+		palLevelsScan[2].rgbRed = 255; palLevelsScan[3].rgbGreen = 255; palLevelsScan[4].rgbBlue = 255;
+		buf.SetPallete(palLevelsScan); 
 	}
-
 	Timer1.Start(); cntr=0;
 
 	return 0;
@@ -291,27 +311,43 @@ void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::Co
 
 }
 
-void CaptureWnd::ScanLevels(BMPanvas* src,BMPanvas *dest)
+void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWndCtrlsTab::ColorTransformModes mode)
 {
-	RGBTRIPLE *col; int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
-	src->LoadBitmapArray(src->h/2,src->h/2); dest->PatBlt(BLACKNESS);
+	int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
+	src->LoadBitmapArray(src->h/2,src->h/2); 
+	levels.PatBlt(BLACKNESS);
 
-	col=(RGBTRIPLE*)src->arr;
-	for(i=0;i<src->w;i++)
+	if (mode == CaptureWndCtrlsTab::TrueColor)
 	{
-		t=dest->SelectObject(penBlue); l=(dest->h-1)*(255-(*col).rgbtBlue)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(penRed); l=(dest->h-1)*(255-(*col).rgbtRed)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(penGreen); l=(dest->h-1)*(255-(*col).rgbtGreen)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(t); 
-		col++;
+		RGBTRIPLE *col = (RGBTRIPLE*)src->arr;
+		for (i = 0; i < src->w; i++)
+		{
+			t=levels.SelectObject(penBlue); l=(levels.h-1)*(255-(*col).rgbtBlue)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(penRed); l=(levels.h-1)*(255-(*col).rgbtRed)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(penGreen); l=(levels.h-1)*(255-(*col).rgbtGreen)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(t); 
+			col++;
+		}
 	}
+	else
+	{
+		BYTE *col = (BYTE *)src->arr; t = levels.SelectObject(penWhite);
+		for (i = 0; i < src->w; i++)
+		{
+			l=(levels.h - 1)*(255 - (*col))/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			col++;
+		}
+		levels.SelectObject(t); 
+	}
+
 	src->UnloadBitmapArray();
-	HGDIOBJ tf=dest->SelectObject(font1); dest->SetBkMode(TRANSPARENT); dest->SetTextColor(clWHITE);
-	dt=time1.StopStart(); T.Format("%.2f ms",dt.val()); dest->TextOut(0,0,T);
-	dest->SelectObject(tf);
+	HGDIOBJ tf=levels.SelectObject(font1); levels.SetBkMode(TRANSPARENT); levels.SetTextColor(clWHITE);
+	dt=time1.StopStart(); T.Format("%.2f ms",dt.val()); levels.TextOut(0,0,T);
+	levels.SelectObject(tf);
 }
 
 void CaptureWnd::OnPaint()
@@ -337,19 +373,10 @@ void CaptureWnd::OnPaint()
 		tbuf=&truecolorBuf;
 		if(r>1) { SetStretchBltMode(tbuf->GetDC(),COLORONCOLOR); buf.StretchTo(tbuf,rgn1,buf.Rgn,SRCCOPY); }
 		else buf.CopyTo(tbuf,rgn1);
-
-		if((xx=LevelsScanBuf.GainAcsess(WRITE))!=NULL)
+		
+		if (Ctrls.ColorTransformSelector != CaptureWndCtrlsTab::TrueColor)
 		{
-			BMPanvasGuard guard1(xx); BMPanvas &buf(guard1);
-			ScanLevels(tbuf,&buf);
-			buf.CopyTo(hdc,LevelsScanWnd.TopLeft());
-		}			
-
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor)
-		{
-			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector);
-			tbuf=&grayscaleBuf;
-
+			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector); tbuf=&grayscaleBuf;
 			CaptureRequestStack::Item request;
 			while(Stack >> request)
 			{
@@ -358,13 +385,17 @@ void CaptureWnd::OnPaint()
 					request.buf->Create(buf.GetDC(),buf.w,buf.h,8);
 					request.buf->CreateGrayPallete();
 				}
-				buf.CopyTo(request.buf,TOP_LEFT);
 				ColorTransform(&buf, request.buf, Ctrls.ColorTransformSelector);
 				request.sender->PostMessage(UM_CAPTURE_READY,0,0);
 			}
-
 		}
 
+		if ((xx=LevelsScanBuf.GainAcsess(WRITE)) != NULL)
+		{
+			BMPanvasGuard guard1(xx); BMPanvas &levels(guard1);
+			ScanLevels(tbuf, levels, Ctrls.ColorTransformSelector);
+			levels.CopyTo(hdc,LevelsScanWnd.TopLeft());
+		}
 
 		BMPanvasTAGSmk1* tags=(BMPanvasTAGSmk1*)buf.tags;
 		CPoint TextOutput; TextOutput=rgn1.TopLeft();
@@ -372,65 +403,37 @@ void CaptureWnd::OnPaint()
 		HGDIOBJ tf=tbuf->SelectObject(font1); tbuf->SetBkMode(TRANSPARENT); tbuf->SetTextColor(RGB(255,255,0));
 		T.Format("%dx%dx%d %.2f sec",tags->i1,tags->i2,tags->i3,tags->d1); tbuf->TextOut(TextOutput.x,TextOutput.y+0,T);
 		T.Format("DShow fps=%g",tags->d2); tbuf->TextOut(TextOutput.x,TextOutput.y+10,T);
-
-		T.Format("Buffer process = %.2f+%.2f ms",tags->timel.val(),Timer2.StopStart().val()); tbuf->TextOut(TextOutput.x,TextOutput.y+30,T);		
+		T.Format("Buffer process = %.2f+%.2f ms", tags->timel.val(), Timer2.StopStart().val()); tbuf->TextOut(TextOutput.x,TextOutput.y+30,T);		
 		T.Format("%d eqv fps = %g",cntr++,(1./dt1.val()));  tbuf->TextOut(TextOutput.x,TextOutput.y+40,T);
 		tbuf->SelectObject(tf);
 		
 		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
-		tbuf->CopyTo(hdc,TOP_LEFT);
+		//pal - special pallete to diagnose overlight pixels with red color
+		tbuf->CopyTo(hdc,TOP_LEFT); 
 		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
 	else ASSERT(0);
 }
-/*
-struct Slit 
+
+void CaptureWnd::Accumulator::FillAccum(BMPanvas *src)
 {
-	DWORD NumSlitWidths, SlitWidthInd, ID;
-	double *widths;
-
-	Slit(DWORD id) {ID=id; widths=NULL;}
+	if (buf != NULL)
 	{
-		NumSlitWidths=ml44_GetNumSlitWidths(ID);
-		SlitWidthInd=ml44_GetSlitWidthInd(ID);
-		widths=new double[NumSlitWidths];
-		for(DWORD i=0;i<NumSlitWidths;i++)
-		{
-			widths[i]=ml44_GetSlitWidth(ID,i);
-		}
-	}
-	~Slit() {if(widths!=NULL) delete widths;}
+		src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl;
+		src_pxl = src->arr; accum_pxl = buf;
+		for (int y = 0; y < h; y++)
+		{			
+			for (int x = 0; x < w; x++)
+			{
 
-};
-*/
-//void CaptureWndCtrlsTab::OnBnClickedButton6()
-//{
-//	bool ret=0; DWORD err,clbr,stps; double wl,wlchng, Min,Max,disp,range;
-//	Slit EnterSlit(ENTR_SLIT), ExitSlit(EXIT_SLIT); TGratingPrm Grating0,Grating1;
-//	if(ml44_Init(PORT_COM4,0)!=0)
-//	{
-//		if(ml44_HitTest()!=0)
-//		{
-//			ml44_GetWLRange(&Min,&Max); err=ml44_GetLastError();
-//			disp=ml44_GetDispersion(); err=ml44_GetLastError();
-//			range=ml44_GetSpcRange(); err=ml44_GetLastError();
-//			clbr=ml44_GetClbrType(); err=ml44_GetLastError();
-//			wl=ml44_GetWaveLength(); err=ml44_GetLastError();
-//			wlchng=ml44_GetChangeGratingWL(); err=ml44_GetLastError();
-//			ret=ml44_GetGratingPrms(&Grating0,0); err=ml44_GetLastError();
-//			ret=ml44_GetGratingPrms(&Grating1,1); err=ml44_GetLastError();
-//			stps=ml44_GetStepsByWL(600,0); err=ml44_GetLastError();
-//			stps=ml44_GetGratingStepPos(); err=ml44_GetLastError();
-//
-//			EnterSlit.Init();
-//			ExitSlit.Init();
-//
-//		}
-//		else err=ml44_GetLastError();
-//		ml44_Free();
-//	}
-//	else err=ml44_GetLastError();
-//}
+
+				src_pxl++; accum_pxl++;
+			}
+			accum_pxl += w; src_pxl += src->wbyte;
+		}
+		n++;
+	}
+}
 
 LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
 {

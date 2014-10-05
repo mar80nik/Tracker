@@ -95,7 +95,7 @@ MessagesInspector::~MessagesInspector()
 CString AbstractMessage::Format() 
 {
 	CString ret;
-	ret.Format("[%02d:%02d:%02d] %s -> %s: %d", Time.GetHour(),Time.GetMinute(), Time.GetSecond(),Sender, Body);	
+	ret.Format("[%02d:%02d:%02d] %s -> %s", Time.GetHour(),Time.GetMinute(), Time.GetSecond(),Sender, Body);	
 	return ret;
 };
 
@@ -112,7 +112,16 @@ void MessageForWindow::DispatchMsg( void *t )
 	CWinThread *thrd=AfxGetThread();
 	if(thrd==Reciver.pThrd)
 	{
-		Reciver.pWND->PostMessage(Msg,wParam,(LPARAM)t);
+		if (Reciver.pWND != NULL)
+		{
+			Reciver.pWND->PostMessage(Msg,wParam,(LPARAM)t);
+		}		
 	}
-	else Reciver.pThrd->PostThreadMessage(UM_GENERIC_MESSAGE,wParam,(LPARAM)t);
+	else
+	{
+		if (Reciver.pThrd != NULL)
+		{
+			Reciver.pThrd->PostThreadMessage(UM_GENERIC_MESSAGE,wParam,(LPARAM)t);
+		}
+	}		
 }

@@ -91,13 +91,13 @@ void MyListBox::SetNewHExtent(LPCTSTR lpszNewString)
 }
 
 int MyListBox::GetTextLen(LPCTSTR lpszText)
-{
-	ASSERT(AfxIsValidString(lpszText));
-
-	CDC *pDC = GetDC();
-	ASSERT(pDC);
-
-	CSize size;
+{	
+	CSize size;	CDC *pDC = GetDC();
+	ASSERT(pDC); ASSERT(AfxIsValidString(lpszText));
+	if (pDC == NULL)
+	{
+		return 0;
+	}
 	CFont* pOldFont = pDC->SelectObject(GetFont());
 	if ((GetStyle() & LBS_USETABSTOPS) == 0)
 	{

@@ -370,7 +370,14 @@ int ErrorInspector::Errors()
 {
 	ErrorsArray* err=GetErrorsArray();
 	ASSERT(err);
-    return err->err_num;    
+	if (err != NULL)
+	{
+		return err->err_num;    
+	}
+	else
+	{
+		return -1;
+	}    
 }
 int ErrorInspector::Warnings() 
 {

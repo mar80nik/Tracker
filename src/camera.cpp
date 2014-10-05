@@ -181,9 +181,12 @@ HRESULT DSGraphBuilder::SaveGraph( CStringW filename )
 
 	IPersistStream *pPersist = NULL;
 	pGraph->QueryInterface(IID_IPersistStream, (void**)&pPersist);
-	hr = pPersist->Save(pStream, TRUE);
+	if (pPersist != NULL)
+	{
+		hr = pPersist->Save(pStream, TRUE);	
+		pPersist->Release();
+	}
 	pStream->Release();
-	pPersist->Release();
 	if (SUCCEEDED(hr)) { hr = pStorage->Commit(STGC_DEFAULT); }
 	pStorage->Release();
 	return hr;
@@ -282,14 +285,22 @@ HRESULT MyDSFilter::GetPinsInfo()
 HRESULT MyDSFilter::ShowFilterProperties()
 {
 	HRESULT hr;
-	ISpecifyPropertyPages *pProp=NULL; IUnknown *pFilterUnk=NULL; CAUUID caGUID;
+	ISpecifyPropertyPages *pProp = NULL; IUnknown *pFilterUnk = NULL; CAUUID caGUID;
 	hr = pFilter->QueryInterface(IID_ISpecifyPropertyPages, (void **)&pProp);
-	hr = pFilter->QueryInterface(IID_IUnknown, (void **)&pFilterUnk);
-	hr = pProp->GetPages(&caGUID);
-	OleCreatePropertyFrame(NULL,0,0,NULL,1,&pFilterUnk,caGUID.cElems,caGUID.pElems,0,0, NULL);
-	SAFE_RELEASE_(pFilterUnk);
-	SAFE_RELEASE_(pProp);
-	if(caGUID.pElems!=NULL) CoTaskMemFree(caGUID.pElems);
+	hr = pFilter->QueryInterface(IID_IUnknown, (void **)&pFilterUnk);	
+	if (pProp != NULL)
+	{		
+		hr = pProp->GetPages(&caGUID);
+		if (SUCCEEDED(hr))
+		{
+			OleCreatePropertyFrame(NULL,0,0,NULL,1,&pFilterUnk,caGUID.cElems,caGUID.pElems,0,0, NULL);
+			if (caGUID.pElems != NULL) 
+			{
+				CoTaskMemFree(caGUID.pElems);
+			}				
+		}		
+	}	
+	SAFE_RELEASE_(pFilterUnk); SAFE_RELEASE_(pProp);	
 	return hr;
 }
 

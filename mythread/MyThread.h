@@ -138,6 +138,8 @@ public:
 enum MyThreadMessages {UM_STOP=WM_USER + 76, UM_PAUSE, UM_CONTINUE, UM_START, UM_EXIT_THREAD,UM_EVENTLOG};
 enum StopState {None=0, ToDo, Done};
 
+enum MessagePriorities {lmprLOW = 0, lmprHIGH = 78};
+
 class LogMessage: public MessageForWindow 
 {	
 //protected:
@@ -150,7 +152,9 @@ public:
 
 	LogMessage* CreateEntry(const CString& obj, const CString Message=CString(""),int _priority=low_pr);
 	LogMessage* CreateEntry(ErrorsArray* err);
-
+	LogMessage& operator <<(const CString &Message);
+	void SetPriority(const LogMessage::MessagePriorities &pr) {priority = pr;}
+	void SetPriority(const ::MessagePriorities &pr) {priority = pr;}
 	LogMessage();
 	int GetSize() {return (int)(Msgs.GetSize()-1);}
 	BOOL HasMessages() {return (GetSize()!=0);}

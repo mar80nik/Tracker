@@ -481,6 +481,15 @@ LogMessage* LogMessage::CreateEntry(ErrorsArray* Err)
 	return this;
 }
 
+LogMessage& LogMessage::operator<<( const CString &Message )
+{
+	CTime Time1; Time1=CTime::GetCurrentTime();	
+	CString T;
+	T.Format("[%02d:%02d:%02d] %s",Time1.GetHour(),Time1.GetMinute(), Time1.GetSecond(), Message);	
+	Msgs.Add(T);
+	return (*this);
+}
+
 
 
 MyThread::ParentStatusReport::ParentStatusReport(ThreadConfig& Config)

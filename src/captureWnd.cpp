@@ -1,17 +1,11 @@
-// captureWnd.cpp : implementation file
-//
-
 #include "stdafx.h"
 #include "captureWnd.h"
 #include "my_color.h"
-//#include "ml44ctrl.h"
-//#include "Monochromator.h"
 #include "KSVU3.h"
 #include "ImageWnd.h"
-// CaptureWnd
 
 IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
-CaptureWnd::CaptureWnd(): thrd(444)
+CaptureWnd::CaptureWnd(): thrd(444), accum(_T("CaptureWnd"))
 {
 	Src=NULL;
 	CameraOutWnd=CRect(CPoint(0,0),CSize(800,600));
@@ -24,25 +18,7 @@ CaptureWnd::CaptureWnd(): thrd(444)
 
 CaptureWnd::~CaptureWnd()
 {
-	if(Src!=NULL) 
-	{
-		delete Src; Src=NULL;
-	}
-}
-
-void CaptureWnd::Accumulator::Reset()
-{
-	if (buf != NULL)
-	{
-		delete[] buf; buf = NULL;
-	}
-	n = 0; wbyte = 0;
-}
-
-void CaptureWnd::Accumulator::Create(int _w, int _h)
-{
-	Reset(); w = _w; h = _h; wbyte = w*sizeof(unsigned short);
-	buf = new unsigned short[w*h];
+	if (Src != NULL)	{ delete Src; Src=NULL; }
 }
 
 BEGIN_MESSAGE_MAP(CaptureWnd, CWnd)
@@ -149,7 +125,7 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		pParent->grayscaleBuf.CreateGrayPallete();		
 		pParent->truecolorBuf.Create(this,r.Width(),r.Height(),24);		
 
-		pParent->accum.Create(r.Width(), r.Height());
+		pParent->accum.Initialize(r.Width(), r.Height());
 
 		pParent->thrd.Start();	
 		BtnCapture.EnableWindow(FALSE);
@@ -352,7 +328,7 @@ void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWndCtr
 
 void CaptureWnd::OnPaint()
 {	
-	CPaintDC dc(this); Ctrls.UpdateData();
+	CPaintDC dc(this); Ctrls.UpdateData(); CString accumText;
 	CRect tr; GetClientRect(&tr); HDC hdc=dc.GetSafeHdc();
 	
     if(grayscaleBuf.GetDC()==NULL) return;
@@ -377,6 +353,12 @@ void CaptureWnd::OnPaint()
 		if (Ctrls.ColorTransformSelector != CaptureWndCtrlsTab::TrueColor)
 		{
 			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector); tbuf=&grayscaleBuf;
+
+			//ms time;
+			//accum.FillAccum(&grayscaleBuf); time = accum.fillTime;
+			//accum.ConvertToBitmap(&grayscaleBuf);
+			//accumText.Format("Fill = %.2f ms Init = %.2f ms n = %d", time.val(), accum.fillTime.val(), accum.n);
+
 			CaptureRequestStack::Item request;
 			while(Stack >> request)
 			{
@@ -405,6 +387,9 @@ void CaptureWnd::OnPaint()
 		T.Format("DShow fps=%g",tags->d2); tbuf->TextOut(TextOutput.x,TextOutput.y+10,T);
 		T.Format("Buffer process = %.2f+%.2f ms", tags->timel.val(), Timer2.StopStart().val()); tbuf->TextOut(TextOutput.x,TextOutput.y+30,T);		
 		T.Format("%d eqv fps = %g",cntr++,(1./dt1.val()));  tbuf->TextOut(TextOutput.x,TextOutput.y+40,T);
+
+		tbuf->TextOut(rgn1.left, rgn1.bottom - 40, accumText);
+
 		tbuf->SelectObject(tf);
 		
 		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
@@ -412,27 +397,7 @@ void CaptureWnd::OnPaint()
 		tbuf->CopyTo(hdc,TOP_LEFT); 
 		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
-	else ASSERT(0);
-}
-
-void CaptureWnd::Accumulator::FillAccum(BMPanvas *src)
-{
-	if (buf != NULL)
-	{
-		src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl;
-		src_pxl = src->arr; accum_pxl = buf;
-		for (int y = 0; y < h; y++)
-		{			
-			for (int x = 0; x < w; x++)
-			{
-
-
-				src_pxl++; accum_pxl++;
-			}
-			accum_pxl += w; src_pxl += src->wbyte;
-		}
-		n++;
-	}
+	//else ASSERT(0);
 }
 
 LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
@@ -486,3 +451,149 @@ void CaptureWndCtrlsTab::OnBnClickedRadio4()
 {
 	int a=5;
 }
+
+//======================================
+void ImagesAccumulator::Reset()
+{
+	if (sum != NULL)	{ delete[] sum; sum = NULL; }
+	if (sum2 != NULL)	{ delete[] sum2; sum2 = NULL; }
+	if (bmp != NULL)	{ delete bmp; bmp = NULL; }
+	if (errs != NULL)	{ delete[] errs; errs = NULL; }
+	n = 0;
+}
+
+void ImagesAccumulator::Initialize(int _w, int _h)
+{
+	Reset(); w = _w; h = _h;
+	sum = new unsigned short[w*h]; sum2 = new unsigned int[w*h];
+	memset(sum, 0, w*h*sizeof(unsigned short)); memset(sum2, 0, w*h*sizeof(unsigned int));
+}
+
+void ImagesAccumulator::FillAccum(BMPanvas *src)
+{
+	MyTimer Timer1;
+	if (sum != NULL)
+	{
+		Timer1.Start(); 
+		src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2;
+		accum_pxl = sum; accum_pxl2 = sum2;
+		for (int y = 0; y < h; y++)
+		{			
+			src_pxl = src->arr + src->wbyte*y;
+			for (int x = 0; x < w; x++)
+			{
+				*accum_pxl += *src_pxl; *accum_pxl2 += (*src_pxl)*(*src_pxl);
+				src_pxl++; accum_pxl++; accum_pxl2++;
+			}
+		}
+		src->UnloadBitmapArray();
+		Timer1.Stop(); fillTime = Timer1.GetValue();
+		n++;
+	}
+}
+
+void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
+{
+	MyTimer Timer1; 
+	if (sum != NULL)
+	{
+		BYTE *dst_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2; float *errs_pxl;
+		Timer1.Start();
+		bmp = new BMPanvas(); bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
+		errs = new float[w*h]; memset(errs, 0, w*h*sizeof(float));
+
+		bmp->LoadBitmapArray(); accum_pxl = sum; accum_pxl2 = sum2; errs_pxl = errs;
+		for (int y = 0; y < h; y++)
+		{			
+			dst_pxl = bmp->arr + bmp->wbyte*y;
+			for (int x = 0; x < w; x++)
+			{
+				*dst_pxl = (*accum_pxl)/n; *errs_pxl = ((float)(*accum_pxl2)/n) - (*dst_pxl)*(*dst_pxl);
+				dst_pxl++; accum_pxl++; accum_pxl2++; errs_pxl++;
+			}
+		}
+		bmp->SetBitmapArray(); delete[] sum; sum = NULL; delete[] sum2; sum2 = NULL;
+		Timer1.Stop(); fillTime = Timer1.GetValue();
+	}
+}
+
+void ImagesAccumulator::SaveTo( const CString &file )
+{
+	LogMessage *log=new LogMessage(); CString logT;
+	if (bmp != NULL)
+	{
+		if (SUCCEEDED(bmp->SaveImage(file)))
+		{			
+			FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("wb"));
+			if (f != NULL)
+			{
+				fwrite(errs, sizeof(float), w*h, f);
+				fclose(f);
+			}	
+			else
+			{
+				logT.Format("Failed to save errs for bitmap %s", file + _T(".errs")); 
+				*log << logT; log->SetPriority(lmprHIGH);	
+			}
+		}
+		else
+		{
+			logT.Format("Failed to save bitmap %s", file); *log << logT; log->SetPriority(lmprHIGH);
+		}
+	}
+	if (log->HasMessages()) log->Dispatch();	
+	else delete log;
+}
+
+void ImagesAccumulator::LoadFrom( const CString &file )
+{	
+	LogMessage *log=new LogMessage(); CString logT;
+	if (bmp == NULL) bmp = new BMPanvas();		
+	bmp->Destroy();
+	if (SUCCEEDED(bmp->LoadImage(file)))
+	{
+		w = (unsigned short)bmp->w; h = (unsigned short)bmp->h;
+		FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("rb"));
+		if (errs != NULL)	{ delete[] errs; errs = NULL; }
+		errs = new float[w*h]; 
+		if (f != NULL)
+		{
+			fread(errs, sizeof(float), w*h, f);
+			fclose(f);
+		}
+		else
+		{
+			logT.Format("Failed to load errs for bitmap %s", file + _T(".errs")); 
+			*log << logT; log->SetPriority(lmprHIGH);			
+		}
+	}
+	else
+	{
+		logT.Format("Failed to load bitmap %s", file); *log << logT; log->SetPriority(lmprHIGH);	
+	}
+
+	if (log->HasMessages()) log->Dispatch();	
+	else delete log;
+}
+
+void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const int xmax )
+{
+	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
+	MyTimer Timer1; 
+	if (bmp->HasImage())
+	{
+		BYTE *img_pxl; float *errs_pxl; PointVsError pnte; pnte.type.Set(GenericPnt);
+		Timer1.Start();
+		bmp->LoadBitmapArray(); img_pxl = bmp->arr + bmp->wbyte*y; errs_pxl = errs; 
+		for (int x = xmin; x < xmax; x++)
+		{
+			pnte.x = x; pnte.y = *img_pxl; pnte.dy = *errs_pxl;
+			buf->Add(pnte);
+			img_pxl++; errs_pxl++;
+		}
+		bmp->SetBitmapArray();
+		Timer1.Stop(); fillTime = Timer1.GetValue();
+	}
+}
+
+//======================================

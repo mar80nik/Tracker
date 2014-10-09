@@ -94,21 +94,35 @@ public:
 	}
 };
 
+struct ImagesAccumulator
+{
+protected:
+	unsigned short *sum; unsigned int *sum2;
+public:
+	BMPanvas *bmp; float *errs;
+	unsigned short n, w, h;
+	ms fillTime; CString Name;
+
+	ImagesAccumulator(const CString &name): sum(NULL), sum2(NULL), bmp(NULL), errs(NULL), Name(name) 
+	{
+		Reset();
+	};
+	~ImagesAccumulator() {Reset();};
+	void Reset();
+	void Initialize(int _w, int _h);
+	void FillAccum(BMPanvas *src);
+	void ConvertToBitmap(CWnd *ref);
+	void SaveTo(const CString &file);
+	void LoadFrom(const CString &file);
+	void ScanLine( void *buf, const int y, const int xmin, const int xmax );
+};
+
 class CaptureWnd : public CWnd, public PerfomanceStaff
 {
 	friend class CaptureWndCtrlsTab;
 	DECLARE_DYNAMIC(CaptureWnd)
 public:
-	struct Accumulator
-	{
-		unsigned short *buf;
-		unsigned short n, w, h; int wbyte;
-		Accumulator(): buf(NULL) {Reset();};
-		~Accumulator() {Reset();};
-		void Reset();
-		void Create(int _w, int _h);
-		void FillAccum(BMPanvas *src);
-	};
+
 protected:
 	CaptureThread thrd;	
 	DSCaptureSource* Src;
@@ -117,7 +131,7 @@ protected:
 	ProtectedBMPanvas Pbuf,LevelsScanBuf;
 	BMPanvas grayscaleBuf, truecolorBuf;
 	RGBQUAD pal[256], palLevelsScan[256];
-	Accumulator accum;
+	ImagesAccumulator accum;
 	CaptureRequestStack Stack;
 	CRect CameraOutWnd, LevelsScanWnd;
 public:

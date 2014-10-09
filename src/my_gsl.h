@@ -3,27 +3,49 @@
 #include "mythread\MyTime.h"
 #include "gsl\gsl_math.h"
 #include "gsl\gsl_multimin.h"
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_roots.h>
-#include <gsl/gsl_complex.h>
-#include <gsl/gsl_complex_math.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_multifit_nlin.h>
-#include <gsl/gsl_fft_real.h>
-#include <gsl/gsl_fft_halfcomplex.h>
+#include "gsl\gsl_errno.h"
+#include "gsl\gsl_math.h"
+#include "gsl\gsl_roots.h"
+#include "gsl\gsl_complex.h"
+#include "gsl\gsl_complex_math.h"
+#include "gsl\gsl_vector.h"
+#include "gsl\gsl_blas.h"
+#include "gsl\gsl_multifit_nlin.h"
+#include "gsl\gsl_fft_real.h"
+#include "gsl\gsl_fft_halfcomplex.h"
 
 #define DEGREE (M_PI/180.)
-class DoubleArray: public CArray<double>
+
+template<class type>
+class TypeArray: public CArray<type>
 {
 public:
-	DoubleArray();
-	DoubleArray(DoubleArray&);
-	DoubleArray& operator << (double d) {(*this).Add(d); return (*this);}
-	operator double*() {return GetData();}
-	double* GetX() {return GetData();}
-	DoubleArray& operator=(DoubleArray& arr);
+	TypeArray()	{}
+	TypeArray(const TypeArray& ref)	{ *this = ref; }
+	TypeArray& operator << (const type &d) {(*this).Add(d); return (*this);}
+	TypeArray& operator =(const TypeArray &arr)
+	{
+		RemoveAll(); SetSize(arr.GetSize());
+		for(int i = 0; i < arr.GetSize(); i++) Add(arr[i]);
+		return *this;
+	}
+	operator type*() {return CArray<type>::GetData();}
+	BOOL operator==(const TypeArray &ref)
+	{
+		if (GetSize() != ref.GetSize()) return FALSE;
+		for (int i = 0; i < GetSize(); i++)
+		{
+			if (operator[](i) != ref[i]) return FALSE;
+		}
+		return TRUE;
+	}
+};
+
+class DoubleArray: public TypeArray<double>
+{
+public:
+	operator gsl_vector*();
+	void operator= (const gsl_vector& vector);
 };
 struct GSLPerfomanceInformer 
 {

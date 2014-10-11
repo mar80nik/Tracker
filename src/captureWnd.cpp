@@ -103,7 +103,7 @@ void CaptureWnd::CtrlsTab::OnBnClicked_Capture()
 		T.Format(" No cameras found at all"); log->CreateEntry("ERR",T,LogMessage::high_pr);
 		log->Dispatch(); return;
 	}
-	if(pParent->Src->status==S_OK)
+	if(SUCCEEDED(pParent->Src->status))
 	{
 		pParent->Timer1.Start(); 
 		pParent->cntr=0;
@@ -202,10 +202,10 @@ void CaptureWnd::SelectCaptureSrc(CString name)
 			Ctrls.PreviewSize.EnableWindow(FALSE);
 		}
 		Src->Create(arr[i]);
-		if(Src->status!=S_OK)
+		if(FAILED(Src->status))
 		{			
-			LogMessage *log=new LogMessage(); 
-			T.Format(" %s - INIT ERROR",name); log->CreateEntry("ERR",T,LogMessage::high_pr);
+			LogMessage *log=new LogMessage(); log->SetPriority(lmprHIGH);
+			T.Format(" %s - INIT ERROR",name); *log << T;
 			log->Dispatch();
 		}
 		else Src->Name=name;

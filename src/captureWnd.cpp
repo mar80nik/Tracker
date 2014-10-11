@@ -5,7 +5,7 @@
 #include "ImageWnd.h"
 
 IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
-CaptureWnd::CaptureWnd(): thrd(444), accum(_T("CaptureWnd"))
+CaptureWnd::CaptureWnd(): thrd(444)
 {
 	Src=NULL;
 	CameraOutWnd=CRect(CPoint(0,0),CSize(800,600));
@@ -34,7 +34,7 @@ END_MESSAGE_MAP()
 // CaptureWnd message handlers
 
 
-BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, CDialog)
+BEGIN_MESSAGE_MAP(CaptureWnd::CtrlsTab, CDialog)
 	//{{AFX_MSG_MAP(DialogBarTab1)
 	//}}AFX_MSG_MAP	
 	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Capture)
@@ -45,18 +45,18 @@ BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, CDialog)
 	ON_WM_CREATE()
 	ON_BN_CLICKED(IDC_BUTTON6, OnBnClickedChooseCam)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_RADIO1, &CaptureWndCtrlsTab::OnBnClickedRadio1)
-	ON_BN_CLICKED(IDC_RADIO4, &CaptureWndCtrlsTab::OnBnClickedRadio4)
+	ON_BN_CLICKED(IDC_RADIO1, &CaptureWnd::CtrlsTab::OnBnClickedRadio1)
+	ON_BN_CLICKED(IDC_RADIO4, &CaptureWnd::CtrlsTab::OnBnClickedRadio4)
 END_MESSAGE_MAP()
 
-int CaptureWndCtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
+int CaptureWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	int ret=0;
 	if (CWnd::OnCreate(lpCreateStruct) == -1) ret=-1;
 	return ret;
 }
 
-BOOL CaptureWndCtrlsTab::OnInitDialog()
+BOOL CaptureWnd::CtrlsTab::OnInitDialog()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent; 
 	CDialog::OnInitDialog();
@@ -75,7 +75,7 @@ BOOL CaptureWndCtrlsTab::OnInitDialog()
 	return TRUE; 
 }
 
-eDcm800Size CaptureWndCtrlsTab::GetPreviewSize()
+eDcm800Size CaptureWnd::CtrlsTab::GetPreviewSize()
 {
 	eDcm800Size ret;
 	switch (PreviewSize.GetCurSel())
@@ -91,7 +91,7 @@ eDcm800Size CaptureWndCtrlsTab::GetPreviewSize()
 	return ret;
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_Capture()
+void CaptureWnd::CtrlsTab::OnBnClicked_Capture()
 {
 	UpdateData();
 
@@ -125,7 +125,7 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		pParent->grayscaleBuf.CreateGrayPallete();		
 		pParent->truecolorBuf.Create(this,r.Width(),r.Height(),24);		
 
-		pParent->accum.Initialize(r.Width(), r.Height());
+		//pParent->accum.Initialize(r.Width(), r.Height());
 
 		pParent->thrd.Start();	
 		BtnCapture.EnableWindow(FALSE);
@@ -144,7 +144,7 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 	return;
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_StopCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_StopCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.StopCapture.SetEvent();  
@@ -156,7 +156,7 @@ void CaptureWndCtrlsTab::OnBnClicked_StopCapture()
 	BtnFilterParams.EnableWindow(FALSE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_PauseCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_PauseCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.PauseCapture.SetEvent();  
@@ -166,7 +166,7 @@ void CaptureWndCtrlsTab::OnBnClicked_PauseCapture()
 	BtnResume.EnableWindow(TRUE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_ResumeCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_ResumeCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.ResumeCapture.SetEvent();    
@@ -176,7 +176,7 @@ void CaptureWndCtrlsTab::OnBnClicked_ResumeCapture()
 	BtnResume.EnableWindow(FALSE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_FilterParams()
+void CaptureWnd::CtrlsTab::OnBnClicked_FilterParams()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.ShowFilterParams.SetEvent();    
@@ -258,16 +258,16 @@ LRESULT CaptureWnd::OnDataUpdate(WPARAM wParam, LPARAM lParam )
 	return 0;
 }
 
-void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::ColorTransformModes mode)
+void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWnd::CtrlsTab::ColorTransformModes mode)
 {	
 	RGBTRIPLE *colorCurrentPoint; int i,j; BYTE *colorLineBegin=NULL, *bwCurrentPoint=NULL, *bwLineBegin=NULL;
 	int (*LuminosityFunc)(RGBTRIPLE&)=NULL;
 	
 	switch(mode)
 	{
-	case CaptureWndCtrlsTab::HSL: LuminosityFunc=getL_HSL; break;
-	case CaptureWndCtrlsTab::HSV: LuminosityFunc=getL_HSV; break;
-	case CaptureWndCtrlsTab::NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
+	case CaptureWnd::CtrlsTab::HSL: LuminosityFunc=getL_HSL; break;
+	case CaptureWnd::CtrlsTab::HSV: LuminosityFunc=getL_HSV; break;
+	case CaptureWnd::CtrlsTab::NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
 	}
 	if(LuminosityFunc==NULL) return;
 
@@ -287,13 +287,13 @@ void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::Co
 
 }
 
-void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWndCtrlsTab::ColorTransformModes mode)
+void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWnd::CtrlsTab::ColorTransformModes mode)
 {
 	int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
 	src->LoadBitmapArray(src->h/2,src->h/2); 
 	levels.PatBlt(BLACKNESS);
 
-	if (mode == CaptureWndCtrlsTab::TrueColor)
+	if (mode == CaptureWnd::CtrlsTab::TrueColor)
 	{
 		RGBTRIPLE *col = (RGBTRIPLE*)src->arr;
 		for (i = 0; i < src->w; i++)
@@ -350,7 +350,7 @@ void CaptureWnd::OnPaint()
 		if(r>1) { SetStretchBltMode(tbuf->GetDC(),COLORONCOLOR); buf.StretchTo(tbuf,rgn1,buf.Rgn,SRCCOPY); }
 		else buf.CopyTo(tbuf,rgn1);
 		
-		if (Ctrls.ColorTransformSelector != CaptureWndCtrlsTab::TrueColor)
+		if (Ctrls.ColorTransformSelector != CaptureWnd::CtrlsTab::TrueColor)
 		{
 			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector); tbuf=&grayscaleBuf;
 
@@ -392,10 +392,10 @@ void CaptureWnd::OnPaint()
 
 		tbuf->SelectObject(tf);
 		
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
+		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
 		//pal - special pallete to diagnose overlight pixels with red color
 		tbuf->CopyTo(hdc,TOP_LEFT); 
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
+		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
 	//else ASSERT(0);
 }
@@ -405,7 +405,7 @@ LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
 	Stack << CaptureRequestStack::Item((CWnd*)wParam,(BMPanvas*)lParam);
 	return 0;
 }
-void CaptureWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
+void CaptureWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(DialogBarTab1)
@@ -421,7 +421,7 @@ void CaptureWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
 }
 
 
-void CaptureWndCtrlsTab::OnBnClickedChooseCam()
+void CaptureWnd::CtrlsTab::OnBnClickedChooseCam()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	if(Chooser.DoModal()==IDOK)
@@ -430,7 +430,7 @@ void CaptureWndCtrlsTab::OnBnClickedChooseCam()
 	}	
 }
 
-void CaptureWndCtrlsTab::OnCbnSelchangeCombo1()
+void CaptureWnd::CtrlsTab::OnCbnSelchangeCombo1()
 {
 	// TODO: Add your control notification handler code here
 }
@@ -442,12 +442,12 @@ void CaptureWnd::OnDestroy()
 	font1.DeleteObject();
 }
 
-void CaptureWndCtrlsTab::OnBnClickedRadio1()
+void CaptureWnd::CtrlsTab::OnBnClickedRadio1()
 {
 	// TODO: Add your control notification handler code here
 }
 
-void CaptureWndCtrlsTab::OnBnClickedRadio4()
+void CaptureWnd::CtrlsTab::OnBnClickedRadio4()
 {
 	int a=5;
 }

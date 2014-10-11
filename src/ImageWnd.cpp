@@ -361,7 +361,7 @@ void ImageWnd::PicWnd::LoadPic(CString T)
 	if(org.LoadImage(T)==S_OK)
 	{
 		Parent->CameraWnd.Ctrls.UpdateData();			
-		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWndCtrlsTab::TrueColor)
+		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWnd::CtrlsTab::TrueColor)
 		{
 			LogMessage *log=new LogMessage(); 
 			log->CreateEntry("ERR","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			

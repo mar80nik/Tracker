@@ -84,6 +84,7 @@ class ImageWnd : public CWnd
 	protected:
 		CButton CaptureButton;
 		CMenu menu1; c_ScanRgn ScanRgn;
+		ImagesAccumulator accum;
 
 		AvaPicRgn Convert(const OrgPicRgn&);
 		OrgPicRgn Convert(const AvaPicRgn&);

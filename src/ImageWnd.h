@@ -9,6 +9,20 @@
 enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_READY};
 enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
+enum HelperEvent {
+	EvntOnCaptureButton, EvntOnCaptureReady,
+	RSLT_HELPER_COMPLETE, RSLT_OK
+};
+//================================================
+struct BaseForHelper
+{
+	virtual HelperEvent Update(const HelperEvent &event) = 0;
+	virtual ~BaseForHelper() {}
+};
+
+//================================================
+
+
 class CEditInterceptor : public CEdit
 {
 	DECLARE_DYNAMIC(CEditInterceptor)
@@ -23,6 +37,7 @@ public:
 
 class ImageWnd : public CWnd
 {
+public:
 	struct AvaPicRgn: public CRect 
 	{ 
 		AvaPicRgn(): CRect() {}
@@ -65,13 +80,15 @@ class ImageWnd : public CWnd
 
 	class PicWnd: public CWnd
 	{
+		friend struct AccumHelper;
+
 		enum ScanRgnDrawModes { DRAW, ERASE };
 		class c_ScanRgn: public AvaPicRgn
 		{
 		protected:
 			BOOL ToErase; 
 			AvaPicRgn last;
-	CPoint curL, curR;
+			CPoint curL, curR;
 
 			void Draw(BMPanvas* bmp, const AvaPicRgn& rgn, ScanRgnDrawModes mode );
 		public:
@@ -85,11 +102,13 @@ class ImageWnd : public CWnd
 		CButton CaptureButton;
 		CMenu menu1; c_ScanRgn ScanRgn;
 		ImagesAccumulator accum;
+		CList<BaseForHelper*> helpers; 
 
 		AvaPicRgn Convert(const OrgPicRgn&);
 		OrgPicRgn Convert(const AvaPicRgn&);
 		BOOL IsRgnInAva( const AvaPicRgn& );	
 		CRect ValidatePicRgn( const CRect& rgn, BMPanvas& ref );
+		void UpdateHelpers(const HelperEvent &event);
 	public:
 		BMPanvas org, ava;
 		CRect ClientArea;
@@ -158,6 +177,15 @@ public:
 	afx_msg void OnParentNotify(UINT message, LPARAM lParam);	
 };
 
+struct AccumHelper: public BaseForHelper
+{	
+	int n_max;
+	ImageWnd::PicWnd *parent;
+	BMPanvas *tmp_bmp;
 
+	AccumHelper(ImageWnd::PicWnd *_parent, const int _n_max);
+	virtual ~AccumHelper();
+	virtual HelperEvent Update(const HelperEvent &event);
+};
 
 

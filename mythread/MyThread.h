@@ -155,7 +155,7 @@ public:
 	LogMessage& operator <<(const CString &Message);
 	void SetPriority(const LogMessage::MessagePriorities &pr) {priority = pr;}
 	void SetPriority(const ::MessagePriorities &pr) {priority = pr;}
-	LogMessage();
+	LogMessage(::MessagePriorities prio = ::lmprLOW);
 	int GetSize() {return (int)(Msgs.GetSize()-1);}
 	BOOL HasMessages() {return (GetSize()!=0);}
 };

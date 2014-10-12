@@ -299,7 +299,12 @@ ImageWnd::PicWnd::PicWnd()
 
 ImageWnd::PicWnd::~PicWnd()
 {
-
+	POSITION pos = helpers.GetHeadPosition();
+	while ( pos != NULL)
+	{
+		delete helpers.GetNext(pos);
+	}
+	helpers.RemoveAll();
 }
 BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_CREATE()
@@ -488,25 +493,27 @@ BOOL ImageWnd::PicWnd::IsRgnInAva( const AvaPicRgn& rgn)
 
 void ImageWnd::PicWnd::OnCaptureButton()
 {
-	CaptureButton.EnableWindow(FALSE);
-    Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)this, (LPARAM)&org);
+	UpdateHelpers(EvntOnCaptureButton);
+	//CaptureButton.EnableWindow(FALSE);
+ //   Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)this, (LPARAM)&org);
 }
 
 LRESULT ImageWnd::PicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
 {
 	CString T;
-	if(org.HasImage())
+	//if(org.HasImage())
 	{
-		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
-		org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
+		UpdateHelpers(EvntOnCaptureReady);
+		//SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
+		//org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
 
-		HGDIOBJ tfont=ava.SelectObject(font1);
-		ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
-		T="Camera capture"; ava.TextOut(0,0,T);
-		T.Format("%dx%d",org.w,org.h); ava.TextOut(0,10,T);
-		ava.SelectObject(tfont);
-		UpdateNow();
-		CaptureButton.EnableWindow(TRUE); CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
+		//HGDIOBJ tfont=ava.SelectObject(font1);
+		//ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
+		//T="Camera capture"; ava.TextOut(0,0,T);
+		//T.Format("%dx%d",org.w,org.h); ava.TextOut(0,10,T);
+		//ava.SelectObject(tfont);
+		//UpdateNow();
+		//CaptureButton.EnableWindow(TRUE); CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
 	}
 	return 0;
 }
@@ -680,6 +687,88 @@ ImageWnd::AvaPicRgn ImageWnd::PicWnd::Convert( const OrgPicRgn& rgn )
 	}
 	return ret;
 }
+
+void ImageWnd::PicWnd::UpdateHelpers( const HelperEvent &event )
+{
+	BaseForHelper * accumCapture = NULL;
+	switch (event)
+	{
+	case EvntOnCaptureButton:
+		this->accum.Reset();
+		accumCapture = new AccumHelper(this, 3);
+		helpers.AddTail(accumCapture);
+		break;
+	default:
+		POSITION pos = helpers.GetHeadPosition();
+		while ( pos != NULL)
+		{
+			POSITION prev = pos;
+			BaseForHelper* helper = helpers.GetNext(pos); 
+			if (helper->Update(event) == RSLT_HELPER_COMPLETE)
+			{
+				delete helper; helpers.RemoveAt(prev);
+			}			
+		}
+	}
+}
+
+
+HelperEvent AccumHelper::Update( const HelperEvent &event )
+{
+	ImagesAccumulator &accum = parent->accum; CString T;
+	switch (event)
+	{
+	case EvntOnCaptureReady:
+		if (accum.n < n_max)
+		{
+			if (SUCCEEDED(accum.FillAccum(tmp_bmp)))
+			{
+				accum.ConvertToBitmap(parent);
+				
+				SetStretchBltMode(parent->ava.GetDC(),COLORONCOLOR);		
+				accum.bmp->StretchTo(&parent->ava, parent->ava.Rgn, parent->org.Rgn, SRCCOPY);
+
+				HGDIOBJ tfont=parent->ava.SelectObject(parent->font1);
+				parent->ava.SetBkMode(TRANSPARENT); parent->ava.SetTextColor(clRED);
+				T.Format("Camera capture %d of %d", accum.n, n_max); parent->ava.TextOut(0,0,T);
+				T.Format("%dx%d", accum.w, accum.h); parent->ava.TextOut(0,10,T);
+				parent->ava.SelectObject(tfont);
+				parent->UpdateNow();
+				//CaptureButton.EnableWindow(TRUE); CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
+
+				if (accum.n == n_max)
+				{
+					accum.ResetSums();
+					return RSLT_HELPER_COMPLETE;					
+				}
+				else
+				{
+					parent->Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)parent, (LPARAM)tmp_bmp);			
+				}
+			}		
+		}
+		else ASSERT(0);
+		break;
+	}
+	return RSLT_OK;
+}
+
+AccumHelper::AccumHelper( ImageWnd::PicWnd *_parent, const int _n_max ) : parent(_parent), n_max(_n_max)
+{
+	tmp_bmp = NULL; tmp_bmp = new BMPanvas();
+	parent->CaptureButton.EnableWindow(FALSE);
+	parent->Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)parent, (LPARAM)tmp_bmp);
+}
+
+AccumHelper::~AccumHelper()
+{	
+	if (tmp_bmp != NULL)
+	{
+		delete tmp_bmp; tmp_bmp = NULL;
+	}
+	BaseForHelper::~BaseForHelper();
+}
+
 
 BOOL ImageWnd::CtrlsTab::DestroyWindow()
 {

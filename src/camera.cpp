@@ -94,7 +94,7 @@ STDMETHODIMP FrameGrabCallback::SampleCB( double n,IMediaSample *pms )
 		MessageForWindow* msg=new MessageForWindow(UM_DATA_UPDATE,Params.Parent);
 		thrd->PostParentMessage(UM_GENERIC_MESSAGE,msg);
 	}
-	else ASSERT(0);	
+	//else ASSERT(0);	
 	return 0;	
 }
 

@@ -48,8 +48,9 @@ public:
 	ImagesAccumulator(): sum(NULL), sum2(NULL), bmp(NULL), errs(NULL) {Reset();};
 	~ImagesAccumulator() {Reset();};
 	void Reset();
+	void ResetSums();
 	void Initialize(int _w, int _h);
-	void FillAccum(BMPanvas *src);
+	HRESULT FillAccum(BMPanvas *src);
 	void ConvertToBitmap(CWnd *ref);
 	void SaveTo(const CString &file);
 	void LoadFrom(const CString &file);

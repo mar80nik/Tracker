@@ -438,9 +438,9 @@ int ErrorInspector::DispatchErrors()
 
 //------------------------------------------------
 //------------------------------------------------
-LogMessage::LogMessage()
+LogMessage::LogMessage(::MessagePriorities prio)
 {
-	priority=low_pr; Name="LogMessage"; ClassID=LOG_MSG_TYPE; Msg=UM_EVENTLOG; Reciver=EventsLog;
+	priority = prio; Name="LogMessage"; ClassID=LOG_MSG_TYPE; Msg=UM_EVENTLOG; Reciver=EventsLog;
 }
 LogMessage* LogMessage::CreateEntry(const CString& obj, const CString Message,int _priority)
 {

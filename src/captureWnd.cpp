@@ -453,13 +453,18 @@ void CaptureWnd::CtrlsTab::OnBnClickedRadio4()
 }
 
 //======================================
-void ImagesAccumulator::Reset()
+void ImagesAccumulator::ResetSums()
 {
 	if (sum != NULL)	{ delete[] sum; sum = NULL; }
 	if (sum2 != NULL)	{ delete[] sum2; sum2 = NULL; }
+}
+
+void ImagesAccumulator::Reset()
+{
+	ResetSums();
 	if (bmp != NULL)	{ delete bmp; bmp = NULL; }
 	if (errs != NULL)	{ delete[] errs; errs = NULL; }
-	n = 0;
+	n = 0; w = h = 0;
 }
 
 void ImagesAccumulator::Initialize(int _w, int _h)
@@ -469,27 +474,40 @@ void ImagesAccumulator::Initialize(int _w, int _h)
 	memset(sum, 0, w*h*sizeof(unsigned short)); memset(sum2, 0, w*h*sizeof(unsigned int));
 }
 
-void ImagesAccumulator::FillAccum(BMPanvas *src)
+HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 {
 	MyTimer Timer1;
-	if (sum != NULL)
+	if (w != src->w || h != src->h)
 	{
-		Timer1.Start(); 
-		src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2;
-		accum_pxl = sum; accum_pxl2 = sum2;
-		for (int y = 0; y < h; y++)
-		{			
-			src_pxl = src->arr + src->wbyte*y;
-			for (int x = 0; x < w; x++)
-			{
-				*accum_pxl += *src_pxl; *accum_pxl2 += (*src_pxl)*(*src_pxl);
-				src_pxl++; accum_pxl++; accum_pxl2++;
-			}
+		if (n == 0)
+		{
+			Initialize(src->w, src->h);
 		}
-		src->UnloadBitmapArray();
-		Timer1.Stop(); fillTime = Timer1.GetValue();
-		n++;
+		else
+		{
+			Reset();
+			LogMessage* log = new LogMessage(lmprHIGH);
+			CString T; T.Format("ImagesAccumualtor error: %d != %d or %d != %d", w, src->w, h, src->h); *log << T;
+			log->Dispatch(); 
+			return E_FAIL;
+		}
 	}
+	Timer1.Start(); 
+	src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2;
+	accum_pxl = sum; accum_pxl2 = sum2;
+	for (int y = 0; y < h; y++)
+	{			
+		src_pxl = src->arr + src->wbyte*y;
+		for (int x = 0; x < w; x++)
+		{
+			*accum_pxl += *src_pxl; *accum_pxl2 += (*src_pxl)*(*src_pxl);
+			src_pxl++; accum_pxl++; accum_pxl2++;
+		}
+	}
+	src->UnloadBitmapArray();
+	Timer1.Stop(); fillTime = Timer1.GetValue();
+	n++;
+	return S_OK;
 }
 
 void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
@@ -499,8 +517,14 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 	{
 		BYTE *dst_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2; float *errs_pxl;
 		Timer1.Start();
-		bmp = new BMPanvas(); bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
-		errs = new float[w*h]; memset(errs, 0, w*h*sizeof(float));
+		if (bmp == NULL)
+		{
+			bmp = new BMPanvas(); bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
+		}
+		if (errs == NULL)
+		{
+			errs = new float[w*h]; memset(errs, 0, w*h*sizeof(float));
+		}		
 
 		bmp->LoadBitmapArray(); accum_pxl = sum; accum_pxl2 = sum2; errs_pxl = errs;
 		for (int y = 0; y < h; y++)
@@ -512,7 +536,7 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 				dst_pxl++; accum_pxl++; accum_pxl2++; errs_pxl++;
 			}
 		}
-		bmp->SetBitmapArray(); delete[] sum; sum = NULL; delete[] sum2; sum2 = NULL;
+		bmp->SetBitmapArray(); 
 		Timer1.Stop(); fillTime = Timer1.GetValue();
 	}
 }

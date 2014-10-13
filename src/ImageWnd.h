@@ -11,7 +11,7 @@ enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
 enum HelperEvent {
 	EvntOnCaptureButton, EvntOnCaptureReady,
-	RSLT_HELPER_COMPLETE, RSLT_OK
+	RSLT_HELPER_COMPLETE, RSLT_OK, RSLT_BMP_ERR, RSLT_ERR
 };
 //================================================
 struct BaseForHelper
@@ -107,10 +107,11 @@ public:
 		AvaPicRgn Convert(const OrgPicRgn&);
 		OrgPicRgn Convert(const AvaPicRgn&);
 		BOOL IsRgnInAva( const AvaPicRgn& );	
-		CRect ValidatePicRgn( const CRect& rgn, BMPanvas& ref );
+		HRESULT ValidatePicRgn( CRect& rgn, BMPanvas& ref );
 		void UpdateHelpers(const HelperEvent &event);
 	public:
-		BMPanvas org, ava;
+		//BMPanvas org, ava;
+		BMPanvas ava;
 		CRect ClientArea;
 		ImageWnd* Parent;
 		CFont font1;
@@ -125,8 +126,8 @@ public:
 		void OnPicWndSave();
 		void EraseAva();
 		void SetScanRgn(const OrgPicRgn& rgn);
-		OrgPicRgn ValidateOrgPicRgn(const OrgPicRgn&);
-		AvaPicRgn ValidateAvaPicRgn( const AvaPicRgn& );
+		HRESULT ValidateOrgPicRgn(OrgPicRgn&);
+		HRESULT ValidateAvaPicRgn(AvaPicRgn&);		
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -167,6 +168,7 @@ public:
 	void OnChildMove();
 	void SetScanRgn(const OrgPicRgn&);
 	void * GetChartFromParent();
+	c_ScanRgn GetScanRgn() const {return ScanRgn;}
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);	

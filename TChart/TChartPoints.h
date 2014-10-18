@@ -246,7 +246,7 @@ struct ErrorBarStyleParams
 {
 	int CapWidth;
 	ChartErrorBarStyles style;
-	ErrorBarStyleParams(int cap=2, ChartErrorBarStyles _style=NO_BARS) { CapWidth=cap; style=_style; }
+	ErrorBarStyleParams(ChartErrorBarStyles _style=NO_BARS, int cap=2) { CapWidth=cap; style=_style; }
 	void Serialize(CArchive& ar);
 };
 template<class C1>
@@ -267,7 +267,7 @@ public:
 //-------------------------------------------
 public:
 	_ErrorBarStyle(ErrorBarStyleParams prms) { Set(prms); }
-	void Set(ErrorBarStyleParams& style)
+	void Set(ErrorBarStyleParams style)
 	{
 		*((ErrorBarStyleParams*)this)=style; UpdateStyle();
 	}

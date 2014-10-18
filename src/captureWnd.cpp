@@ -37,7 +37,7 @@ END_MESSAGE_MAP()
 BEGIN_MESSAGE_MAP(CaptureWnd::CtrlsTab, CDialog)
 	//{{AFX_MSG_MAP(DialogBarTab1)
 	//}}AFX_MSG_MAP	
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Capture)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Live)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClicked_StopCapture)
 	ON_BN_CLICKED(IDC_BUTTON3, OnBnClicked_PauseCapture)
 	ON_BN_CLICKED(IDC_BUTTON4, OnBnClicked_ResumeCapture)
@@ -91,7 +91,7 @@ eDcm800Size CaptureWnd::CtrlsTab::GetPreviewSize()
 	return ret;
 }
 
-void CaptureWnd::CtrlsTab::OnBnClicked_Capture()
+void CaptureWnd::CtrlsTab::OnBnClicked_Live()
 {
 	UpdateData();
 
@@ -486,9 +486,9 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 		else
 		{
 			Reset();
-			LogMessage* log = new LogMessage(lmprHIGH);
-			CString T; T.Format("ImagesAccumualtor error: %d != %d or %d != %d", w, src->w, h, src->h); *log << T;
-			log->Dispatch(); 
+			ConrtoledLogMessage log(lmprHIGH);
+			log.T.Format("ImagesAccumualtor error: %d != %d or %d != %d", w, src->w, h, src->h); log << log.T;
+			log.Dispatch(); 
 			return E_FAIL;
 		}
 	}
@@ -609,7 +609,7 @@ void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const
 	{
 		BYTE *img_pxl; float *errs_pxl; PointVsError pnte; pnte.type.Set(GenericPnt);
 		Timer1.Start();
-		bmp->LoadBitmapArray(); img_pxl = bmp->arr + bmp->wbyte*y; errs_pxl = errs; 
+		bmp->LoadBitmapArray(y, y); img_pxl = bmp->arr; errs_pxl = errs; 
 		for (int x = xmin; x < xmax; x++)
 		{
 			pnte.x = x; pnte.y = *img_pxl; pnte.dy = *errs_pxl;

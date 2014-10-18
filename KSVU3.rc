@@ -221,6 +221,8 @@ BEGIN
     GROUPBOX        "ScanLine",IDC_STATIC,3,3,143,53
     LTEXT           "Xmax",IDC_STATIC,7,38,18,8
     PUSHBUTTON      "EraseCapture",IDC_BUTTON5,150,42,50,14
+    EDITTEXT        IDC_EDIT6,242,22,40,14,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN | ES_NUMBER
+    LTEXT           "N",IDC_STATIC,230,24,8,8
 END
 
 IDD_EVENT_LOG_DLG DIALOGEX 0, 0, 329, 154
@@ -612,6 +614,7 @@ BEGIN
     BEGIN
         MENUITEM "Erase",                       ID_PICWNDMENU_ERASE
         MENUITEM "Save...",                     ID_PICWNDMENU_SAVE
+        MENUITEM "ScanLine",                    ID_PICWNDMENU_SCANLINE
     END
 END
 

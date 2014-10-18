@@ -56,7 +56,7 @@ public:
 	public:
 		enum { IDD = IDD_DIALOGBARTAB1 };
 
-		int stroka, AvrRange, Xmin, Xmax;
+		int stroka, AvrRange, Xmin, Xmax, Nnum;
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
 
 		CtrlsTab(CWnd* pParent = NULL);  
@@ -122,6 +122,7 @@ public:
 		void UpdateNow(void);
 		void OnPicWndErase();
 		void OnPicWndSave();
+		void OnPicWndScanLine();
 		void EraseAva();
 		HRESULT MakeAva();
 		void SetScanRgn(const OrgPicRgn& rgn);
@@ -152,8 +153,6 @@ public:
 	DECLARE_DYNAMIC(ImageWnd)
 protected:
 	PicWnd dark, cupol, strips;
-    int scale;	
-	CScrollBar VertScroll;
 	c_ScanRgn ScanRgn;
 public:
 	CtrlsTab Ctrls;

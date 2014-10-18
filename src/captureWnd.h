@@ -96,7 +96,7 @@ class CaptureWnd : public CWnd, public PerfomanceStaff
 		//}}AFX_MSG
 		DECLARE_MESSAGE_MAP()
 	public:
-		afx_msg void OnBnClicked_Capture();
+		afx_msg void OnBnClicked_Live();
 		afx_msg void OnBnClicked_StopCapture();
 		afx_msg void OnBnClicked_PauseCapture();
 		afx_msg void OnBnClicked_ResumeCapture();

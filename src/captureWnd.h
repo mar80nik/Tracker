@@ -52,8 +52,8 @@ public:
 	void Initialize(int _w, int _h);
 	HRESULT FillAccum(BMPanvas *src);
 	void ConvertToBitmap(CWnd *ref);
-	void SaveTo(const CString &file);
-	void LoadFrom(const CString &file);
+	HRESULT SaveTo(const CString &file);
+	HRESULT LoadFrom(const CString &file);
 	void ScanLine( void *buf, const int y, const int xmin, const int xmax );
 };
 

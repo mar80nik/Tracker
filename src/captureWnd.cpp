@@ -541,12 +541,12 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 	}
 }
 
-void ImagesAccumulator::SaveTo( const CString &file )
+HRESULT ImagesAccumulator::SaveTo( const CString &file )
 {
-	LogMessage *log=new LogMessage(); CString logT;
+	HRESULT ret; ConrtoledLogMessage log;
 	if (bmp != NULL)
 	{
-		if (SUCCEEDED(bmp->SaveImage(file)))
+		if (SUCCEEDED(ret = bmp->SaveImage(file)))
 		{			
 			FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("wb"));
 			if (f != NULL)
@@ -556,25 +556,26 @@ void ImagesAccumulator::SaveTo( const CString &file )
 			}	
 			else
 			{
-				logT.Format("Failed to save errs for bitmap %s", file + _T(".errs")); 
-				*log << logT; log->SetPriority(lmprHIGH);	
+				log.T.Format("Failed to save errs for bitmap %s", file + _T(".errs")); 
+				log << log.T; log.SetPriority(lmprHIGH);	
 			}
 		}
 		else
 		{
-			logT.Format("Failed to save bitmap %s", file); *log << logT; log->SetPriority(lmprHIGH);
+			log.T.Format("Failed to save bitmap %s", file); log << log.T; 
+			log.SetPriority(lmprHIGH);
 		}
 	}
-	if (log->HasMessages()) log->Dispatch();	
-	else delete log;
+	log.Dispatch();	
+	return ret;
 }
 
-void ImagesAccumulator::LoadFrom( const CString &file )
+HRESULT ImagesAccumulator::LoadFrom( const CString &file )
 {	
-	LogMessage *log=new LogMessage(); CString logT;
+	HRESULT ret; ConrtoledLogMessage log;
 	if (bmp == NULL) bmp = new BMPanvas();		
 	bmp->Destroy();
-	if (SUCCEEDED(bmp->LoadImage(file)))
+	if (SUCCEEDED(ret = bmp->LoadImage(file)))
 	{
 		w = (unsigned short)bmp->w; h = (unsigned short)bmp->h;
 		FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("rb"));
@@ -587,17 +588,17 @@ void ImagesAccumulator::LoadFrom( const CString &file )
 		}
 		else
 		{
-			logT.Format("Failed to load errs for bitmap %s", file + _T(".errs")); 
-			*log << logT; log->SetPriority(lmprHIGH);			
+			log.T.Format("Failed to load errs for bitmap %s", file + _T(".errs")); 
+			log << log.T; log.SetPriority(lmprHIGH);			
 		}
 	}
 	else
 	{
-		logT.Format("Failed to load bitmap %s", file); *log << logT; log->SetPriority(lmprHIGH);	
+		log.T.Format("Failed to load bitmap %s", file); 
+		log << log.T; log.SetPriority(lmprHIGH);	
 	}
-
-	if (log->HasMessages()) log->Dispatch();	
-	else delete log;
+	log.Dispatch();		
+	return ret;
 }
 
 void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const int xmax )

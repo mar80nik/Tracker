@@ -372,55 +372,54 @@ void ImageWnd::PicWnd::UpdateNow(void)
 	RedrawWindow(0,0,RDW_INVALIDATE | RDW_FRAME | RDW_NOERASE | RDW_ALLCHILDREN);					
 }
 
-void ImageWnd::PicWnd::LoadPic(CString T)
-{
-/*	if(org.LoadImage(T)==S_OK)
+HRESULT ImageWnd::PicWnd::LoadPic(CString T)
+{	
+	HRESULT ret;
+	if(SUCCEEDED(ret = accum.LoadFrom(T)))
 	{
-		Parent->CameraWnd.Ctrls.UpdateData();			
+		Parent->CameraWnd.Ctrls.UpdateData(); BMPanvas &org = *(accum.bmp);
 		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWnd::CtrlsTab::TrueColor)
 		{
-			LogMessage *log=new LogMessage(); 
-			log->CreateEntry("ERR","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			
-			log->CreateEntry("ERR","In order to use bult-in convertor please select",LogMessage::low_pr);			
-			log->CreateEntry("ERR","convert method: NativeGDI, HSL or HSV.",LogMessage::low_pr);			
-			CKSVU3App* Parent=(CKSVU3App*)AfxGetApp();
-			Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);
-			return;
+			ConrtoledLogMessage log(MessagePriorities::lmprHIGH); 
+			log << _T("ERR: Image you are trying to load is no GRAYSCALE.");
+			log << _T("ERR: In order to use bult-in convertor please select");			
+			log << _T("ERR: convert method: NativeGDI, HSL or HSV.");			
+			log.Dispatch();
+			return E_FAIL;
 		}
 
-		if (org.ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
+		if (accum.bmp->ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
 		FileName=T;
-		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
-		org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
-        HGDIOBJ tfont=ava.SelectObject(font1);
-		ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
+		MakeAva();
+        HGDIOBJ tfont=ava.SelectObject(font1); ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
 		ava.TextOut(0,0,T);
-		T.Format("%dx%d",org.w,org.h); ava.TextOut(0,10,T);
+		T.Format("%dx%d", org.w, org.h); ava.TextOut(0,10,T);
 		ava.SelectObject(tfont); 
 		CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
 		UpdateNow();
 		Parent->Ctrls.Xmax=org.w; Parent->Ctrls.UpdateData();
 	}
-	else FileName="";	*/	 
+	else FileName="";		 
+	return ret;
 }
 
 void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 {
-	/*char buf[1000]; CString T,T2;  GetWindowText(T2);
+	char buf[1000]; CString T,T2;  GetWindowText(T2);
 	DragQueryFile(hDropInfo,0xFFFFFFFF,buf,1000);
 	DragQueryFile(hDropInfo,0,buf,1000); T=CString(buf); 
-	MyTimer Timer1; sec time; CString logT;
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
+	MyTimer Timer1; sec time; 	
 	
-	Timer1.Start();
-	LoadPic(T);	
-	Timer1.Stop(); 
-	time=Timer1.GetValue(); logT.Format("%s org (%.2f Mpix) load time=%s",T2,org.w*org.h/1.e6,ConvTimeToStr(time)); log->Msgs.Add(logT);	
-
-	CKSVU3App* Parent=(CKSVU3App*)AfxGetApp(); 
-	Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);	
-
-	CWnd::OnDropFiles(hDropInfo);*/
+	Timer1.Start(); 
+	if (SUCCEEDED(LoadPic(T)))
+	{
+		BMPanvas &org = *(accum.bmp); ConrtoledLogMessage log;
+		Timer1.Stop(); 
+		time=Timer1.GetValue(); 
+		log.T.Format("%s org (%.2f Mpix) load time=%s", T2, org.w*org.h/1e6, ConvTimeToStr(time)); log << log.T;		
+		log.Dispatch();
+	}	
+	CWnd::OnDropFiles(hDropInfo);
 }
 
 #define ScanLineXShift 0
@@ -534,14 +533,17 @@ void ImageWnd::PicWnd::OnPicWndErase()
 
 void ImageWnd::PicWnd::OnPicWndSave()
 {
-	//if(org.HasImage())
-	//{
-	//	CFileDialog dlg1(FALSE,"png");
-	//	if(dlg1.DoModal()==IDOK)
-	//	{
- //           org.SaveImage(dlg1.GetFileName());
-	//	}
-	//}
+	if (accum.bmp != NULL)
+	{
+		if(accum.bmp->HasImage())
+		{
+			CFileDialog dlg1(FALSE,"png");
+			if(dlg1.DoModal()==IDOK)
+			{
+				accum.SaveTo(dlg1.GetPathName());
+			}
+		}
+	}
 }
 
 int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
@@ -716,6 +718,21 @@ void ImageWnd::PicWnd::UpdateHelpers( const HelperEvent &event )
 	}
 }
 
+HRESULT ImageWnd::PicWnd::MakeAva()
+{
+	if (accum.bmp != NULL)
+	{
+		BMPanvas &org = *(accum.bmp);
+		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
+		org.StretchTo(&ava, ava.Rgn, org.Rgn,SRCCOPY);
+		return S_OK;
+	}
+	else
+	{
+		return E_FAIL;
+	}
+}
+
 
 HelperEvent AccumHelper::Update( const HelperEvent &event )
 {
@@ -730,8 +747,7 @@ HelperEvent AccumHelper::Update( const HelperEvent &event )
 				accum.ConvertToBitmap(parent);
 				parent->Parent->SetScanRgn(parent->Parent->GetScanRgn());
 				
-				SetStretchBltMode(parent->ava.GetDC(),COLORONCOLOR);		
-				accum.bmp->StretchTo(&parent->ava, parent->ava.Rgn, accum.bmp->Rgn, SRCCOPY);
+				parent->MakeAva();
 				parent->ScanRgn.Erase(NULL);
 
 				HGDIOBJ tfont=parent->ava.SelectObject(parent->font1);

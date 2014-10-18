@@ -110,9 +110,7 @@ public:
 		HRESULT ValidatePicRgn( CRect& rgn, BMPanvas& ref );
 		void UpdateHelpers(const HelperEvent &event);
 	public:
-		//BMPanvas org, ava;
 		BMPanvas ava;
-		CRect ClientArea;
 		ImageWnd* Parent;
 		CFont font1;
 		CString FileName;
@@ -120,11 +118,12 @@ public:
 
 		PicWnd();
 		virtual ~PicWnd();
-		void LoadPic(CString T);
+		HRESULT LoadPic(CString T);
 		void UpdateNow(void);
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void EraseAva();
+		HRESULT MakeAva();
 		void SetScanRgn(const OrgPicRgn& rgn);
 		HRESULT ValidateOrgPicRgn(OrgPicRgn&);
 		HRESULT ValidateAvaPicRgn(AvaPicRgn&);		

@@ -153,9 +153,9 @@ BOOL ImageWnd::CtrlsTab::OnInitDialog()
 	// EXCEPTION: OCX Property Pages should return FALSE
 }
 
-ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent),
+ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent), Nnum(3),
 #if defined DEBUG
-	stroka(220), Xmin(100), Xmax(600), Nnum(3)
+	stroka(220), Xmin(100), Xmax(6000)
 #else
 	stroka(1224), Xmin(2), Xmax(3263)
 #endif
@@ -181,114 +181,75 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
-	
-	parent->SetScanRgn(GetScanRgnFromCtrls());
-	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
-	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
-
-	//void* x; CString T,T1; BYTE *dark,*cupol,*strips;
-	//TPointVsErrorSeries *t2; //TSimplePointSeries *t1; 
-	//int midl=stroka, dd=AvrRange,w=parent->strips.org.w, Ymin=midl-dd, Ymax=midl+dd, mm=(Ymax-Ymin)/2; 
 	MyTimer Timer1,Timer2; sec time; 
-	//TPointVsErrorSeries::DataImportMsg *CHM2, *AdarkChartMsg, *AcupolChartMsg, *AstripsChartMsg, *ChartMsg; 
-	//TSimplePointSeries::DataImportMsg *CHM1, *darkChartMsg,*cupolChartMsg, *stripsChartMsg;
-	//CHM2=AdarkChartMsg=AcupolChartMsg=AstripsChartMsg=ChartMsg=NULL; 
-	//CHM1=darkChartMsg=cupolChartMsg=stripsChartMsg=NULL;
+	void* x; CString T; BOOL exit = FALSE;		
 	ConrtoledLogMessage log; log << _T("Speed tests results");
+	ImagesAccumulator &dark = parent->dark.accum, &cupol = parent->cupol.accum, &strips = parent->strips.accum;
 
-	//if(!(parent->dark.org.HasImage() && parent->cupol.org.HasImage() && parent->strips.org.HasImage())) return;
+	if (dark.bmp == NULL) 	{log << _T("There is no DARK image"); exit = TRUE;}
+	if (cupol.bmp == NULL)	{log << _T("There is no CUPOL image"); exit = TRUE;}
+	if (strips.bmp == NULL)	{log << _T("There is no STRIPS image"); exit = TRUE;}
+	if (exit == FALSE)
+	{
+		if (dark.w != cupol.w || dark.h != cupol.h)	{log << _T("DARK != CUPOL"); exit = TRUE;}
+		if (dark.w != strips.w || dark.h != strips.h)	{log << _T("DARK != STRIPS"); exit = TRUE;}
+		if (cupol.w != strips.w || cupol.h != strips.h)	{log << _T("CUPOL != STRIPS"); exit = TRUE;}
+		if (exit == FALSE)
+		{			
+			OrgPicRgn scan_rgn = parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+			T.Format("Scan line y = %d N = %d", cntr.y, Nnum);
 
-	//if(Xmin<0) Xmin=0;
-	//if(Xmin>=parent->strips.org.w) Xmin=parent->strips.org.w;
-	//if(Xmax<0) Xmax=0;
-	//if(Xmax>=parent->strips.org.w) Xmax=parent->strips.org.w;
-	//if(Xmax<Xmin) {int t=Xmax; Xmax=Xmin; Xmin=t;}	
+			PointVsErrorArray dark_points, cupol_points, strips_points, result; Timer1.Start();
 
-	//Timer2.Start();
-	//T.Format("%d",midl); T1.Format("%davrg",midl);
+			dark.ScanLine(&(dark_points), cntr.y, scan_rgn.left, scan_rgn.right);
+			cupol.ScanLine(&(cupol_points), cntr.y, scan_rgn.left, scan_rgn.right);
+			strips.ScanLine(&(strips_points), cntr.y, scan_rgn.left, scan_rgn.right);
 
-	//for(int i=0;i<3;i++)
-	//{
-	//	CHM2 =new TPointVsErrorSeries::DataImportMsg();		
-
-	//	switch(i)
-	//	{
-	//	case 0: AdarkChartMsg=CHM2; break;
-	//	case 1: AcupolChartMsg=CHM2; break;
-	//	case 2: AstripsChartMsg=CHM2; break;
-	//	}
-	//}
-
-	//CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
-	//if((x=chrt.Series.GainAcsess(WRITE))!=0)
-	//{
-	//	SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-	//	if((t2=new TPointVsErrorSeries(T))!=0)	
-	//	{
-	//		for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-	//		Series.Add(t2); 
-	//		t2->_SymbolStyle::Set(NO_SYMBOL); 
-	//		ChartMsg=t2->CreateDataImportMsg(); 
-	//		t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-	//		t2->PointType.Set(GenericPnt); 
-	//		t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-	//	}		
-	//}
-	//
- //   Timer1.Start();	
-	//parent->dark.org.LoadBitmapArray(Ymin,Ymax); 
-	//parent->cupol.org.LoadBitmapArray(Ymin,Ymax);
-	//parent->strips.org.LoadBitmapArray(Ymin,Ymax);
-	//Timer1.Stop(); time=Timer1.GetValue();
-	//logT.Format("D C S %d lines load = %s",2*dd+1,ConvTimeToStr(time)); log->Msgs.Add(logT);
-	//dark=parent->dark.org.arr; 	cupol=parent->cupol.org.arr; strips=parent->strips.org.arr;
-
-	//SimplePoint pnt; pnt.type.Set(GenericPnt); 
-	//ValuesAccumulator pnteD,pnteC,pnteS; PointVsError pnte; 
-	//pnteD.type.Set(AveragePnt);	pnteC.type.Set(AveragePnt);	pnteS.type.Set(AveragePnt);	
-	//
-	//Timer1.Start();	
-	//for(int i = Xmin; i < Xmax; i++)
-	//{
-	//	pnteD.Clear();pnteC.Clear();pnteS.Clear();		
-	//	for(int j = 1; j <= dd; j++)
-	//	{
- //           pnteD << dark[i+(mm+j)*w] << dark[i+(mm-j)*w];
-	//		pnteC << cupol[i+(mm+j)*w] << cupol[i+(mm-j)*w];
-	//		pnteS << strips[i+(mm+j)*w] << strips[i+(mm-j)*w];
-	//	}
-	//	pnt.x=i;
-	//	pnt.y=dark[i+mm*w]; pnteD << pnt.y; 
-	//	pnt.y=cupol[i+mm*w]; pnteC << pnt.y;
-	//	pnt.y=strips[i+mm*w]; pnteS << pnt.y;
-
-	//	pnte=pnteD; pnte.x=i; AdarkChartMsg->Points.Add(pnte);
-	//	pnte=pnteC; pnte.x=i; AcupolChartMsg->Points.Add(pnte);
-	//	pnte=pnteS; pnte.x=i; AstripsChartMsg->Points.Add(pnte);
-	//	
-	//}
-	//Timer1.Stop(); time=Timer1.GetValue();
-	//logT.Format("D C S %d lines averaging time=%s",2*dd+1,ConvTimeToStr(time)); log->Msgs.Add(logT);
- //   
-	//Timer1.Start();
-	//for(int i=0;i<AdarkChartMsg->Points.GetSize();i++)
-	//{
-	//	pnte=(AstripsChartMsg->Points[i]-AdarkChartMsg->Points[i])/(AcupolChartMsg->Points[i]-AdarkChartMsg->Points[i]);
- //       pnte.type.Set(GenericPnt);
-	//	ChartMsg->Points.Add(pnte);		
-	//}
-	//Timer1.Stop(); time=Timer1.GetValue();
-	//logT.Format("Normalizing %d point time=%s",AdarkChartMsg->Points.GetSize(),ConvTimeToStr(time)); log->Msgs.Add(logT);
-
-	//parent->dark.org.UnloadBitmapArray(); parent->cupol.org.UnloadBitmapArray(); parent->strips.org.UnloadBitmapArray();	
-
-	//delete AdarkChartMsg; delete AcupolChartMsg; delete AstripsChartMsg; 
-	//ChartMsg->Dispatch();
-
-
-	Timer2.Stop(); time=Timer2.GetValue();
-	log.T.Format("Total processing time=%s",ConvTimeToStr(time)); log << log.T;
-	log.Dispatch();
+			PointVsError pnte; pnte.type.Set(GenericPnt); 
+			for (int i = 0; i < dark_points.GetSize(); i++)
+			{
+				pnte.type.Set(GenericPnt); 
+				pnte = (strips_points[i] - dark_points[i])/(cupol_points[i] - dark_points[i]);
+				if (pnte.type.Get() != DivisionError) result.Add(pnte);
+			}
+			int diff;
+			if ((diff = dark_points.GetSize() - result.GetSize()) != 0)
+			{
+				log.T.Format("%d points were excluded because of division error", diff); log << log.T;
+				log.SetPriority(lmprHIGH);
+			}
+			if (result.GetSize() != 0)
+			{
+				CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 			
+				if((x = chrt.Series.GainAcsess(WRITE))!=0)
+				{
+					SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+					TPointVsErrorSeries *t2 = NULL;
+					if((t2 = new TPointVsErrorSeries(T)) != NULL)	
+					{
+						t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);				
+						t2->PointType.Set(GenericPnt); 										
+						for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+						Series.Add(t2); 
+						t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+						t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+						TPointVsErrorSeries::DataImportMsg *ChartMsg = t2->CreateDataImportMsg(); 
+						for (int i = 0; i < result.GetSize(); i++) 
+						{
+							ChartMsg->Points.Add(result[i]);
+						}
+						ChartMsg->Dispatch(); 
+						mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+					}		
+				}				
+			}
+			Timer1.Stop(); 
+			log.T.Format("Scan took %s", ConvTimeToStr( Timer1.GetValue()));
+			log << log.T;
+		}
+	}
+	if (exit == TRUE) log.SetPriority(lmprHIGH);
+	log.Dispatch();			
 }
 
 ImageWnd::PicWnd::PicWnd()
@@ -728,9 +689,7 @@ HRESULT ImageWnd::PicWnd::MakeAva()
 
 void ImageWnd::PicWnd::OnPicWndScanLine()
 {
-	void* x; CString T,T1;
-	TPointVsErrorSeries *t2;
-	MyTimer Timer1,Timer2; sec time; 
+	void* x; CString T; 	
 	TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
 	ConrtoledLogMessage log; log << _T("Speed tests results");
 
@@ -739,10 +698,14 @@ void ImageWnd::PicWnd::OnPicWndScanLine()
 		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
 		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
 
+		OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+		T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
+
 		if((x=chrt.Series.GainAcsess(WRITE))!=0)
 		{
 			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-			if((t2=new TPointVsErrorSeries(T))!=0)	
+			TPointVsErrorSeries *t2;
+			if((t2 = new TPointVsErrorSeries(T))!=0)	
 			{
 				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
 				Series.Add(t2); 
@@ -753,8 +716,7 @@ void ImageWnd::PicWnd::OnPicWndScanLine()
 				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
 			}		
 		}
-
-		OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+		
 		accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
 		log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
 		log << log.T;
@@ -789,6 +751,7 @@ HelperEvent AccumHelper::Update( const HelperEvent &event )
 
 				if (accum.n == n_max)
 				{
+					accum.CalculateMeanVsError();
 					accum.ResetSums();
 					return RSLT_HELPER_COMPLETE;					
 				}

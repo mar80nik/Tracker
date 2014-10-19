@@ -100,8 +100,7 @@ public:
 
 	protected:
 		CButton CaptureButton;
-		CMenu menu1; c_ScanRgn ScanRgn;
-		ImagesAccumulator accum;
+		CMenu menu1; c_ScanRgn ScanRgn;		
 		CList<BaseForHelper*> helpers; 
 
 		AvaPicRgn Convert(const OrgPicRgn&);
@@ -114,6 +113,7 @@ public:
 		ImageWnd* Parent;
 		CFont font1;
 		CString FileName;
+		ImagesAccumulator accum;
 		enum {CaptureBtnID=234234};
 
 		PicWnd();

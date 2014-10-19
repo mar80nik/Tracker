@@ -272,7 +272,7 @@ enum SeriesArrayDeleteSeries {DELETE_SERIES,DO_NOT_DELETE_SERIES};
 class TSeriesArray: public TAbstractGraphics
 {
 	friend class TChart;
-	CArray<WORD,WORD&> ColorsTable;	
+	CArray<WORD> ColorsTable;	
 private:	
 	SeriesArrayDeleteSeries ToDeleteSeries;
 public:

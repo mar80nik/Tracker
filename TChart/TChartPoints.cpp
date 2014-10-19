@@ -90,8 +90,8 @@ PointVsError PointVsError::operator /(PointVsError pnt)
 	}
 	else
 	{
-		temp.y=-1;
-		temp.dy=-1;	
+		temp.y = temp.dy = 0; 
+		temp.type.Set(DivisionError);
 	}
 	return temp;
 }

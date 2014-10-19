@@ -609,14 +609,15 @@ void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const
 	{
 		BYTE *img_pxl; float *errs_pxl; PointVsError pnte; pnte.type.Set(GenericPnt);
 		Timer1.Start();
-		bmp->LoadBitmapArray(y, y); img_pxl = bmp->arr; errs_pxl = errs; 
+		bmp->LoadBitmapArray(y, y); 
+		img_pxl = bmp->arr; img_pxl += xmin; errs_pxl = errs; errs_pxl += xmin;
 		for (int x = xmin; x < xmax; x++)
 		{
 			pnte.x = x; pnte.y = *img_pxl; pnte.dy = *errs_pxl;
 			buf->Add(pnte);
 			img_pxl++; errs_pxl++;
 		}
-		bmp->SetBitmapArray();
+		bmp->UnloadBitmapArray();
 		Timer1.Stop(); fillTime = Timer1.GetValue();
 	}
 }

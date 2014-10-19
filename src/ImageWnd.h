@@ -56,7 +56,7 @@ public:
 	public:
 		enum { IDD = IDD_DIALOGBARTAB1 };
 
-		int stroka, AvrRange, Xmin, Xmax, Nnum;
+		int stroka, Xmin, Xmax, Nnum;
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
 
 		CtrlsTab(CWnd* pParent = NULL);  

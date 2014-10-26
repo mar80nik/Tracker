@@ -43,7 +43,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src</IncludePath>
     <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath)</LibraryPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
     <OutDir>$(SolutionDir)\..\exe\</OutDir>
@@ -51,7 +51,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src</IncludePath>
     <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)\..\exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
@@ -74,7 +74,7 @@
       <AddModuleNamesToAssembly>
       </AddModuleNamesToAssembly>
       <AdditionalLibraryDirectories>D:\DXSDK\lib;$(SolutionDir)\gsl-1.16\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
       <AdditionalOptions>/ignore:4248 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -93,7 +93,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\DXSDK\lib;$(SolutionDir)\gsl-1.16\lib</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -110,6 +110,7 @@
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\cameraChooser.cpp" />
     <ClCompile Include="src\captureWnd.cpp" />
+    <ClCompile Include="src\compressor.cpp" />
     <ClCompile Include="src\devices.cpp" />
     <ClCompile Include="src\DialogBarTab1.cpp" />
     <ClCompile Include="src\DialogBarTab2.cpp" />
@@ -366,6 +367,7 @@
     <ClInclude Include="src\camera.h" />
     <ClInclude Include="src\cameraChooser.h" />
     <ClInclude Include="src\captureWnd.h" />
+    <ClInclude Include="src\compressor.h" />
     <ClInclude Include="src\externals.h" />
     <ClInclude Include="src\ImageWnd.h" />
     <ClInclude Include="src\KSVU3.h" />

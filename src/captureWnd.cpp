@@ -3,6 +3,7 @@
 #include "my_color.h"
 #include "KSVU3.h"
 #include "ImageWnd.h"
+#include "compressor.h"
 
 IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
 CaptureWnd::CaptureWnd(): thrd(444)
@@ -454,21 +455,12 @@ void CaptureWnd::CtrlsTab::OnBnClickedRadio4()
 //======================================
 void ImagesAccumulator::ResetSums()
 {
-	if (sum != NULL)	{ delete[] sum; sum = NULL; }
-	if (sum2 != NULL)	{ delete[] sum2; sum2 = NULL; }
+	if (sums != NULL)	{ free(sums); sums = NULL; }
 }
-
-
-void ImagesAccumulator::ResetValErr()
-{
-	if (errs != NULL)	{ delete[] errs; errs = NULL; }
-	if (values != NULL)	{ delete[] values; values = NULL; }
-}
-
 
 void ImagesAccumulator::Reset()
 {
-	ResetSums(); ResetValErr();
+	ResetSums(); 
 	if (bmp != NULL)	{ delete bmp; bmp = NULL; }
 	n = 0; w = h = 0;
 }
@@ -476,9 +468,7 @@ void ImagesAccumulator::Reset()
 void ImagesAccumulator::Initialize(int _w, int _h)
 {
 	Reset(); w = _w; h = _h;
-	sum = new unsigned short[w*h]; sum2 = new unsigned int[w*h];
-	memset(sum, 0, w*h*sizeof(unsigned short)); memset(sum2, 0, w*h*sizeof(unsigned int));
-	errs = new float[w*h]; values = new float[w*h];
+	sums = (BYTE*)malloc(GetSumsSize()); memset(sums, 0, GetSumsSize());
 }
 
 HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
@@ -500,8 +490,8 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 		}
 	}
 	Timer1.Start(); 
-	src->LoadBitmapArray(); BYTE *src_pxl; unsigned short *accum_pxl; unsigned int *accum_pxl2;
-	accum_pxl = sum; accum_pxl2 = sum2;
+	src->LoadBitmapArray(); BYTE *src_pxl; USHORT *accum_pxl; UINT* accum_pxl2;
+	accum_pxl = GetSum(); accum_pxl2 = GetSums2();
 	for (int y = 0; y < h; y++)
 	{			
 		src_pxl = src->arr + src->wbyte*y;
@@ -520,16 +510,16 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 {
 	MyTimer Timer1; 
-	if (sum != NULL)
+	if (sums != NULL)
 	{
 		BYTE *dst_pxl; unsigned short *accum_pxl; 
 		Timer1.Start();
 		if (bmp == NULL)
 		{
-			bmp = new BMPanvas(); bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
+			bmp = new BMPanvas(); 
 		}
-
-		bmp->LoadBitmapArray(); accum_pxl = sum; 
+		bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
+		bmp->LoadBitmapArray(); accum_pxl = GetSum(); 
 		for (int y = 0; y < h; y++)
 		{			
 			dst_pxl = bmp->arr + bmp->wbyte*y;
@@ -544,67 +534,41 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 	}
 }
 
-void ImagesAccumulator::CalculateMeanVsError()
-{
-	MyTimer Timer1; 
-	if (sum != NULL)
-	{
-		unsigned short *accum_pxl; unsigned int *accum_pxl2; float *errs_pxl, *values_pxl;
-		Timer1.Start();
-
-		accum_pxl = sum; accum_pxl2 = sum2; errs_pxl = errs; values_pxl = values;
-
-		if (n > 1)
-		{
-			for (int y = 0; y < h; y++)
-			{			
-				for (int x = 0; x < w; x++, accum_pxl++, accum_pxl2++, errs_pxl++, values_pxl++)
-				{
-					*values_pxl = (float)(*accum_pxl)/n; 				
-					*errs_pxl = sqrt(((float)(*accum_pxl2) - ((float)(*accum_pxl)*(*accum_pxl)/n))/(n - 1));
-				}
-			}		
-		}
-		else
-		{
-			for (int y = 0; y < h; y++)
-			{			
-				for (int x = 0; x < w; x++, accum_pxl++, values_pxl++)
-				{
-					*values_pxl = (float)(*accum_pxl)/n;
-				}
-			}
-			memset(errs, 0, w*h*sizeof(float));
-		}
-
-		Timer1.Stop(); fillTime = Timer1.GetValue();
-	}
-}
-
-
 HRESULT ImagesAccumulator::SaveTo( const CString &file )
 {
-	HRESULT ret; ConrtoledLogMessage log;
-	if (bmp != NULL)
+	HRESULT ret; ConrtoledLogMessage log; MyTimer Timer1;
+
+	if (sums != NULL)
 	{
-		if (SUCCEEDED(ret = bmp->SaveImage(file)))
-		{			
-			FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("wb"));
-			if (f != NULL)
-			{
-				fwrite(errs, sizeof(float), w*h, f);
-				fclose(f);
-			}	
-			else
-			{
-				log.T.Format("Failed to save errs for bitmap %s", file + _T(".errs")); 
-				log << log.T; log.SetPriority(lmprHIGH);	
-			}
-		}
-		else
+		Compressor cmpr(Compressor::ZIP, 9);
+		CFile dst0(file, CFile::modeCreate | CFile::modeWrite| CFile::typeBinary);
+		TRY
 		{
-			log.T.Format("Failed to save bitmap %s", file); log << log.T; 
-			log.SetPriority(lmprHIGH);
+			CArchive ar(&dst0, CArchive::store); Serialize(ar); ar.Close();
+		}
+		AND_CATCH(CArchiveException, pEx)
+		{
+			pEx->ReportError(); return E_FAIL;
+		}
+		END_CATCH
+
+		CMemFile src0(sums, GetSumsSize(), GetCompressorBufferSize()); src0.SetLength(GetSumsSize());	
+		if ((ret = cmpr.Process(&src0, &dst0)) == Z_OK)
+		{
+			src0.Close();
+		}
+		if (ret != Z_OK) 
+		{
+			dst0.Abort();
+			log.T.Format("Failed to save %s", file); 
+			log << log.T; log.SetPriority(lmprHIGH);	
+		}		
+		else 
+		{			
+			dst0.Close(); 
+			log.T.Format("Time to save %s - %s Ratio = %.2f", 
+				file, ConvTimeToStr(cmpr.LastSession.dt), cmpr.LastSession.ratio); 			
+			log << log.T;
 		}
 	}
 	log.Dispatch();	
@@ -613,53 +577,100 @@ HRESULT ImagesAccumulator::SaveTo( const CString &file )
 
 HRESULT ImagesAccumulator::LoadFrom( const CString &file )
 {	
-	HRESULT ret; ConrtoledLogMessage log;
+	HRESULT ret = E_FAIL; ConrtoledLogMessage log;
 	if (bmp == NULL) bmp = new BMPanvas();		
 	bmp->Destroy();
-	if (SUCCEEDED(ret = bmp->LoadImage(file)))
+	
+	ResetSums();
+	ULONGLONG buf_size = 0; 
+	Compressor cmpr(Compressor::UNZIP);		
+	CFile src0(file, CFile::modeRead| CFile::typeBinary); 
+	TRY
 	{
-		w = (unsigned short)bmp->w; h = (unsigned short)bmp->h;
-		FILE *f = NULL; fopen_s(&f, file + _T(".errs"), _T("rb"));
-		if (errs != NULL)	{ delete[] errs; errs = NULL; }
-		errs = new float[w*h]; 
-		if (f != NULL)
-		{
-			fread(errs, sizeof(float), w*h, f);
-			fclose(f);
-		}
-		else
-		{
-			log.T.Format("Failed to load errs for bitmap %s", file + _T(".errs")); 
-			log << log.T; log.SetPriority(lmprHIGH);			
-		}
+		CArchive ar(&src0, CArchive::load); Serialize(ar); ar.Close();
 	}
-	else
+	AND_CATCH(CArchiveException, pEx)
 	{
-		log.T.Format("Failed to load bitmap %s", file); 
-		log << log.T; log.SetPriority(lmprHIGH);	
+		pEx->ReportError(); return E_FAIL;
 	}
+	END_CATCH
+	CMemFile dst0(GetCompressorBufferSize());	
+
+	if ((ret = cmpr.Process(&src0, &dst0)) == Z_OK)
+	{
+		src0.Close(); sums = dst0.Detach();
+		log.T.Format("Time to load %s - %s Ratio = %.2f", 
+			file, ConvTimeToStr(cmpr.LastSession.dt), cmpr.LastSession.ratio); 			
+		log << log.T;
+	}	
 	log.Dispatch();		
 	return ret;
 }
 
 void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const int xmax )
 {
+	unsigned short *accum_pxl; unsigned int *accum_pxl2; 
 	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
 	MyTimer Timer1; 
 	if (bmp->HasImage())
 	{
-		float *errs_pxl, *values_pxl; PointVsError pnte; pnte.type.Set(GenericPnt);
+		PointVsError pnte; pnte.type.Set(GenericPnt);
 		Timer1.Start();
-		errs_pxl = errs; values_pxl = values;
-		errs_pxl += y*w + xmin; values_pxl += y*w + xmin;
-		for (int x = xmin; x < xmax; x++)
+		accum_pxl = GetSum(); accum_pxl2 = GetSums2();
+		accum_pxl += y*w + xmin; accum_pxl2 += y*w + xmin;
+		for (int x = xmin; x < xmax; x++, accum_pxl++, accum_pxl2++)
 		{
-			pnte.x = x; pnte.y = *values_pxl; pnte.dy = *errs_pxl;
+			pnte.x = x; pnte.y = (float)(*accum_pxl)/n; 
+			if (n > 1)
+			{
+				pnte.dy = sqrt(((float)(*accum_pxl2) - ((float)(*accum_pxl)*(*accum_pxl)/n))/(n - 1));
+			}
+			else
+			{
+				pnte.dy = 0;
+			}
 			buf->Add(pnte);
-			values_pxl++; errs_pxl++;
 		}
 		Timer1.Stop(); fillTime = Timer1.GetValue();
 	}
 }
 
+USHORT* ImagesAccumulator::GetSum()
+{
+	return (USHORT*)(sums != NULL ? sums:NULL);
+}
+
+UINT* ImagesAccumulator::GetSums2()
+{
+	return (UINT*)(sums != NULL ? sums + w*h*sizeof(USHORT):NULL);
+}
+
+ImagesAccumulator::ImagesAccumulator() : sums(NULL), bmp(NULL)
+{
+	Reset();
+}
+
+size_t AccumInfo::GetSumsSize() const
+{
+	return (w*h*(sizeof(UINT) + sizeof(USHORT)));
+}
+
 //======================================
+
+void AccumInfo::Serialize( CArchive &ar )
+{
+	if(ar.IsStoring())
+	{
+		ar << n << w << h;
+	}
+	else
+	{
+		ar >> n >> w >> h;
+	}
+
+}
+
+size_t AccumInfo::GetCompressorBufferSize() const
+{
+	return (w*10*(sizeof(UINT) + sizeof(USHORT)));
+}

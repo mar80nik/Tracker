@@ -36,24 +36,34 @@ public:
 	}
 };
 
-struct ImagesAccumulator
+struct AccumInfo
+{
+	BYTE n;
+	unsigned short w, h;
+	virtual void Serialize(CArchive &ar);
+	size_t GetSumsSize() const;
+	size_t GetCompressorBufferSize() const;
+};
+
+struct ImagesAccumulator: public AccumInfo
 {
 protected:
-	unsigned short *sum; unsigned int *sum2;
+	BYTE *sums;
 public:
-	BMPanvas *bmp; float *errs, *values;
-	unsigned short n, w, h;
+	BMPanvas *bmp; 
+	
 	ms fillTime;
 
-	ImagesAccumulator(): sum(NULL), sum2(NULL), bmp(NULL), errs(NULL), values(NULL) {Reset();};
+	ImagesAccumulator();;
 	~ImagesAccumulator() {Reset();};
 	void Reset();
-	void ResetSums();
-	void ResetValErr();
+	void ResetSums();	
+	unsigned short *GetSum();
+	unsigned int *GetSums2();
+
 	void Initialize(int _w, int _h);
 	HRESULT FillAccum(BMPanvas *src);
 	void ConvertToBitmap(CWnd *ref);
-	void CalculateMeanVsError();
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
 	void ScanLine( void *buf, const int y, const int xmin, const int xmax );

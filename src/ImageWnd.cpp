@@ -11,7 +11,7 @@
 #include "my_color.h"
 #include "captureWnd.h"
 #include "BMPanvas.h"
-
+#include "compressor.h"
 // ImageWnd
 
 IMPLEMENT_DYNAMIC(ImageWnd, CWnd)
@@ -49,7 +49,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 #define TEST1
 #ifdef DEBUG
 	#if defined TEST1
-	 	dark.LoadPic(CString("..\\exe\\ttt.png"));
+//	 	dark.LoadPic(CString("..\\exe\\ttt.png"));
 	 	//cupol.LoadPic(CString("..\\exe\\cupol.png"));
 	 	//strips.LoadPic(CString("..\\exe\\strips.png"));
 	#elif defined TEST2
@@ -180,7 +180,33 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 
 void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
-	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
+	//BYTE *buf = NULL; int buf_size = 21;
+	//BYTE *buf_out = NULL;
+	//BYTE ttt[100], *tt1; memset(ttt,0,100); int rrr = 0; tt1 = NULL;
+	//	
+	//buf = (BYTE*)malloc(buf_size);
+	//strcpy_s((char*)buf, buf_size, "0123456789876543210");
+	//CMemFile src0(buf, buf_size, 1024); src0.SetLength(buf_size);
+	//src0.Seek(strlen((char*)buf), CFile::begin); src0.Write(&buf_size, sizeof(int));	
+	//src0.SeekToBegin();	
+
+	//CFile dst0(_T("out.pack"), CFile::modeCreate | CFile::modeWrite| CFile::typeBinary);
+	//int ret = zip(&src0, &dst0, 9);
+	//dst0.Close();
+
+	//CFile src(_T("out.pack"), CFile::modeRead | CFile::typeBinary); CMemFile dst;
+	//ret = unzip(&src, &dst);
+
+	//dst.Seek(-1*(LONGLONG)sizeof(int), CFile::end); buf_size = -1; 
+	//dst.Read(&buf_size, sizeof(int));
+	//buf_size = (int)dst.GetLength(); buf_out = dst.Detach();
+	//if (buf_out != NULL)
+	//{
+	//	free(buf_out);
+	//}
+
+
+	/*UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	MyTimer Timer1,Timer2; sec time; 
 	void* x; CString T; BOOL exit = FALSE;		
 	ConrtoledLogMessage log; log << _T("Speed tests results");
@@ -249,7 +275,7 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 		}
 	}
 	if (exit == TRUE) log.SetPriority(lmprHIGH);
-	log.Dispatch();			
+	log.Dispatch();	*/		
 }
 
 ImageWnd::PicWnd::PicWnd()
@@ -330,20 +356,22 @@ HRESULT ImageWnd::PicWnd::LoadPic(CString T)
 	HRESULT ret;
 	if(SUCCEEDED(ret = accum.LoadFrom(T)))
 	{
-		Parent->CameraWnd.Ctrls.UpdateData(); BMPanvas &org = *(accum.bmp);
-		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWnd::CtrlsTab::TrueColor)
-		{
-			ConrtoledLogMessage log(MessagePriorities::lmprHIGH); 
-			log << _T("ERR: Image you are trying to load is no GRAYSCALE.");
-			log << _T("ERR: In order to use bult-in convertor please select");			
-			log << _T("ERR: convert method: NativeGDI, HSL or HSV.");			
-			log.Dispatch();
-			return E_FAIL;
-		}
+		accum.ConvertToBitmap(this); BMPanvas &org = *(accum.bmp);
 
-		if (accum.bmp->ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
+		//Parent->CameraWnd.Ctrls.UpdateData(); 
+		//if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWnd::CtrlsTab::TrueColor)
+		//{
+		//	ConrtoledLogMessage log(MessagePriorities::lmprHIGH); 
+		//	log << _T("ERR: Image you are trying to load is no GRAYSCALE.");
+		//	log << _T("ERR: In order to use bult-in convertor please select");			
+		//	log << _T("ERR: convert method: NativeGDI, HSL or HSV.");			
+		//	log.Dispatch();
+		//	return E_FAIL;
+		//}
+
+		//if (accum.bmp->ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
 		FileName=T;
-		MakeAva();
+		EraseAva(); MakeAva();
         HGDIOBJ tfont=ava.SelectObject(font1); ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
 		ava.TextOut(0,0,T);
 		T.Format("%dx%d", org.w, org.h); ava.TextOut(0,10,T);
@@ -367,6 +395,7 @@ void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 	if (SUCCEEDED(LoadPic(T)))
 	{
 		BMPanvas &org = *(accum.bmp); ConrtoledLogMessage log;
+		Parent->SetScanRgn(Parent->GetScanRgn());
 		Timer1.Stop(); 
 		time=Timer1.GetValue(); 
 		log.T.Format("%s org (%.2f Mpix) load time=%s", T2, org.w*org.h/1e6, ConvTimeToStr(time)); log << log.T;		
@@ -487,7 +516,7 @@ void ImageWnd::PicWnd::OnPicWndSave()
 	{
 		if(accum.bmp->HasImage())
 		{
-			CFileDialog dlg1(FALSE,"png");
+			CFileDialog dlg1(FALSE,"pack");
 			if(dlg1.DoModal()==IDOK)
 			{
 				accum.SaveTo(dlg1.GetPathName());
@@ -751,8 +780,8 @@ HelperEvent AccumHelper::Update( const HelperEvent &event )
 
 				if (accum.n == n_max)
 				{
-					accum.CalculateMeanVsError();
-					accum.ResetSums();
+					//accum.CalculateMeanVsError();
+					//accum.ResetSums();
 					return RSLT_HELPER_COMPLETE;					
 				}
 				else

@@ -56,8 +56,9 @@ public:
 	public:
 		enum { IDD = IDD_DIALOGBARTAB1 };
 
-		int stroka, Xmin, Xmax, Nnum;
+		int stroka, Xmin, Xmax;
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
+		CComboBox NofScans;
 
 		CtrlsTab(CWnd* pParent = NULL);  
 		OrgPicRgn GetScanRgnFromCtrls();
@@ -76,6 +77,7 @@ public:
 		afx_msg void OnBnClickedButton5();
 		afx_msg void OnEnKillfocusEdit1();
 		LRESULT OnButtonIntercepted(WPARAM wParam, LPARAM lParam );
+		int GetNofScans();
 	};
 
 	class PicWnd: public CWnd

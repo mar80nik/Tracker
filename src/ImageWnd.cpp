@@ -149,11 +149,11 @@ END_MESSAGE_MAP()
 BOOL ImageWnd::CtrlsTab::OnInitDialog() 
 {
 	CDialog::OnInitDialog();
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
+	NofScans.SetCurSel(1);
+	return TRUE; 	
 }
 
-ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent), Nnum(3),
+ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent),
 #if defined DEBUG
 	stroka(220), Xmin(100), Xmax(6000)
 #else
@@ -170,43 +170,17 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT1, stroka);
 	DDX_Text(pDX, IDC_EDIT3, Xmin);
 	DDX_Text(pDX, IDC_EDIT4, Xmax);
-	DDX_Text(pDX, IDC_EDIT6, Nnum);
 	DDX_Control(pDX, IDC_EDIT3, XminCtrl);
 	DDX_Control(pDX, IDC_EDIT4, XmaxCtrl);
 	DDX_Control(pDX, IDC_EDIT1, strokaCtrl);
+	DDX_Control(pDX, IDC_COMBO1, NofScans);
 	//}}AFX_DATA_MAP
 
 }
 
 void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
-	//BYTE *buf = NULL; int buf_size = 21;
-	//BYTE *buf_out = NULL;
-	//BYTE ttt[100], *tt1; memset(ttt,0,100); int rrr = 0; tt1 = NULL;
-	//	
-	//buf = (BYTE*)malloc(buf_size);
-	//strcpy_s((char*)buf, buf_size, "0123456789876543210");
-	//CMemFile src0(buf, buf_size, 1024); src0.SetLength(buf_size);
-	//src0.Seek(strlen((char*)buf), CFile::begin); src0.Write(&buf_size, sizeof(int));	
-	//src0.SeekToBegin();	
-
-	//CFile dst0(_T("out.pack"), CFile::modeCreate | CFile::modeWrite| CFile::typeBinary);
-	//int ret = zip(&src0, &dst0, 9);
-	//dst0.Close();
-
-	//CFile src(_T("out.pack"), CFile::modeRead | CFile::typeBinary); CMemFile dst;
-	//ret = unzip(&src, &dst);
-
-	//dst.Seek(-1*(LONGLONG)sizeof(int), CFile::end); buf_size = -1; 
-	//dst.Read(&buf_size, sizeof(int));
-	//buf_size = (int)dst.GetLength(); buf_out = dst.Detach();
-	//if (buf_out != NULL)
-	//{
-	//	free(buf_out);
-	//}
-
-
-	/*UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
+	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	MyTimer Timer1,Timer2; sec time; 
 	void* x; CString T; BOOL exit = FALSE;		
 	ConrtoledLogMessage log; log << _T("Speed tests results");
@@ -223,7 +197,7 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 		if (exit == FALSE)
 		{			
 			OrgPicRgn scan_rgn = parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
-			T.Format("Scan line y = %d N = %d", cntr.y, Nnum);
+			T.Format("Scan line y = %d N = %d", cntr.y, strips.n);
 
 			PointVsErrorArray dark_points, cupol_points, strips_points, result; Timer1.Start();
 
@@ -275,7 +249,7 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 		}
 	}
 	if (exit == TRUE) log.SetPriority(lmprHIGH);
-	log.Dispatch();	*/		
+	log.Dispatch();			
 }
 
 ImageWnd::PicWnd::PicWnd()
@@ -684,7 +658,7 @@ void ImageWnd::PicWnd::UpdateHelpers( const HelperEvent &event )
 	{
 	case EvntOnCaptureButton:
 		this->accum.Reset();
-		accumCapture = new AccumHelper(this, ctrls.Nnum);
+		accumCapture = new AccumHelper(this, ctrls.GetNofScans());
 		helpers.AddTail(accumCapture);
 		break;
 	default:
@@ -847,6 +821,13 @@ LRESULT ImageWnd::CtrlsTab::OnButtonIntercepted( WPARAM wParam, LPARAM lParam )
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	parent->SetScanRgn(GetScanRgnFromCtrls());
 	return NULL;
+}
+
+int ImageWnd::CtrlsTab::GetNofScans()
+{
+	CString text;
+	NofScans.GetLBText(NofScans.GetCurSel(),text);
+	return atoi(text);
 }
 
 IMPLEMENT_DYNAMIC(CEditInterceptor, CEdit)

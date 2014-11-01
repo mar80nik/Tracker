@@ -24,3 +24,4 @@ exe/
 *RCa04812*
 *.dat
 gsl-1.16/lib/
+*.grf

@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "my_gsl.h"
 
+//DoubleArray& DoubleArray::operator=(const DoubleArray& arr )
+//{
+//	RemoveAll();
+//	SetSize(arr.GetSize());
+//	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
+//	return *this;
+//}
 
 int Solver1d::Main ()
 {
@@ -158,16 +165,3 @@ int FFTRealTransform::Init( Params& _params, Direction _dir )
 }
 
 //////////////////////////////////////////////////////////////////////////
-
-DoubleArray& DoubleArray::operator=( DoubleArray& arr )
-{
-	RemoveAll();
-	SetSize(arr.GetSize());
-	for(int i=0; i<arr.GetSize();i++) Add(arr[i]);
-	return *this;
-}
-
-DoubleArray::DoubleArray(): CArray<double>()
-{
-
-}

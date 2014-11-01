@@ -10,7 +10,8 @@
 //T type=...YYYXXX
 enum PointChnlType {mCHNL=6, shCHNL=1, KEEP_CHNL=0, CHNL0=1,CHNL1=2};
 enum PointBckgType {mBCKG=1, shBCKG=0, NON_BCKG=0, BCKG=1, KEEP_BCKG=2 };
-enum PointTypeID {mType=0x38, shType=3, KEEP_TYPE=0, ErrorPntType=0, ChanelPntType, TransmitPnt, GenericPnt, AveragePnt};
+enum PointTypeID {mType=0x38, shType=3, KEEP_TYPE=0, 
+	ErrorPntType=0, ChanelPntType, TransmitPnt, GenericPnt, AveragePnt, DivisionError};
 
 class PointTypes
 {
@@ -19,6 +20,7 @@ protected: 	int val;
 public: 
 	PointTypes() {val=0;}
 	bool operator==(PointTypes& p) {return (val==p.val);}
+	PointTypes& operator=(const PointTypes& p) {val = p.val; return *this;}
 	int GetChannel() {return ((val&mCHNL)>>shCHNL);};
 	void Set(PointTypeID id, PointChnlType chnl=KEEP_CHNL, PointBckgType bckg=KEEP_BCKG) 
 	{
@@ -246,7 +248,7 @@ struct ErrorBarStyleParams
 {
 	int CapWidth;
 	ChartErrorBarStyles style;
-	ErrorBarStyleParams(int cap=2, ChartErrorBarStyles _style=NO_BARS) { CapWidth=cap; style=_style; }
+	ErrorBarStyleParams(ChartErrorBarStyles _style=NO_BARS, int cap=2) { CapWidth=cap; style=_style; }
 	void Serialize(CArchive& ar);
 };
 template<class C1>
@@ -267,7 +269,7 @@ public:
 //-------------------------------------------
 public:
 	_ErrorBarStyle(ErrorBarStyleParams prms) { Set(prms); }
-	void Set(ErrorBarStyleParams& style)
+	void Set(ErrorBarStyleParams style)
 	{
 		*((ErrorBarStyleParams*)this)=style; UpdateStyle();
 	}

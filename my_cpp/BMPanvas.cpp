@@ -128,7 +128,7 @@ HRESULT BMPanvas::LoadImage( CString name )
 
 HRESULT BMPanvas::SaveImage(CString name)
 {	
-	HRESULT ret; CImage TI; 	
+	HRESULT ret = E_FAIL; CImage TI; 	
 	if(HasImage())
 	{		
 		TI.Attach(GetHBMP(BMP_DETACH));
@@ -294,12 +294,12 @@ HDC BMPanvas::GetDC(void) {return hdc;}
 
 HBITMAP BMPanvas::GetHBMP( BMPanvasDetachMode detach )
 {
-	HBITMAP ret;
+	HBITMAP ret = NULL;
 	if(detach==BMP_DETACH)
 	{
 		ret=(HBITMAP)SelectObject(last_hbmp); last_hbmp=NULL;
 		ASSERT(ret==hbmp);
-		hbmp=NULL;
+		hbmp = NULL;
 	}
 	return ret;
 }

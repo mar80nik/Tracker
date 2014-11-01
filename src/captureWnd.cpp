@@ -1,14 +1,9 @@
-// captureWnd.cpp : implementation file
-//
-
 #include "stdafx.h"
 #include "captureWnd.h"
 #include "my_color.h"
-//#include "ml44ctrl.h"
-//#include "Monochromator.h"
 #include "KSVU3.h"
 #include "ImageWnd.h"
-// CaptureWnd
+#include "compressor.h"
 
 IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
 CaptureWnd::CaptureWnd(): thrd(444)
@@ -19,16 +14,13 @@ CaptureWnd::CaptureWnd(): thrd(444)
 	penRed.CreatePen(PS_SOLID,1,clRED);
 	penBlue.CreatePen(PS_SOLID,1,clBLUE);
 	penGreen.CreatePen(PS_SOLID,1,clGREEN);
+	penWhite.CreatePen(PS_SOLID,1,clWHITE);
 }
 
 CaptureWnd::~CaptureWnd()
 {
-	if(Src!=NULL) 
-	{
-		delete Src; Src=NULL;
-	}
+	if (Src != NULL)	{ delete Src; Src=NULL; }
 }
-
 
 BEGIN_MESSAGE_MAP(CaptureWnd, CWnd)
 	ON_WM_CREATE()
@@ -43,10 +35,10 @@ END_MESSAGE_MAP()
 // CaptureWnd message handlers
 
 
-BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, CDialog)
+BEGIN_MESSAGE_MAP(CaptureWnd::CtrlsTab, CDialog)
 	//{{AFX_MSG_MAP(DialogBarTab1)
 	//}}AFX_MSG_MAP	
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Capture)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClicked_Live)
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClicked_StopCapture)
 	ON_BN_CLICKED(IDC_BUTTON3, OnBnClicked_PauseCapture)
 	ON_BN_CLICKED(IDC_BUTTON4, OnBnClicked_ResumeCapture)
@@ -54,18 +46,18 @@ BEGIN_MESSAGE_MAP(CaptureWndCtrlsTab, CDialog)
 	ON_WM_CREATE()
 	ON_BN_CLICKED(IDC_BUTTON6, OnBnClickedChooseCam)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_RADIO1, &CaptureWndCtrlsTab::OnBnClickedRadio1)
-	ON_BN_CLICKED(IDC_RADIO4, &CaptureWndCtrlsTab::OnBnClickedRadio4)
+	ON_BN_CLICKED(IDC_RADIO1, &CaptureWnd::CtrlsTab::OnBnClickedRadio1)
+	ON_BN_CLICKED(IDC_RADIO4, &CaptureWnd::CtrlsTab::OnBnClickedRadio4)
 END_MESSAGE_MAP()
 
-int CaptureWndCtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
+int CaptureWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	int ret=0;
 	if (CWnd::OnCreate(lpCreateStruct) == -1) ret=-1;
 	return ret;
 }
 
-BOOL CaptureWndCtrlsTab::OnInitDialog()
+BOOL CaptureWnd::CtrlsTab::OnInitDialog()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent; 
 	CDialog::OnInitDialog();
@@ -84,7 +76,7 @@ BOOL CaptureWndCtrlsTab::OnInitDialog()
 	return TRUE; 
 }
 
-eDcm800Size CaptureWndCtrlsTab::GetPreviewSize()
+eDcm800Size CaptureWnd::CtrlsTab::GetPreviewSize()
 {
 	eDcm800Size ret;
 	switch (PreviewSize.GetCurSel())
@@ -100,7 +92,7 @@ eDcm800Size CaptureWndCtrlsTab::GetPreviewSize()
 	return ret;
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_Capture()
+void CaptureWnd::CtrlsTab::OnBnClicked_Live()
 {
 	UpdateData();
 
@@ -112,7 +104,7 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		T.Format(" No cameras found at all"); log->CreateEntry("ERR",T,LogMessage::high_pr);
 		log->Dispatch(); return;
 	}
-	if(pParent->Src->status==S_OK)
+	if(SUCCEEDED(pParent->Src->status))
 	{
 		pParent->Timer1.Start(); 
 		pParent->cntr=0;
@@ -134,6 +126,8 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 		pParent->grayscaleBuf.CreateGrayPallete();		
 		pParent->truecolorBuf.Create(this,r.Width(),r.Height(),24);		
 
+		//pParent->accum.Initialize(r.Width(), r.Height());
+
 		pParent->thrd.Start();	
 		BtnCapture.EnableWindow(FALSE);
 		BtnStop.EnableWindow(TRUE);
@@ -151,7 +145,7 @@ void CaptureWndCtrlsTab::OnBnClicked_Capture()
 	return;
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_StopCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_StopCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.StopCapture.SetEvent();  
@@ -163,7 +157,7 @@ void CaptureWndCtrlsTab::OnBnClicked_StopCapture()
 	BtnFilterParams.EnableWindow(FALSE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_PauseCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_PauseCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.PauseCapture.SetEvent();  
@@ -173,7 +167,7 @@ void CaptureWndCtrlsTab::OnBnClicked_PauseCapture()
 	BtnResume.EnableWindow(TRUE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_ResumeCapture()
+void CaptureWnd::CtrlsTab::OnBnClicked_ResumeCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.ResumeCapture.SetEvent();    
@@ -183,7 +177,7 @@ void CaptureWndCtrlsTab::OnBnClicked_ResumeCapture()
 	BtnResume.EnableWindow(FALSE);
 }
 
-void CaptureWndCtrlsTab::OnBnClicked_FilterParams()
+void CaptureWnd::CtrlsTab::OnBnClicked_FilterParams()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	pParent->thrd.params.ShowFilterParams.SetEvent();    
@@ -209,10 +203,10 @@ void CaptureWnd::SelectCaptureSrc(CString name)
 			Ctrls.PreviewSize.EnableWindow(FALSE);
 		}
 		Src->Create(arr[i]);
-		if(Src->status!=S_OK)
+		if(FAILED(Src->status))
 		{			
-			LogMessage *log=new LogMessage(); 
-			T.Format(" %s - INIT ERROR",name); log->CreateEntry("ERR",T,LogMessage::high_pr);
+			LogMessage *log=new LogMessage(); log->SetPriority(lmprHIGH);
+			T.Format(" %s - INIT ERROR",name); *log << T;
 			log->Dispatch();
 		}
 		else Src->Name=name;
@@ -238,9 +232,12 @@ int CaptureWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if((x=LevelsScanBuf.GainAcsess(WRITE))!=NULL)
 	{
 		BMPanvasGuard guard1(x); BMPanvas &buf(guard1);
-		buf.Create(this,LevelsScanWnd.Width(),LevelsScanWnd.Height(),24);
+		buf.Create(this, LevelsScanWnd.Width(),LevelsScanWnd.Height(), 8);
+		memset(palLevelsScan, 0, sizeof(palLevelsScan));
+		palLevelsScan[1].rgbBlue = palLevelsScan[1].rgbGreen = palLevelsScan[1].rgbRed = 255;
+		palLevelsScan[2].rgbRed = 255; palLevelsScan[3].rgbGreen = 255; palLevelsScan[4].rgbBlue = 255;
+		buf.SetPallete(palLevelsScan); 
 	}
-
 	Timer1.Start(); cntr=0;
 
 	return 0;
@@ -262,16 +259,16 @@ LRESULT CaptureWnd::OnDataUpdate(WPARAM wParam, LPARAM lParam )
 	return 0;
 }
 
-void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::ColorTransformModes mode)
+void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWnd::CtrlsTab::ColorTransformModes mode)
 {	
 	RGBTRIPLE *colorCurrentPoint; int i,j; BYTE *colorLineBegin=NULL, *bwCurrentPoint=NULL, *bwLineBegin=NULL;
 	int (*LuminosityFunc)(RGBTRIPLE&)=NULL;
 	
 	switch(mode)
 	{
-	case CaptureWndCtrlsTab::HSL: LuminosityFunc=getL_HSL; break;
-	case CaptureWndCtrlsTab::HSV: LuminosityFunc=getL_HSV; break;
-	case CaptureWndCtrlsTab::NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
+	case CaptureWnd::CtrlsTab::HSL: LuminosityFunc=getL_HSL; break;
+	case CaptureWnd::CtrlsTab::HSV: LuminosityFunc=getL_HSV; break;
+	case CaptureWnd::CtrlsTab::NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
 	}
 	if(LuminosityFunc==NULL) return;
 
@@ -291,32 +288,48 @@ void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::Co
 
 }
 
-void CaptureWnd::ScanLevels(BMPanvas* src,BMPanvas *dest)
+void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWnd::CtrlsTab::ColorTransformModes mode)
 {
-	RGBTRIPLE *col; int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
-	src->LoadBitmapArray(src->h/2,src->h/2); dest->PatBlt(BLACKNESS);
+	int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
+	src->LoadBitmapArray(src->h/2,src->h/2); 
+	levels.PatBlt(BLACKNESS);
 
-	col=(RGBTRIPLE*)src->arr;
-	for(i=0;i<src->w;i++)
+	if (mode == CaptureWnd::CtrlsTab::TrueColor)
 	{
-		t=dest->SelectObject(penBlue); l=(dest->h-1)*(255-(*col).rgbtBlue)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(penRed); l=(dest->h-1)*(255-(*col).rgbtRed)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(penGreen); l=(dest->h-1)*(255-(*col).rgbtGreen)/255.; 
-		dest->MoveTo(i,dest->h-1); dest->LineTo(i,(int)l);
-		dest->SelectObject(t); 
-		col++;
+		RGBTRIPLE *col = (RGBTRIPLE*)src->arr;
+		for (i = 0; i < src->w; i++)
+		{
+			t=levels.SelectObject(penBlue); l=(levels.h-1)*(255-(*col).rgbtBlue)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(penRed); l=(levels.h-1)*(255-(*col).rgbtRed)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(penGreen); l=(levels.h-1)*(255-(*col).rgbtGreen)/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			levels.SelectObject(t); 
+			col++;
+		}
 	}
+	else
+	{
+		BYTE *col = (BYTE *)src->arr; t = levels.SelectObject(penWhite);
+		for (i = 0; i < src->w; i++)
+		{
+			l=(levels.h - 1)*(255 - (*col))/255.; 
+			levels.MoveTo(i,levels.h-1); levels.LineTo(i,(int)l);
+			col++;
+		}
+		levels.SelectObject(t); 
+	}
+
 	src->UnloadBitmapArray();
-	HGDIOBJ tf=dest->SelectObject(font1); dest->SetBkMode(TRANSPARENT); dest->SetTextColor(clWHITE);
-	dt=time1.StopStart(); T.Format("%.2f ms",dt.val()); dest->TextOut(0,0,T);
-	dest->SelectObject(tf);
+	HGDIOBJ tf=levels.SelectObject(font1); levels.SetBkMode(TRANSPARENT); levels.SetTextColor(clWHITE);
+	dt=time1.StopStart(); T.Format("%.2f ms",dt.val()); levels.TextOut(0,0,T);
+	levels.SelectObject(tf);
 }
 
 void CaptureWnd::OnPaint()
 {	
-	CPaintDC dc(this); Ctrls.UpdateData();
+	CPaintDC dc(this); Ctrls.UpdateData(); CString accumText;
 	CRect tr; GetClientRect(&tr); HDC hdc=dc.GetSafeHdc();
 	
     if(grayscaleBuf.GetDC()==NULL) return;
@@ -337,18 +350,15 @@ void CaptureWnd::OnPaint()
 		tbuf=&truecolorBuf;
 		if(r>1) { SetStretchBltMode(tbuf->GetDC(),COLORONCOLOR); buf.StretchTo(tbuf,rgn1,buf.Rgn,SRCCOPY); }
 		else buf.CopyTo(tbuf,rgn1);
-
-		if((xx=LevelsScanBuf.GainAcsess(WRITE))!=NULL)
+		
+		if (Ctrls.ColorTransformSelector != CaptureWnd::CtrlsTab::TrueColor)
 		{
-			BMPanvasGuard guard1(xx); BMPanvas &buf(guard1);
-			ScanLevels(tbuf,&buf);
-			buf.CopyTo(hdc,LevelsScanWnd.TopLeft());
-		}			
+			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector); tbuf=&grayscaleBuf;
 
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor)
-		{
-			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector);
-			tbuf=&grayscaleBuf;
+			//ms time;
+			//accum.FillAccum(&grayscaleBuf); time = accum.fillTime;
+			//accum.ConvertToBitmap(&grayscaleBuf);
+			//accumText.Format("Fill = %.2f ms Init = %.2f ms n = %d", time.val(), accum.fillTime.val(), accum.n);
 
 			CaptureRequestStack::Item request;
 			while(Stack >> request)
@@ -358,13 +368,17 @@ void CaptureWnd::OnPaint()
 					request.buf->Create(buf.GetDC(),buf.w,buf.h,8);
 					request.buf->CreateGrayPallete();
 				}
-				buf.CopyTo(request.buf,TOP_LEFT);
 				ColorTransform(&buf, request.buf, Ctrls.ColorTransformSelector);
 				request.sender->PostMessage(UM_CAPTURE_READY,0,0);
 			}
-
 		}
 
+		if ((xx=LevelsScanBuf.GainAcsess(WRITE)) != NULL)
+		{
+			BMPanvasGuard guard1(xx); BMPanvas &levels(guard1);
+			ScanLevels(tbuf, levels, Ctrls.ColorTransformSelector);
+			levels.CopyTo(hdc,LevelsScanWnd.TopLeft());
+		}
 
 		BMPanvasTAGSmk1* tags=(BMPanvasTAGSmk1*)buf.tags;
 		CPoint TextOutput; TextOutput=rgn1.TopLeft();
@@ -372,72 +386,27 @@ void CaptureWnd::OnPaint()
 		HGDIOBJ tf=tbuf->SelectObject(font1); tbuf->SetBkMode(TRANSPARENT); tbuf->SetTextColor(RGB(255,255,0));
 		T.Format("%dx%dx%d %.2f sec",tags->i1,tags->i2,tags->i3,tags->d1); tbuf->TextOut(TextOutput.x,TextOutput.y+0,T);
 		T.Format("DShow fps=%g",tags->d2); tbuf->TextOut(TextOutput.x,TextOutput.y+10,T);
-
-		T.Format("Buffer process = %.2f+%.2f ms",tags->timel.val(),Timer2.StopStart().val()); tbuf->TextOut(TextOutput.x,TextOutput.y+30,T);		
+		T.Format("Buffer process = %.2f+%.2f ms", tags->timel.val(), Timer2.StopStart().val()); tbuf->TextOut(TextOutput.x,TextOutput.y+30,T);		
 		T.Format("%d eqv fps = %g",cntr++,(1./dt1.val()));  tbuf->TextOut(TextOutput.x,TextOutput.y+40,T);
+
+		tbuf->TextOut(rgn1.left, rgn1.bottom - 40, accumText);
+
 		tbuf->SelectObject(tf);
 		
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
-		tbuf->CopyTo(hdc,TOP_LEFT);
-		if(Ctrls.ColorTransformSelector!=CaptureWndCtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
+		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
+		//pal - special pallete to diagnose overlight pixels with red color
+		tbuf->CopyTo(hdc,TOP_LEFT); 
+		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
-	else ASSERT(0);
+	//else ASSERT(0);
 }
-/*
-struct Slit 
-{
-	DWORD NumSlitWidths, SlitWidthInd, ID;
-	double *widths;
-
-	Slit(DWORD id) {ID=id; widths=NULL;}
-	{
-		NumSlitWidths=ml44_GetNumSlitWidths(ID);
-		SlitWidthInd=ml44_GetSlitWidthInd(ID);
-		widths=new double[NumSlitWidths];
-		for(DWORD i=0;i<NumSlitWidths;i++)
-		{
-			widths[i]=ml44_GetSlitWidth(ID,i);
-		}
-	}
-	~Slit() {if(widths!=NULL) delete widths;}
-
-};
-*/
-//void CaptureWndCtrlsTab::OnBnClickedButton6()
-//{
-//	bool ret=0; DWORD err,clbr,stps; double wl,wlchng, Min,Max,disp,range;
-//	Slit EnterSlit(ENTR_SLIT), ExitSlit(EXIT_SLIT); TGratingPrm Grating0,Grating1;
-//	if(ml44_Init(PORT_COM4,0)!=0)
-//	{
-//		if(ml44_HitTest()!=0)
-//		{
-//			ml44_GetWLRange(&Min,&Max); err=ml44_GetLastError();
-//			disp=ml44_GetDispersion(); err=ml44_GetLastError();
-//			range=ml44_GetSpcRange(); err=ml44_GetLastError();
-//			clbr=ml44_GetClbrType(); err=ml44_GetLastError();
-//			wl=ml44_GetWaveLength(); err=ml44_GetLastError();
-//			wlchng=ml44_GetChangeGratingWL(); err=ml44_GetLastError();
-//			ret=ml44_GetGratingPrms(&Grating0,0); err=ml44_GetLastError();
-//			ret=ml44_GetGratingPrms(&Grating1,1); err=ml44_GetLastError();
-//			stps=ml44_GetStepsByWL(600,0); err=ml44_GetLastError();
-//			stps=ml44_GetGratingStepPos(); err=ml44_GetLastError();
-//
-//			EnterSlit.Init();
-//			ExitSlit.Init();
-//
-//		}
-//		else err=ml44_GetLastError();
-//		ml44_Free();
-//	}
-//	else err=ml44_GetLastError();
-//}
 
 LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
 {
 	Stack << CaptureRequestStack::Item((CWnd*)wParam,(BMPanvas*)lParam);
 	return 0;
 }
-void CaptureWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
+void CaptureWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(DialogBarTab1)
@@ -453,7 +422,7 @@ void CaptureWndCtrlsTab::DoDataExchange(CDataExchange* pDX)
 }
 
 
-void CaptureWndCtrlsTab::OnBnClickedChooseCam()
+void CaptureWnd::CtrlsTab::OnBnClickedChooseCam()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
 	if(Chooser.DoModal()==IDOK)
@@ -462,7 +431,7 @@ void CaptureWndCtrlsTab::OnBnClickedChooseCam()
 	}	
 }
 
-void CaptureWndCtrlsTab::OnCbnSelchangeCombo1()
+void CaptureWnd::CtrlsTab::OnCbnSelchangeCombo1()
 {
 	// TODO: Add your control notification handler code here
 }
@@ -474,12 +443,244 @@ void CaptureWnd::OnDestroy()
 	font1.DeleteObject();
 }
 
-void CaptureWndCtrlsTab::OnBnClickedRadio1()
+void CaptureWnd::CtrlsTab::OnBnClickedRadio1()
 {
 	// TODO: Add your control notification handler code here
 }
 
-void CaptureWndCtrlsTab::OnBnClickedRadio4()
+void CaptureWnd::CtrlsTab::OnBnClickedRadio4()
 {
-	int a=5;
+}
+
+//======================================
+void ImagesAccumulator::ResetSums()
+{
+	if (sums != NULL)	{ free(sums); sums = NULL; }
+}
+
+void ImagesAccumulator::Reset()
+{
+	ResetSums(); 
+	if (bmp != NULL)	{ delete bmp; bmp = NULL; }
+	n = 0; w = h = 0;
+}
+
+void ImagesAccumulator::Initialize(int _w, int _h)
+{
+	Reset(); w = _w; h = _h;
+	sums = (BYTE*)malloc(GetSumsSize()); memset(sums, 0, GetSumsSize());
+}
+
+HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
+{
+	MyTimer Timer1;
+	if (w != src->w || h != src->h)
+	{
+		if (n == 0)
+		{
+			Initialize(src->w, src->h);
+		}
+		else
+		{
+			Reset();
+			ConrtoledLogMessage log(lmprHIGH);
+			log.T.Format("ImagesAccumualtor error: %d != %d or %d != %d", w, src->w, h, src->h); log << log.T;
+			log.Dispatch(); 
+			return E_FAIL;
+		}
+	}
+	Timer1.Start(); 
+	src->LoadBitmapArray(); BYTE *src_pxl; USHORT *accum_pxl; UINT* accum_pxl2;
+	accum_pxl = GetSum(); accum_pxl2 = GetSums2();
+	for (int y = 0; y < h; y++)
+	{			
+		src_pxl = src->arr + src->wbyte*y;
+		for (int x = 0; x < w; x++)
+		{
+			*accum_pxl += *src_pxl; *accum_pxl2 += (*src_pxl)*(*src_pxl);
+			src_pxl++; accum_pxl++; accum_pxl2++;
+		}
+	}
+	src->UnloadBitmapArray();
+	Timer1.Stop(); fillTime = Timer1.GetValue();
+	n++;
+	return S_OK;
+}
+
+int floorLog2(unsigned int n) {
+	int pos = 0;
+	if (n >= 1<<16) { n >>= 16; pos += 16; }
+	if (n >= 1<< 8) { n >>=  8; pos +=  8; }
+	if (n >= 1<< 4) { n >>=  4; pos +=  4; }
+	if (n >= 1<< 2) { n >>=  2; pos +=  2; }
+	if (n >= 1<< 1) {           pos +=  1; }
+	return ((n == 0) ? (-1) : pos);
+}
+
+void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
+{
+	MyTimer Timer1; 
+	if (sums != NULL)
+	{
+		BYTE *dst_pxl; unsigned short *accum_pxl; 
+		Timer1.Start(); BYTE shift = floorLog2(n);
+		if (bmp == NULL)
+		{
+			bmp = new BMPanvas(); 
+		}
+		bmp->Create(ref, w, h, 8); bmp->CreateGrayPallete();
+		bmp->LoadBitmapArray(); accum_pxl = GetSum(); 
+		for (int y = 0; y < h; y++)
+		{			
+			dst_pxl = bmp->arr + bmp->wbyte*y;
+			for (int x = 0; x < w; x++)
+			{
+				*dst_pxl = (*accum_pxl) >> shift; 				
+				dst_pxl++; accum_pxl++; 
+			}
+		}
+		bmp->SetBitmapArray(); 
+		Timer1.Stop(); fillTime = Timer1.GetValue();
+	}
+}
+
+HRESULT ImagesAccumulator::SaveTo( const CString &file )
+{
+	HRESULT ret; ConrtoledLogMessage log; MyTimer Timer1;
+
+	if (sums != NULL)
+	{
+		Compressor cmpr(Compressor::ZIP, 9);
+		CFile dst0(file, CFile::modeCreate | CFile::modeWrite| CFile::typeBinary);
+		TRY
+		{
+			CArchive ar(&dst0, CArchive::store); Serialize(ar); ar.Close();
+		}
+		AND_CATCH(CArchiveException, pEx)
+		{
+			pEx->ReportError(); return E_FAIL;
+		}
+		END_CATCH
+
+		CMemFile src0(sums, GetSumsSize(), GetCompressorBufferSize()); src0.SetLength(GetSumsSize());	
+		if ((ret = cmpr.Process(&src0, &dst0)) == Z_OK)
+		{
+			src0.Close();
+		}
+		if (ret != Z_OK) 
+		{
+			dst0.Abort();
+			log.T.Format("Failed to save %s", file); 
+			log << log.T; log.SetPriority(lmprHIGH);	
+		}		
+		else 
+		{			
+			dst0.Close(); 
+			log.T.Format("Time to save %s - %s Ratio = %.2f", 
+				file, ConvTimeToStr(cmpr.LastSession.dt), cmpr.LastSession.ratio); 			
+			log << log.T;
+		}
+	}
+	log.Dispatch();	
+	return ret;
+}
+
+HRESULT ImagesAccumulator::LoadFrom( const CString &file )
+{	
+	HRESULT ret = E_FAIL; ConrtoledLogMessage log;
+	if (bmp == NULL) bmp = new BMPanvas();		
+	bmp->Destroy();
+	
+	ResetSums();
+	ULONGLONG buf_size = 0; 
+	Compressor cmpr(Compressor::UNZIP);		
+	CFile src0(file, CFile::modeRead| CFile::typeBinary); 
+	TRY
+	{
+		CArchive ar(&src0, CArchive::load); Serialize(ar); ar.Close();
+	}
+	AND_CATCH(CArchiveException, pEx)
+	{
+		pEx->ReportError(); return E_FAIL;
+	}
+	END_CATCH
+	CMemFile dst0(GetCompressorBufferSize());	
+
+	if ((ret = cmpr.Process(&src0, &dst0)) == Z_OK)
+	{
+		src0.Close(); sums = dst0.Detach();
+		log.T.Format("Time to load %s - %s Ratio = %.2f", 
+			file, ConvTimeToStr(cmpr.LastSession.dt), cmpr.LastSession.ratio); 			
+		log << log.T;
+	}	
+	log.Dispatch();		
+	return ret;
+}
+
+void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const int xmax )
+{
+	unsigned short *accum_pxl; unsigned int *accum_pxl2; 
+	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
+	MyTimer Timer1; 
+	if (bmp->HasImage())
+	{
+		PointVsError pnte; pnte.type.Set(GenericPnt);
+		Timer1.Start(); BYTE shift = floorLog2(n);
+		accum_pxl = GetSum(); accum_pxl2 = GetSums2();
+		accum_pxl += y*w + xmin; accum_pxl2 += y*w + xmin;
+		for (int x = xmin; x < xmax; x++, accum_pxl++, accum_pxl2++)
+		{
+			pnte.x = x; pnte.y = (float)(*accum_pxl)/n; 
+			if (n > 1)
+			{
+				pnte.dy = sqrt(((float)(*accum_pxl2) - ((float)(*accum_pxl)*((*accum_pxl) >> shift)))/(n - 1));
+			}
+			else
+			{
+				pnte.dy = 0;
+			}
+			buf->Add(pnte);
+		}
+		Timer1.Stop(); fillTime = Timer1.GetValue();
+	}
+}
+
+USHORT* ImagesAccumulator::GetSum()
+{
+	return (USHORT*)(sums != NULL ? sums:NULL);
+}
+
+UINT* ImagesAccumulator::GetSums2()
+{
+	return (UINT*)(sums != NULL ? sums + w*h*sizeof(USHORT):NULL);
+}
+
+ImagesAccumulator::ImagesAccumulator() : sums(NULL), bmp(NULL)
+{
+	Reset();
+}
+
+size_t AccumInfo::GetSumsSize() const
+{
+	return (w*h*(sizeof(UINT) + sizeof(USHORT)));
+}
+
+//======================================
+
+void AccumInfo::Serialize( CArchive &ar )
+{
+	if(ar.IsStoring())
+	{
+		ar << n << w << h;
+	}
+	else
+	{
+		ar >> n >> w >> h;
+	}
+
+}
+
+size_t AccumInfo::GetCompressorBufferSize() const
+{
+	return (w*10*(sizeof(UINT) + sizeof(USHORT)));
 }

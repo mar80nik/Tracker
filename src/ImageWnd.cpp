@@ -599,7 +599,7 @@ HRESULT ImageWnd::PicWnd::ValidatePicRgn( CRect& rgn, BMPanvas& ref )
 	{
 		//ref.Rgn.bottom - 1	in order not to cross the bottom border on scanline
 		//ref.Rgn.top + 1		in order not to reduce ScanRgn height when it is moved above top border 
-		if ((diff = ref.Rgn.top + 1 - ret.top) > 0 || (diff = ref.Rgn.bottom -1 - ret.bottom) < 0)
+		if ((diff = ref.Rgn.top - ret.top) > 0 || (diff = ref.Rgn.bottom -1 - ret.bottom) < 0)
 		{
 			offset.cy = diff; update = true;
 		}			
@@ -745,17 +745,15 @@ HelperEvent AccumHelper::Update( const HelperEvent &event )
 				parent->MakeAva();
 				parent->ScanRgn.Erase(NULL);
 
-				HGDIOBJ tfont=parent->ava.SelectObject(parent->font1);
-				parent->ava.SetBkMode(TRANSPARENT); parent->ava.SetTextColor(clRED);
+				HGDIOBJ tfont = parent->ava.SelectObject(parent->font1);
+				parent->ava.SetBkMode(TRANSPARENT); COLORREF old_color = parent->ava.SetTextColor(clRED);
 				T.Format("Camera capture %d of %d", accum.n, n_max); parent->ava.TextOut(0,0,T);
 				T.Format("%dx%d", accum.w, accum.h); parent->ava.TextOut(0,10,T);
-				parent->ava.SelectObject(tfont);
+				parent->ava.SelectObject(tfont); parent->ava.SetTextColor(old_color);
 				parent->UpdateNow();				
 
 				if (accum.n == n_max)
 				{
-					//accum.CalculateMeanVsError();
-					//accum.ResetSums();
 					return RSLT_HELPER_COMPLETE;					
 				}
 				else

@@ -37,9 +37,8 @@ public:
 };
 
 struct AccumInfo
-{
-	BYTE n;
-	unsigned short w, h;
+{	
+	USHORT w, h, n;
 	virtual void Serialize(CArchive &ar);
 	size_t GetSumsSize() const;
 	size_t GetCompressorBufferSize() const;

@@ -489,6 +489,7 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 			return E_FAIL;
 		}
 	}
+	if (sums == NULL) return E_FAIL;
 	Timer1.Start(); 
 	src->LoadBitmapArray(); BYTE *src_pxl; USHORT *accum_pxl; UINT* accum_pxl2;
 	accum_pxl = GetSum(); accum_pxl2 = GetSums2();
@@ -535,7 +536,7 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 			dst_pxl = bmp->arr + bmp->wbyte*y;
 			for (int x = 0; x < w; x++)
 			{
-				*dst_pxl = (*accum_pxl) >> shift; 				
+				*dst_pxl = (*accum_pxl)/n; 				
 				dst_pxl++; accum_pxl++; 
 			}
 		}
@@ -622,7 +623,7 @@ void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const
 	unsigned short *accum_pxl; unsigned int *accum_pxl2; 
 	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
 	MyTimer Timer1; 
-	if (bmp->HasImage())
+	if (sums != NULL)
 	{
 		PointVsError pnte; pnte.type.Set(GenericPnt);
 		Timer1.Start(); BYTE shift = floorLog2(n);
@@ -632,8 +633,9 @@ void ImagesAccumulator::ScanLine( void *_buf, const int y, const int xmin, const
 		{
 			pnte.x = x; pnte.y = (float)(*accum_pxl)/n; 
 			if (n > 1)
-			{
-				pnte.dy = sqrt(((float)(*accum_pxl2) - ((float)(*accum_pxl)*((*accum_pxl) >> shift)))/(n - 1));
+			{				
+				ULONGLONG val = (*accum_pxl2) - (*accum_pxl)*(*accum_pxl)/n;
+				pnte.dy = sqrt(((float)val)/(n - 1));
 			}
 			else
 			{

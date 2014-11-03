@@ -35,9 +35,12 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-	CRect tr; GetClientRect(&tr); CSize wndSize(600,400+200);
+	CRect tr; GetClientRect(&tr); 
+	CRect CameraOutWnd; CameraOutWnd.UnionRect(CameraWnd.CameraOutWnd, CameraWnd.LevelsScanWnd);
 	fiber.Create(0,"FIBER",WS_CHILD | WS_VISIBLE | WS_CAPTION,CRect(CPoint(0,0),CSize(600, 600)),this,111,0);
-	CameraWnd.Create(0, "CameraWnd", WS_CHILD | WS_BORDER | WS_VISIBLE, CRect(CPoint(tr.Width()-wndSize.cx,0),wndSize), this, ID_MV_WND, 0);	
+	CameraWnd.Create(0, "CameraWnd", WS_CHILD | WS_BORDER | WS_VISIBLE, 
+		CRect(CPoint(tr.Width() - CameraOutWnd.Width(),0), CameraOutWnd.Size()), 
+		this, ID_MV_WND, 0);	
 	OnChildMove();
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);

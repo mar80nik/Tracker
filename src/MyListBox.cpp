@@ -47,15 +47,24 @@ int MyListBox::AddString( LPCTSTR s, COLORREF col/*=0*/ )
 
 void MyListBox::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	{
-		CDC dc; CString T; int n; COLORREF crOldTextColor, crOldBkColor;
+		CDC dc; CString T; int n; COLORREF crOldTextColor, crOldBkColor, crBkColor;
+		n = lpDrawItemStruct->itemID;
+		if (n < 0) return;
 		GetText(lpDrawItemStruct->itemID,T);
 		n=GetItemData(lpDrawItemStruct->itemID);
 
 		dc.Attach(lpDrawItemStruct->hDC);		
 
-		crOldTextColor = dc.GetTextColor(); crOldBkColor = dc.GetBkColor();
+		crOldTextColor = dc.GetTextColor(); crBkColor = crOldBkColor = dc.GetBkColor();
 		
 		dc.SetTextColor(n);
+		if ((lpDrawItemStruct->itemAction | ODA_SELECT) &&
+			(lpDrawItemStruct->itemState & ODS_SELECTED))
+		{
+			crBkColor = ::GetSysColor(COLOR_HIGHLIGHT);
+		}
+
+		dc.FillSolidRect(&lpDrawItemStruct->rcItem, crBkColor);
 		dc.TextOut(lpDrawItemStruct->rcItem.left,lpDrawItemStruct->rcItem.top,T);
 
 		dc.SetTextColor(crOldTextColor); dc.SetBkColor(crOldBkColor);
@@ -82,13 +91,13 @@ void MyListBox::SetNewHExtent(LPCTSTR lpszNewString)
 }
 
 int MyListBox::GetTextLen(LPCTSTR lpszText)
-{
-	ASSERT(AfxIsValidString(lpszText));
-
-	CDC *pDC = GetDC();
-	ASSERT(pDC);
-
-	CSize size;
+{	
+	CSize size;	CDC *pDC = GetDC();
+	ASSERT(pDC); ASSERT(AfxIsValidString(lpszText));
+	if (pDC == NULL)
+	{
+		return 0;
+	}
 	CFont* pOldFont = pDC->SelectObject(GetFont());
 	if ((GetStyle() & LBS_USETABSTOPS) == 0)
 	{
@@ -191,18 +200,7 @@ void MyListBox::OnShowWindow(BOOL bShow, UINT nStatus)
 
 BOOL MyListBox::OnInit()
 {
-	
-	ModifyStyle(0,  WS_CHILD | WS_VISIBLE | WS_HSCROLL |
-		WS_VSCROLL | ES_LEFT | ES_MULTILINE |
-		ES_AUTOHSCROLL | ES_AUTOVSCROLL, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-//	ModifyStyleEx(0,ES_AUTOVSCROLL, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	SetHorizontalExtent(0);
 	return TRUE;
 }
 
-BOOL MyListBox::PreCreateWindow(CREATESTRUCT& cs)
-{
-	// TODO: Add your specialized code here and/or call the base class
-
-	return CListBox::PreCreateWindow(cs);
-}

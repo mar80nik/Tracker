@@ -40,12 +40,19 @@ BEGIN_MESSAGE_MAP(DialogBarTab1, BarTemplate)
 	ON_EN_KILLFOCUS(IDC_LMIN_EDIT, OnKillfocus)
 	ON_EN_KILLFOCUS(IDC_INTERVAL_EDIT, OnKillfocus)
 	ON_WM_CREATE()
+	ON_WM_DESTROY()
 	ON_MESSAGE(UM_SERIES_UPDATE,OnSeriesUpdate)	
 	//}}AFX_MSG_MAP	
 	ON_BN_CLICKED(IDC_BUTTON2, OnBnClicked_Fit)
 	ON_BN_CLICKED(IDC_BUTTON5, OnBnClicked_Locate)
 	ON_BN_CLICKED(IDC_BUTTON1, &DialogBarTab1::OnBnClickedLoadCalibration)
-	ON_BN_CLICKED(IDC_BUTTON4, &DialogBarTab1::OnBnClickedButton4)
+	ON_BN_CLICKED(IDC_BUTTON4, &DialogBarTab1::OnBnClickedKneeTest)
+
+	ON_BN_CLICKED(IDC_BUTTON9, &DialogBarTab1::OnBnClickedCalibrate)
+	ON_BN_CLICKED(IDC_BUTTON11, &DialogBarTab1::OnBnClickedCalcTE)
+	ON_BN_CLICKED(IDC_BUTTON16, &DialogBarTab1::OnBnClickedCalcTM)
+
+
 END_MESSAGE_MAP()
 
 DialogBarTab1::DialogBarTab1(CWnd* pParent /*=NULL*/)
@@ -92,6 +99,18 @@ void DialogBarTab1::DoDataExchange(CDataExchange* pDX)
 int DialogBarTab1::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	if (BarTemplate::OnCreate(lpCreateStruct) == -1) return -1;
+
+	CalibratorDlg.Create(IDD_DIALOG_CAL,this);
+	CalibratorDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
+
+	CalcTEDlg.Create(IDD_DIALOG_CALCTE,this);
+	CalcTEDlg.SetWindowPos(NULL,600,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
+
+	CalcTMDlg.Create(IDD_DIALOG_CALCTE,this);
+	CalcTMDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
+	CalcTMDlg.SetWindowText("TM Calculator"); CalcTMDlg.IsTM=TRUE;
+
+
 	return 0;
 }
 
@@ -133,8 +152,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 				int N=buf.GetSize(), n0=GetArrayIndex(buf.x,X0), n1=n0-dX, n2=n0+dX;
 				if(n1<0 || n2>=N)
 				{
-					str.Format("No valid points found %d+/-%d",X0,dX); 
-					log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+					str.Format("No valid points found %d+/-%d",X0,dX); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 					log->Dispatch(); 
 					return;
 				}				
@@ -142,8 +160,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 			}			
 			else
 			{
-				str.Format("No series matching criteria (ACTIVE) found"); 
-				log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+				str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 				log->Dispatch(); return;
 			}
 		}
@@ -155,7 +172,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 		
 		str.Format("**********************************"); log->CreateEntry(CString('*'),str);
 		str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-		if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::high_pr);
+		if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
 		str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
 		str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
 		for(i=0;i<out.GetParamsNum();i++)
@@ -163,7 +180,7 @@ void DialogBarTab1::OnBnClicked_Fit()
 			str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
 		}
 		str.Format("xmin = %g ymin = %g", out.GetTop().x,out.GetTop().y);
-		log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+		log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 		str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
 		str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
 		str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);
@@ -427,8 +444,7 @@ afx_msg void DialogBarTab1::OnBnClicked_Locate()
 		}			
 		else
 		{
-			str.Format("No series matching criteria (ACTIVE) found"); 
-			log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+			str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 			log->Dispatch(); return;
 		}
 	}
@@ -452,7 +468,7 @@ afx_msg void DialogBarTab1::OnBnClicked_Locate()
 	str.Format("********Minimums 2stage*************"); log->CreateEntry(CString('*'),str);
 	str.Format("minimums=%d time=%g ms", MinimumsFitFilter->fitings.GetSize(), MinimumsFitFilter->dt.val()); log->CreateEntry(CString('*'),str);
 	str.Format("*********Total********************"); log->CreateEntry(CString('*'),str);
-	str.Format("time=%g ms",dt1.val()); log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+	str.Format("time=%g ms",dt1.val()); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 
 	log->Dispatch();
 	delete MinimumsFitFilter;
@@ -578,11 +594,14 @@ LRESULT DialogBarTab1::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 				}				
 			}
 		}
+		CalibratorDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
+		CalcTEDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
+		CalcTMDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	}
 	return 0;
 }
 
-void DialogBarTab1::OnBnClickedButton4()
+void DialogBarTab1::OnBnClickedKneeTest()
 {
 	CString str; UpdateData(); TPointVsErrorSeries *graph; 
 	LogMessage *log=new LogMessage(); size_t i;
@@ -599,8 +618,7 @@ void DialogBarTab1::OnBnClickedButton4()
 			int N=buf.GetSize(), n1=GetArrayIndex(buf.x,Xmin), n2=GetArrayIndex(buf.x,Xmax);
 			if(n1<0 || n2>=N)
 			{
-				str.Format("No valid points found %d+/-%d",X0,dX); 
-				log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+				str.Format("No valid points found %d+/-%d",X0,dX); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 				log->Dispatch(); 
 				return;
 			}				
@@ -608,8 +626,7 @@ void DialogBarTab1::OnBnClickedButton4()
 		}			
 		else
 		{
-			str.Format("No series matching criteria (ACTIVE) found"); 
-			log->CreateEntry(CString('*'),str,LogMessage::high_pr);	
+			str.Format("No series matching criteria (ACTIVE) found"); log->CreateEntry("ERR",str,LogMessage::high_pr);	
 			log->Dispatch(); return;
 		}
 	}
@@ -621,7 +638,7 @@ void DialogBarTab1::OnBnClickedButton4()
 
 	str.Format("**********************************"); log->CreateEntry(CString('*'),str);
 	str.Format("status = %s", gsl_strerror (out.status)); log->CreateEntry(CString('*'),str);
-	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::high_pr);
+	if (out.status!=GSL_SUCCESS) log->CreateEntry(CString('*'),CString(' '),LogMessage::low_pr);
 	str.Format("----------------------------------"); log->CreateEntry(CString('*'),str);
 	str.Format("chisq/dof = %g", out.chisq_dof); log->CreateEntry(CString('*'),str);
 	for(i=0;i<out.GetParamsNum();i++)
@@ -629,7 +646,7 @@ void DialogBarTab1::OnBnClickedButton4()
 		str.Format("x%d = %g +/- %g%%", i,out.a[i],100*out.da[i]/out.a[i]); log->CreateEntry(CString('*'),str);
 	}
 	SimplePoint Top=out.GetTop(level);
-	str.Format("xmin = %g ymin = %g", Top.x,Top.y); log->CreateEntry(CString('*'),str,LogMessage::high_pr);
+	str.Format("xmin = %g ymin = %g", Top.x,Top.y); log->CreateEntry(CString('*'),str,LogMessage::low_pr);
 	str.Format("time = %g ms", out.dt.val()); log->CreateEntry(CString('*'),str);
 	str.Format("func_cals = %d", out.func_call_cntr); log->CreateEntry(CString('*'),str);
 	str.Format("iter_num = %d", out.iter_num); log->CreateEntry(CString('*'),str);
@@ -667,4 +684,88 @@ void DialogBarTab1::OnBnClickedButton4()
 	}
 	chart->PostMessage(UM_CHART_SHOWALL);	
 	log->Dispatch();
+}
+
+void DialogBarTab1::OnBnClickedCalibrate()
+{
+	CalibratorDlg.ShowWindow(SW_SHOW);
+	/*
+	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
+	DoubleArray N,teta; CString T;
+	CalibrationParams cal; cal.n_p=2.14044; cal.n_s=1.; 
+	N << 2933 << 2506 << 1922 << 1203;
+	teta << 63.34*DEGREE << 60.04*DEGREE << 55.16*DEGREE << 49.02*DEGREE;
+
+	double lambda, k, n1, n3; DoubleArray bettaexp_TE;
+	lambda = 632.8; k = 2.*M_PI/lambda;	n1 = 1.; n3 = 1.45705;
+	bettaexp_TE << 1.9129 << 1.8544 << 1.7568 << 1.6159; 
+	FilmFuncTEParams in_TE(bettaexp_TE, n1,n3,k);
+	FilmParams outTE,outTM;
+	DoubleArray bettaexp_TM;
+	bettaexp_TM << 1.82422 << 1.76110 << 1.65829 << 1.51765; 
+	FilmFuncTMParams in_TM(bettaexp_TM, n1,n3,k);
+
+	CalcRParams params;
+	params.i=FilmParams(1,150,0+1e-100); 
+	params.f=FilmParams(1.84,1082,5e-3+1e-100);  
+	params.s=FilmParams(1.45705,1e6,0+1e-100); 
+	params.lambda=632.8; params.Np=2.14044; params.teta_min=15; params.teta_max=85;
+
+	TSimplePointSeries *t1=NULL; 
+	TSimplePointSeries::DataImportMsg *CHM1, *CHM2; CHM1=CHM2=NULL; 
+	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
+	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
+	SimplePoint pnt; pnt.type.Set(GenericPnt);
+
+	CreateCalibration(N, teta, cal);
+	CalibratorParams calb_params(1000.203414900858);
+	Calibrator(calb_params,cal);
+	CalclFilmParamsTE(in_TE,outTE);
+	CalclFilmParamsTM(in_TM,outTM);
+	int a=5;
+
+	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::low_pr);
+	T.Format("---Calibration---"); log->CreateEntry("*",T);
+	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g",cal.N0,cal.L,cal.d0,cal.fi0,cal.epsabs,cal.epsrel); log->CreateEntry("*",T);
+	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.func_call_cntr); log->CreateEntry("*",T);
+	T.Format("---Calibrator----"); log->CreateEntry("*",T);
+	T.Format("Npix=%g teta=%.10f betta=%.10f errabs=%g errrel=%g",calb_params.Npix,calb_params.teta, calb_params.betta,calb_params.epsabs,calb_params.epsrel); log->CreateEntry("*",T);
+	T.Format("dt=%.3f ms func_calls=%d",calb_params.dt.val(), calb_params.func_call_cntr); log->CreateEntry("*",T);
+	T.Format("--FilmParamsTE---"); log->CreateEntry("*",T);
+	T.Format("n=%.10f H=%.10f nm",outTE.n, outTE.H, outTE.epsabs, outTE.epsrel ); log->CreateEntry("*",T);
+	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTE.epsabs, outTE.epsrel, outTE.fval, outTE.size ); log->CreateEntry("*",T);
+	T.Format("dt=%.3f ms func_calls=%d",outTE.dt.val(), outTE.func_call_cntr); log->CreateEntry("*",T);
+	for(int i=0;i<in_TE.betta_teor.GetSize();i++)
+	{
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TE.betta_teor[i].n,in_TE.betta_teor[i].val,bettaexp_TE[i]); log->CreateEntry("*",T);
+	}		
+	T.Format("--FilmParamsTM---"); log->CreateEntry("*",T);
+	T.Format("n=%.10f H=%.10f nm",outTM.n, outTM.H, outTM.epsabs, outTM.epsrel); log->CreateEntry("*",T);
+	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTM.epsabs, outTM.epsrel, outTM.fval, outTM.size ); log->CreateEntry("*",T);
+	T.Format("dt=%.3f ms func_calls=%d",outTM.dt.val(), outTM.func_call_cntr); log->CreateEntry("*",T);
+	for(int i=0;i<in_TM.betta_teor.GetSize();i++)
+	{
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TM.betta_teor[i].n,in_TM.betta_teor[i].val,bettaexp_TM[i]); log->CreateEntry("*",T);
+	}		
+	log->Dispatch();
+	*/
+
+}
+
+void DialogBarTab1::OnBnClickedCalcTE()
+{
+	CalcTEDlg.ShowWindow(SW_SHOW);
+}
+
+void DialogBarTab1::OnBnClickedCalcTM()
+{
+	CalcTMDlg.ShowWindow(SW_SHOW);
+}
+
+BOOL DialogBarTab1::DestroyWindow()
+{
+	CalibratorDlg.DestroyWindow();
+	CalcTEDlg.DestroyWindow();
+	CalcTMDlg.DestroyWindow();
+	return BarTemplate::DestroyWindow();
 }

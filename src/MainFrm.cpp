@@ -111,7 +111,7 @@ void CMainFrame::InitChart()
 	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); Chart1.SeriesDataWnd=&SeriesList;
 
 #ifdef DEBUG
-	Img.CameraWnd.SelectCaptureSrc(CString("WebCam SCB-0340N"));
+	Img.CameraWnd.SelectCaptureSrc(CString("Logitech HD Webcam C270"));
 #else
 	Img.CameraWnd.SelectCaptureSrc(CString("ScopeTek DCM800"));
 #endif	
@@ -145,9 +145,6 @@ LRESULT CMainFrame::OnUpdateConfig(WPARAM wParam, LPARAM lParam )
 
 LRESULT CMainFrame::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 {
-	Img.Ctrls.CalibratorDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
-	Img.Ctrls.CalcTEDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
-	Img.Ctrls.CalcTMDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	Chart1.Panel.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	return 0;
 }

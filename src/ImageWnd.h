@@ -11,6 +11,20 @@
 enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_READY};
 enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
+enum HelperEvent {
+	EvntOnCaptureButton, EvntOnCaptureReady,
+	RSLT_HELPER_COMPLETE, RSLT_OK, RSLT_BMP_ERR, RSLT_ERR
+};
+//================================================
+struct BaseForHelper
+{
+	virtual HelperEvent Update(const HelperEvent &event) = 0;
+	virtual ~BaseForHelper() {}
+};
+
+//================================================
+
+
 class CEditInterceptor : public CEdit
 {
 	DECLARE_DYNAMIC(CEditInterceptor)
@@ -25,6 +39,7 @@ public:
 
 class ImageWnd : public CWnd
 {
+public:
 	struct AvaPoint: public CPoint 
 	{ 
 		AvaPoint(): CPoint() {}
@@ -46,10 +61,9 @@ class ImageWnd : public CWnd
 	public:
 		enum { IDD = IDD_DIALOGBARTAB1 };
 
-		CalibratorDialog CalibratorDlg;
-		CalcTEDialog	CalcTEDlg, CalcTMDlg;
-		int stroka, AvrRange, Xmin, Xmax;
+		int stroka, Xmin, Xmax;
 		CEditInterceptor XminCtrl, XmaxCtrl, strokaCtrl, AvrRangeCtrl;
+		CComboBox NofScans;
 
 		CtrlsTab(CWnd* pParent = NULL);  
 	protected:
@@ -61,19 +75,18 @@ class ImageWnd : public CWnd
 		DECLARE_MESSAGE_MAP()
 	public:
 		afx_msg void OnBnClickedScan();
-		afx_msg void OnBnClickedCalibrate();
 		virtual BOOL DestroyWindow();
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-		afx_msg void OnBnClickedCalcTE();
 		afx_msg void OnBnClickedButton5();
 		afx_msg void OnEnKillfocusEdit1();
-		afx_msg void OnBnClickedCalcTM();		
 		LRESULT OnButtonIntercepted(WPARAM wParam, LPARAM lParam );
+		int GetNofScans();
 	};
 
 	class PicWnd: public CWnd
 	{
-	public:
+		friend struct AccumHelper;
+	//public:		
 		class AvaMarker: public AvaPoint
 		{
 		protected:
@@ -91,23 +104,27 @@ class ImageWnd : public CWnd
 	protected:
 		CButton CaptureButton;
 		CMenu menu1; AvaMarker MarkerAvaBGN, MarkerAvaEND;
+		CList<BaseForHelper*> helpers; 
 				
+		void UpdateHelpers(const HelperEvent &event);
 	public:
-		BMPanvas org, ava;
-		CRect ClientArea;
+		BMPanvas ava;
 		ImageWnd* Parent;
 		CFont font1;
 		CString FileName;
+		ImagesAccumulator accum;
 		enum {CaptureBtnID=234234};
 
 		PicWnd();
 		virtual ~PicWnd();
-		void LoadPic(CString T);
+		HRESULT LoadPic(CString T);
 		void UpdateNow(void);
 		void OnPicWndErase();
 		void OnPicWndSave();
+		void OnPicWndScanLine();
 		void EraseAva();
 		void SetMarker(const AvaPoint& mark, MarkerNames pos);
+		HRESULT MakeAva();
 		AvaPoint Convert(const OrgPoint&);
 		OrgPoint Convert(const AvaPoint&);
 		OrgPoint ValidatePnt( const OrgPoint& );
@@ -116,7 +133,6 @@ class ImageWnd : public CWnd
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 		afx_msg void OnPaint();
 		afx_msg void OnDropFiles(HDROP hDropInfo);	
-		afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 		afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 		afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 		afx_msg void OnCaptureButton();
@@ -130,7 +146,6 @@ class ImageWnd : public CWnd
 protected:
 	PicWnd fiber;
     int scale;	OrgPoint MarkerBGN, MarkerEND;
-	CScrollBar VertScroll;
 public:
 	CtrlsTab Ctrls;
 	CaptureWnd	CameraWnd;
@@ -153,6 +168,15 @@ public:
 	afx_msg void OnParentNotify(UINT message, LPARAM lParam);	
 };
 
+struct AccumHelper: public BaseForHelper
+{	
+	int n_max;
+	ImageWnd::PicWnd *parent;
+	BMPanvas *tmp_bmp;
 
+	AccumHelper(ImageWnd::PicWnd *_parent, const int _n_max);
+	virtual ~AccumHelper();
+	virtual HelperEvent Update(const HelperEvent &event);
+};
 
 

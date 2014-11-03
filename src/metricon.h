@@ -32,7 +32,7 @@ struct CalibrationParams: public Solver1DPerfomanceInfo
 	double alfa, n_p, n_s;	//	constatnts
 	double N0, L, d0, fi0;	//	variables
 	DoubleArray Nexp,teta;
-	CalibrationParams() { alfa=alfa = (50. + 59./60.)*DEGREE; n_s=n_p=0; N0=L=d0=fi0=0;}
+	CalibrationParams() { alfa = (50. + 59./60.)*DEGREE; n_s=n_p=0; N0=L=d0=fi0=0;}
 	virtual void Serialize(CArchive& ar);
 	CalibrationParams& operator=(CalibrationParams& t);
 

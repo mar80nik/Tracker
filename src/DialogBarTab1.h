@@ -6,6 +6,8 @@
 #include "systemconfig.h"
 #include "mythread.h"
 #include "afxwin.h"
+#include "calibratorDialog.h"
+#include "CalcTEDialog.h"
 
 int GetArrayIndex(DoubleArray& arr, double x );
 
@@ -20,6 +22,8 @@ protected:
 	CFont font1;
 	ProtectedSeriesArray* Series;
 	CalibrationParams cal;
+	CalibratorDialog CalibratorDlg;
+	CalcTEDialog	CalcTEDlg, CalcTMDlg;
 
 public:
 	DialogBarTab1(CWnd* pParent = NULL);   // standard constructor	
@@ -47,6 +51,9 @@ protected:
 	virtual void OnOK() {};
 	virtual void OnCancel() {};
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnBnClickedCalibrate();
+	afx_msg void OnBnClickedCalcTE();
+	afx_msg void OnBnClickedCalcTM();		
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:
@@ -60,13 +67,13 @@ public:
 
 	afx_msg void OnBnClicked_Fit();
 	afx_msg void OnBnClicked_Locate();
-public:
+	virtual BOOL DestroyWindow();
 	afx_msg void OnBnClickedLoadCalibration();
 	LRESULT OnSeriesUpdate(WPARAM wParam, LPARAM lParam );
 	TPointVsErrorSeries* GetSeries(TSeriesArray& series);
-public:
+
 	CComboBox SeriesCombo;
-	afx_msg void OnBnClickedButton4();
+	afx_msg void OnBnClickedKneeTest();
 	double Xmin;
 	double Xmax;
 	double level;

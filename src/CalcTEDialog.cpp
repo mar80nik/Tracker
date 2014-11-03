@@ -15,7 +15,7 @@ CalcTEDialog::CalcTEDialog(CWnd* pParent /*=NULL*/)
 	, hf(0)
 {
 	for(int i=0;i<modes_num;i++) { N[i]=0; Q[i]=0; beta[i]=0; }
-	Series=NULL; IsTM=FALSE;
+	Series=NULL; IsTM=FALSE; lambda = 632.8; n3 = 1.45705;
 //	N[0]=3128.82; N[1]=2714.61; N[2]=2149; N[3]=1426.4;
 }
 
@@ -37,24 +37,26 @@ void CalcTEDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT16, Q[3]);
 	DDX_Text(pDX, IDC_EDIT14, nf);
 	DDX_Text(pDX, IDC_EDIT17, hf);
+	DDX_Text(pDX, IDC_EDIT18, lambda);
+	DDX_Text(pDX, IDC_EDIT19, n3);
+	DDX_Text(pDX, IDC_EDIT21, n_p);
 }
 
 
 BEGIN_MESSAGE_MAP(CalcTEDialog, CDialog)
-	ON_BN_CLICKED(IDC_BUTTON4, &CalcTEDialog::OnBnClickedButton4)
+	ON_BN_CLICKED(IDC_BUTTON4, &CalcTEDialog::OnBnClickedConvertToAngles)
 	ON_MESSAGE(UM_SERIES_UPDATE,OnSeriesUpdate)	
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CalcTEDialog::OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_BUTTON8, &CalcTEDialog::OnBnClickedButton8)
-	ON_BN_CLICKED(IDC_BUTTON11, &CalcTEDialog::OnBnClickedButton11)
+	ON_BN_CLICKED(IDC_BUTTON11, &CalcTEDialog::OnBnClickedCalculate)
 END_MESSAGE_MAP()
 
 
 // CalcTEDialog message handlers
 
-void CalcTEDialog::OnBnClickedButton4()
+void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
-	MainCfg.GetCalibration(&cal);
+	MainCfg.GetCalibration(&cal); cal.n_p = n_p;
 	for(int i=0;i<modes_num;i++)
 	{
 		CalibratorParams calb_params(N[i]);
@@ -111,16 +113,13 @@ void CalcTEDialog::OnCbnSelchangeCombo1()
 		UpdateData(0);
 	}
 }
-void CalcTEDialog::OnBnClickedButton8()
-{
-	OnOK();
-}
 
-void CalcTEDialog::OnBnClickedButton11()
+void CalcTEDialog::OnBnClickedCalculate()
 {
 	CString T; LogMessage *log=new LogMessage(); FilmParams *outTX=NULL; FilmFuncParams *in_TX=NULL;
-	double lambda, k, n1, n3; DoubleArray bettaexp_TX; 
-	lambda = 632.8; k = 2.*M_PI/lambda;	n1 = 1.; n3 = 1.45705;
+	double k, n1; DoubleArray bettaexp_TX; 
+	UpdateData();
+	k = 2.*M_PI/lambda;	n1 = 1.; 
 
 	for(int i=0;i<modes_num;i++) bettaexp_TX << beta[i];	
 	outTX=new FilmParams();

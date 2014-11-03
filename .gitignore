@@ -1,9 +1,6 @@
 #ignore thumbnails created by windows
 Thumbs.db
 #Ignore files build by Visual Studio
-exe/msvcr80d.dll
-exe/ml44ctrl.dll
-exe/M266.dll
 *.user
 *.aps
 *.pch
@@ -27,3 +24,6 @@ _ReSharper*/
 *.*sdf
 exe/*.exe
 *RCa04812*
+*.dat
+gsl-1.16/lib/
+*.grf

@@ -370,7 +370,14 @@ int ErrorInspector::Errors()
 {
 	ErrorsArray* err=GetErrorsArray();
 	ASSERT(err);
-    return err->err_num;    
+	if (err != NULL)
+	{
+		return err->err_num;    
+	}
+	else
+	{
+		return -1;
+	}    
 }
 int ErrorInspector::Warnings() 
 {
@@ -431,9 +438,9 @@ int ErrorInspector::DispatchErrors()
 
 //------------------------------------------------
 //------------------------------------------------
-LogMessage::LogMessage()
+LogMessage::LogMessage(::MessagePriorities prio)
 {
-	priority=low_pr; Name="LogMessage"; ClassID=LOG_MSG_TYPE; Msg=UM_EVENTLOG; Reciver=EventsLog;
+	priority = prio; Name="LogMessage"; ClassID=LOG_MSG_TYPE; Msg=UM_EVENTLOG; Reciver=EventsLog;
 }
 LogMessage* LogMessage::CreateEntry(const CString& obj, const CString Message,int _priority)
 {
@@ -472,6 +479,15 @@ LogMessage* LogMessage::CreateEntry(ErrorsArray* Err)
 	Msgs.Add(" "); 
 	Insp.DetachErrors();
 	return this;
+}
+
+LogMessage& LogMessage::operator<<( const CString &Message )
+{
+	CTime Time1; Time1=CTime::GetCurrentTime();	
+	CString T;
+	T.Format("[%02d:%02d:%02d] %s",Time1.GetHour(),Time1.GetMinute(), Time1.GetSecond(), Message);	
+	Msgs.Add(T);
+	return (*this);
 }
 
 

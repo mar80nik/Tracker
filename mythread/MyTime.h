@@ -13,8 +13,8 @@
 template<typename T, int _b>
 class MyBaseTimeType
 {
-	friend class MyBaseTimeType<double,1>; friend class MyBaseTimeType<int,1e2>; friend class MyBaseTimeType<int,1e1>;
-	friend class MyBaseTimeType<double,1e3>; friend class MyBaseTimeType<double,1e6>;
+	friend class MyBaseTimeType<double,1>; friend class MyBaseTimeType<int,100>; friend class MyBaseTimeType<int,10>;
+	friend class MyBaseTimeType<double,1000>; friend class MyBaseTimeType<double,1000000>;
 protected:
     T v; double base;
 public:
@@ -31,12 +31,12 @@ public:
 
 	T val() {return v;}
 	operator MyBaseTimeType<double,1>() {MyBaseTimeType<double,1> ret; ret.v=v*(base/ret.base); return ret;}
-	operator MyBaseTimeType<int,1e1>() {MyBaseTimeType<int,1e1> ret; ret.v=MyRound(v*(base/ret.base));	return ret;}
-	operator MyBaseTimeType<int,1e2>() {MyBaseTimeType<int,1e2> ret; ret.v=MyRound(v*(base/ret.base));	return ret;}
-	operator MyBaseTimeType<double,1e3>() {MyBaseTimeType<double,1e3> ret; ret.v=v*(base/ret.base);	return ret;}
-	operator MyBaseTimeType<double,1e6>() 
+	operator MyBaseTimeType<int,10>() {MyBaseTimeType<int,10> ret; ret.v=MyRound(v*(base/ret.base));	return ret;}
+	operator MyBaseTimeType<int,100>() {MyBaseTimeType<int,100> ret; ret.v=MyRound(v*(base/ret.base));	return ret;}
+	operator MyBaseTimeType<double,1000>() {MyBaseTimeType<double,1000> ret; ret.v=v*(base/ret.base);	return ret;}
+	operator MyBaseTimeType<double,1000000>() 
 	{
-		MyBaseTimeType<double,1e6> ret; 
+		MyBaseTimeType<double,1000000> ret; 
 		ret.v=v*(base/ret.base);	
 		return ret;
 	}
@@ -61,10 +61,10 @@ public:
 };
 
 typedef MyBaseTimeType<double,1> us;
-typedef MyBaseTimeType<int,1e1> us10;
-typedef MyBaseTimeType<int,1e2> us100;
-typedef MyBaseTimeType<double,1e3> ms;
-typedef MyBaseTimeType<double,1e6> sec;
+typedef MyBaseTimeType<int,10> us10;
+typedef MyBaseTimeType<int,100> us100;
+typedef MyBaseTimeType<double,1000> ms;
+typedef MyBaseTimeType<double,1000000> sec;
 
 class MyTime  
 {

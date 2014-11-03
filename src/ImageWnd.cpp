@@ -7,16 +7,14 @@
 #include "TchartSeries.h"
 #include "MainFrm.h"
 #include "dcm800.h"
-//#include "monochromator.h"
 #include "metricon.h"
 #include "my_color.h"
 #include "captureWnd.h"
 #include "BMPanvas.h"
-
+#include "compressor.h"
 IMPLEMENT_DYNAMIC(ImageWnd, CWnd)
 ImageWnd::ImageWnd()
 {
-	scale=10;
 }
 
 ImageWnd::~ImageWnd() {}
@@ -30,10 +28,7 @@ BEGIN_MESSAGE_MAP(ImageWnd, CWnd)
 	ON_WM_SHOWWINDOW()
 END_MESSAGE_MAP()
 
-
-
 // ImageWnd message handlers
-
 
 int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
@@ -47,9 +42,9 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.Create(IDD_DIALOGBARTAB4,&Ctrls); 
 	CameraWnd.Ctrls.SetWindowPos(NULL,500,0,0,0,SWP_NOSIZE | SWP_NOZORDER);
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
-#define TEST2
+#define TEST1
 #ifdef DEBUG
- 	fiber.LoadPic(CString("exe\\fiber.png"));
+ 	//fiber.LoadPic(CString("exe\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
 	SetMarker(OrgPoint(CPoint(282, 243)), BGN);
@@ -114,29 +109,28 @@ void ImageWnd::OnChildMove()
 //////////////////////////////////////////////////////////////////////////
 BEGIN_MESSAGE_MAP(ImageWnd::CtrlsTab, BarTemplate)
 	//{{AFX_MSG_MAP(DialogBarTab1)
-	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedScan)
-	ON_BN_CLICKED(IDC_BUTTON2, OnBnClickedCalibrate)
 	ON_WM_CREATE()
-	ON_BN_CLICKED(IDC_BUTTON4, &ImageWnd::CtrlsTab::OnBnClickedCalcTE)
-	ON_BN_CLICKED(IDC_BUTTON5, &ImageWnd::CtrlsTab::OnBnClickedButton5)
-	//}}AFX_MSG_MAP	
-	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)
-	ON_BN_CLICKED(IDC_BUTTON11, &ImageWnd::CtrlsTab::OnBnClickedCalcTM)
+	ON_BN_CLICKED(IDC_BUTTON1, OnBnClickedScan)
+	ON_EN_KILLFOCUS(IDC_EDIT1, &ImageWnd::CtrlsTab::OnEnKillfocusEdit1)	
 	ON_MESSAGE(UM_BUTTON_ITERCEPTED,&ImageWnd::CtrlsTab::OnButtonIntercepted)
+	ON_BN_CLICKED(IDC_BUTTON5, &ImageWnd::CtrlsTab::OnBnClickedButton5)	
+	//}}AFX_MSG_MAP	
 END_MESSAGE_MAP()
 
 BOOL ImageWnd::CtrlsTab::OnInitDialog() 
 {
 	CDialog::OnInitDialog();
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// EXCEPTION: OCX Property Pages should return FALSE
+	NofScans.SetCurSel(1);
+	return TRUE; 	
 }
 
-ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent)
-, stroka(1220)
-, AvrRange(100)
-, Xmin(100)
-, Xmax(3100)
+ImageWnd::CtrlsTab::CtrlsTab( CWnd* pParent /*= NULL*/ ): BarTemplate(pParent),
+#if defined DEBUG
+	stroka(220), Xmin(100), Xmax(6000)
+#else
+	stroka(1224), Xmin(2), Xmax(3263)
+#endif
+
 {
 }
 
@@ -145,14 +139,12 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 	BarTemplate::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(DialogBarTab1)
 	DDX_Text(pDX, IDC_EDIT1, stroka);
-	DDX_Text(pDX, IDC_EDIT2, AvrRange);
 	DDX_Text(pDX, IDC_EDIT3, Xmin);
 	DDX_Text(pDX, IDC_EDIT4, Xmax);
-	DDV_MinMaxInt(pDX, AvrRange, 1, 1000);
 	DDX_Control(pDX, IDC_EDIT3, XminCtrl);
 	DDX_Control(pDX, IDC_EDIT4, XmaxCtrl);
 	DDX_Control(pDX, IDC_EDIT1, strokaCtrl);
-	DDX_Control(pDX, IDC_EDIT2, AvrRangeCtrl);
+	DDX_Control(pDX, IDC_COMBO1, NofScans);
 	//}}AFX_DATA_MAP
 
 }
@@ -187,45 +179,57 @@ void Interpolate(CPoint Beg, CPoint End, double dr, BYTE *arr, int wbyte, Simple
 
 void ImageWnd::CtrlsTab::OnBnClickedScan()
 {
-	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent; void* x; CString T,T1;
-	MyTimer Timer1,Timer2; sec time; CString logT; TSimplePointSeries *t2;
-	TSimplePointSeries::DataImportMsg *ChartMsg; int Xmin, Xmax, Ymin, Ymax;
-	BYTE *fiber;
-	
+	/*UpdateData(); ImageWnd* parent=(ImageWnd*)Parent; void* x; CString T,T1;
+	MyTimer Timer1,Timer2; sec time; 
+	void* x; CString T; BOOL exit = FALSE;		
+	ConrtoledLogMessage log; log << _T("Speed tests results");
+	ImagesAccumulator &dark = parent->dark.accum, &cupol = parent->cupol.accum, &strips = parent->strips.accum;
+
+	if (dark.bmp == NULL) 	{log << _T("There is no DARK image"); exit = TRUE;}
 	CMainFrame* MainWnd=(CMainFrame*)AfxGetMainWnd(); 
 	MainWnd->TabCtrl1.ChangeTab(MainWnd->TabCtrl1.FindTab("Main control"));	
 
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
-
 	if(!(parent->fiber.org.HasImage())) return;
 
-	Timer2.Start();
-
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
-	if((x=chrt.Series.GainAcsess(WRITE))!=0)
-	{
-		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+			PointVsErrorArray dark_points, cupol_points, strips_points, result; Timer1.Start();
+			for (int i = 0; i < dark_points.GetSize(); i++)
+			int diff;
+			if ((diff = dark_points.GetSize() - result.GetSize()) != 0)
+			{
+				log.T.Format("%d points were excluded because of division error", diff); log << log.T;
+				log.SetPriority(lmprHIGH);
+			if (result.GetSize() != 0)
+			{
+				CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 			
+				if((x = chrt.Series.GainAcsess(WRITE))!=0)
+				{
+					SeriesProtector Protector(x); TSeriesArray& Series(Protector);
 		if((t2=new TSimplePointSeries(T))!=0)	
-		{
-			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-			Series.Add(t2); 
-			t2->_SymbolStyle::Set(NO_SYMBOL); 
+					if((t2 = new TPointVsErrorSeries(T)) != NULL)	
+					{
+						t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);				
+						t2->PointType.Set(GenericPnt); 										
+						for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+						Series.Add(t2); 
 			ChartMsg = t2->CreateDataImportMsg(); 
-			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-			t2->PointType.Set(GenericPnt); 
-			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-		}		
-	}
+						t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+						t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+						TPointVsErrorSeries::DataImportMsg *ChartMsg = t2->CreateDataImportMsg(); 
+						for (int i = 0; i < result.GetSize(); i++) 
+						{
+							ChartMsg->Points.Add(result[i]);
+						}
+						ChartMsg->Dispatch(); 
+						mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+					}		
 
 	Xmin = parent->MarkerBGN.x - CrossWidth; Xmax = parent->MarkerBGN.x + CrossWidth;
 	Ymin = parent->MarkerBGN.y - CrossWidth; Ymax = parent->MarkerBGN.y + CrossWidth;
-
     Timer1.Start();	parent->fiber.org.LoadBitmapArray(); 
 	Timer1.Stop(); time=Timer1.GetValue();
 	logT.Format("D C S %d lines load = %s", Xmax - Xmin + 1,ConvTimeToStr(time)); log->Msgs.Add(logT);
 	fiber = parent->fiber.org.arr;
 
-	Timer1.Start();	
 	Interpolate(CPoint(parent->MarkerBGN.x, parent->MarkerBGN.y - CrossWidth), 
 				CPoint(parent->MarkerBGN.x, parent->MarkerBGN.y + CrossWidth), 1.0, 
 				parent->fiber.org.arr, parent->fiber.org.wbyte, &ChartMsg->Points);
@@ -234,10 +238,8 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 	ChartMsg->Dispatch();
 
 	if((x=chrt.Series.GainAcsess(WRITE))!=0)
-	{
 		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
 		if((t2=new TSimplePointSeries(T))!=0)	
-		{
 			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
 			Series.Add(t2); 
 			t2->_SymbolStyle::Set(NO_SYMBOL); 
@@ -246,22 +248,14 @@ void ImageWnd::CtrlsTab::OnBnClickedScan()
 			t2->PointType.Set(GenericPnt); 
 			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
 		}		
-	}
+			}
 
-	Timer1.Start();
 	Interpolate(CPoint(parent->MarkerBGN.x - CrossWidth, parent->MarkerBGN.y), 
 		CPoint(parent->MarkerBGN.x + CrossWidth, parent->MarkerBGN.y), 1.0, 
 		parent->fiber.org.arr, parent->fiber.org.wbyte, &ChartMsg->Points);
 	Timer1.Stop(); 
 	logT.Format("Interpolating %d lines time=%s", ChartMsg->Points.GetSize(), ConvTimeToStr(Timer1.GetValue())); log->Msgs.Add(logT);
-	ChartMsg->Dispatch();
-
-	parent->fiber.org.UnloadBitmapArray();
-	Timer2.Stop(); time=Timer2.GetValue();
-	logT.Format("Total processing time=%s",ConvTimeToStr(time)); log->Msgs.Add(logT);
-
-	CKSVU3App* Parent=(CKSVU3App*)AfxGetApp(); 
-	Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);	
+	parent->fiber.org.UnloadBitmapArray();*/
 }
 
 ImageWnd::PicWnd::PicWnd()
@@ -271,7 +265,12 @@ ImageWnd::PicWnd::PicWnd()
 
 ImageWnd::PicWnd::~PicWnd()
 {
-
+	POSITION pos = helpers.GetHeadPosition();
+	while ( pos != NULL)
+	{
+		delete helpers.GetNext(pos);
+	}
+	helpers.RemoveAll();
 }
 BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_CREATE()
@@ -284,6 +283,7 @@ BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
 	ON_COMMAND(ID_PICWNDMENU_SAVE, OnPicWndSave)
+	ON_COMMAND(ID_PICWNDMENU_SCANLINE, OnPicWndScanLine)
 	ON_WM_MOVE()
 END_MESSAGE_MAP()
 
@@ -316,10 +316,13 @@ void ImageWnd::PicWnd::OnPaint()
 {
 	CPaintDC dc(this); 	
 	HDC hdc=dc.GetSafeHdc();
-	if(org.HasImage())
+	if (accum.bmp != NULL)
 	{
+		if(accum.bmp->HasImage())
+		{
 		MarkerAvaBGN.Draw(&ava);
 		MarkerAvaEND.Draw(&ava);			
+		}
 	}
 	ava.CopyTo(hdc,TOP_LEFT);
 }
@@ -363,36 +366,37 @@ void ImageWnd::PicWnd::UpdateNow(void)
 	RedrawWindow(0,0,RDW_INVALIDATE | RDW_FRAME | RDW_NOERASE | RDW_ALLCHILDREN);					
 }
 
-void ImageWnd::PicWnd::LoadPic(CString T)
-{
-	if(org.LoadImage(T)==S_OK)
+HRESULT ImageWnd::PicWnd::LoadPic(CString T)
+{	
+	HRESULT ret;
+	if(SUCCEEDED(ret = accum.LoadFrom(T)))
 	{
-		Parent->CameraWnd.Ctrls.UpdateData();			
-		if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWndCtrlsTab::TrueColor)
-		{
-			LogMessage *log=new LogMessage(); 
-			log->CreateEntry("Error","Image you are trying to load is no GRAYSCALE.",LogMessage::high_pr);			
-			log->CreateEntry("*****","In order to use bult-in convertor please select",LogMessage::high_pr);			
-			log->CreateEntry("*****","convert method: NativeGDI, HSL or HSV.",LogMessage::high_pr);			
-			CKSVU3App* Parent=(CKSVU3App*)AfxGetApp();
-			Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);
-			return;
-		}
+		accum.ConvertToBitmap(this); BMPanvas &org = *(accum.bmp);
 
-		if (org.ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
+		//Parent->CameraWnd.Ctrls.UpdateData(); 
+		//if (Parent->CameraWnd.Ctrls.ColorTransformSelector == CaptureWnd::CtrlsTab::TrueColor)
+		//{
+		//	ConrtoledLogMessage log(MessagePriorities::lmprHIGH); 
+		//	log << _T("ERR: Image you are trying to load is no GRAYSCALE.");
+		//	log << _T("ERR: In order to use bult-in convertor please select");			
+		//	log << _T("ERR: convert method: NativeGDI, HSL or HSV.");			
+		//	log.Dispatch();
+		//	return E_FAIL;
+		//}
+
+		//if (accum.bmp->ColorType != BMPanvas::GRAY_PAL) ConvertOrgToGrayscale();
 		FileName=T;
-		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
-		org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
-        HGDIOBJ tfont=ava.SelectObject(font1);
-		ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
+		EraseAva(); MakeAva();
+        HGDIOBJ tfont=ava.SelectObject(font1); ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
 		ava.TextOut(0,0,T);
-		T.Format("%dx%d",org.w,org.h); ava.TextOut(0,10,T);
+		T.Format("%dx%d", org.w, org.h); ava.TextOut(0,10,T);
 		ava.SelectObject(tfont); 
 		CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
 		UpdateNow();
 		Parent->Ctrls.Xmax=org.w; Parent->Ctrls.UpdateData();
 	}
 	else FileName="";		 
+	return ret;
 }
 
 void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
@@ -400,24 +404,26 @@ void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 	char buf[1000]; CString T,T2;  GetWindowText(T2);
 	DragQueryFile(hDropInfo,0xFFFFFFFF,buf,1000);
 	DragQueryFile(hDropInfo,0,buf,1000); T=CString(buf); 
-	MyTimer Timer1; sec time; CString logT;
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
+	MyTimer Timer1; sec time; 	
 	
-	Timer1.Start();
-	LoadPic(T);	
-	Timer1.Stop(); 
-	time=Timer1.GetValue(); logT.Format("%s org (%.2f Mpix) load time=%s",T2,org.w*org.h/1.e6,ConvTimeToStr(time)); log->Msgs.Add(logT);	
-
-	CKSVU3App* Parent=(CKSVU3App*)AfxGetApp(); 
-	Parent->myThread.PostParentMessage(UM_GENERIC_MESSAGE,log);	
-
+	Timer1.Start(); 
+	if (SUCCEEDED(LoadPic(T)))
+	{
+		BMPanvas &org = *(accum.bmp); ConrtoledLogMessage log;
+		//Parent->SetScanRgn(Parent->GetScanRgn());
+		Timer1.Stop(); 
+		time=Timer1.GetValue(); 
+		log.T.Format("%s org (%.2f Mpix) load time=%s", T2, org.w*org.h/1e6, ConvTimeToStr(time)); log << log.T;		
+		log.Dispatch();
+	}	
 	CWnd::OnDropFiles(hDropInfo);
 }
 
 void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	BOOL update = FALSE; 
-	if ( org.HasImage() == FALSE ) return;
+	if (accum.bmp == NULL) return;
+	if (accum.bmp->HasImage() == FALSE ) return;
 	switch( nFlags )
 	{
 	case MK_SHIFT: Parent->SetMarker(Convert(AvaPoint(point)), BGN); update = TRUE; break;
@@ -427,6 +433,9 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 	if (update == TRUE)
 	{
 		UpdateNow();
+		{
+			//Parent->SetScanRgn( Convert(tmpRgn) );
+		}		
 	}
 	CWnd::OnLButtonUp(nFlags, point);
 }
@@ -434,7 +443,8 @@ void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 void ImageWnd::PicWnd::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	BOOL update = FALSE; 
-	if ( org.HasImage() == FALSE ) return;
+	if (accum.bmp == NULL) return;
+	if (accum.bmp->HasImage() == FALSE ) return;
 	switch( nFlags )
 	{
 	case MK_SHIFT: update=TRUE; break;
@@ -451,140 +461,52 @@ void ImageWnd::PicWnd::OnRButtonUp(UINT nFlags, CPoint point)
 
 void ImageWnd::PicWnd::OnCaptureButton()
 {
-	CaptureButton.EnableWindow(FALSE);
-    Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)this, (LPARAM)&org);
+	UpdateHelpers(EvntOnCaptureButton);
 }
 
 LRESULT ImageWnd::PicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
 {
-	CString T;
-	if(org.HasImage())
-	{
-		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
-		org.StretchTo(&ava,ava.Rgn,org.Rgn,SRCCOPY);
-
-		HGDIOBJ tfont=ava.SelectObject(font1);
-		ava.SetBkMode(TRANSPARENT); ava.SetTextColor(clRED);
-		T="Camera capture"; ava.TextOut(0,0,T);
-		T.Format("%dx%d",org.w,org.h); ava.TextOut(0,10,T);
-		ava.SelectObject(tfont);
-		UpdateNow();
-		CaptureButton.EnableWindow(TRUE); CaptureButton.ShowWindow(SW_HIDE); DragAcceptFiles(FALSE);
-	}
+	UpdateHelpers(EvntOnCaptureReady);
 	return 0;
 }
 void ImageWnd::PicWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 {
-	if(org.HasImage())
+	if (accum.bmp != NULL)
 	{
-		CMenu* menu = menu1.GetSubMenu(0);
-		menu->TrackPopupMenu(TPM_LEFTALIGN |TPM_RIGHTBUTTON, point.x, point.y, this);
+		if (accum.bmp->HasImage())
+		{
+			CMenu* menu = menu1.GetSubMenu(0);
+			menu->TrackPopupMenu(TPM_LEFTALIGN |TPM_RIGHTBUTTON, point.x, point.y, this);
+		}
 	}
 }
 
 void ImageWnd::PicWnd::OnPicWndErase()
 {
-	if(org.HasImage())
-	{
-		org.Destroy(); EraseAva();
-
-		UpdateNow();
-		CaptureButton.ShowWindow(SW_SHOW); DragAcceptFiles(true);
-	}
+	accum.Reset(); EraseAva();
+	CaptureButton.EnableWindow(TRUE); CaptureButton.ShowWindow(SW_SHOW); DragAcceptFiles(true);
+	UpdateNow();	
 }
 
 void ImageWnd::PicWnd::OnPicWndSave()
 {
-	if(org.HasImage())
+	if (accum.bmp != NULL)
 	{
-		CFileDialog dlg1(FALSE,"png");
-		if(dlg1.DoModal()==IDOK)
+		if(accum.bmp->HasImage())
 		{
-            org.SaveImage(dlg1.GetFileName());
+			CFileDialog dlg1(FALSE,"pack");
+			if(dlg1.DoModal()==IDOK)
+			{
+				accum.SaveTo(dlg1.GetPathName());
+			}
 		}
 	}
-}
-
-void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
-{
-	CalibratorDlg.ShowWindow(SW_SHOW);
-
-
-	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1,dt2;
-	DoubleArray N,teta; CString T;
-	CalibrationParams cal; cal.n_p=2.14044; cal.n_s=1.; 
-	N << 2933 << 2506 << 1922 << 1203;
-	teta << 63.34*DEGREE << 60.04*DEGREE << 55.16*DEGREE << 49.02*DEGREE;
-
-	double lambda, k, n1, n3; DoubleArray bettaexp_TE;
-	lambda = 632.8; k = 2.*M_PI/lambda;	n1 = 1.; n3 = 1.45705;
-	bettaexp_TE << 1.9129 << 1.8544 << 1.7568 << 1.6159; 
-	FilmFuncTEParams in_TE(bettaexp_TE, n1,n3,k);
-	FilmParams outTE,outTM;
-	DoubleArray bettaexp_TM;
-	bettaexp_TM << 1.82422 << 1.76110 << 1.65829 << 1.51765; 
-	FilmFuncTMParams in_TM(bettaexp_TM, n1,n3,k);
-
-	CalcRParams params;
-	params.i=FilmParams(1,150,0+1e-100); 
-	params.f=FilmParams(1.84,1082,5e-3+1e-100);  
-	params.s=FilmParams(1.45705,1e6,0+1e-100); 
-	params.lambda=632.8; params.Np=2.14044; params.teta_min=15; params.teta_max=85;
-
-	TSimplePointSeries *t1=NULL; 
-	TSimplePointSeries::DataImportMsg *CHM1, *CHM2; CHM1=CHM2=NULL; 
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
-	LogMessage *log=new LogMessage(); log->CreateEntry("Log","Speed tests results",LogMessage::low_pr);
-	SimplePoint pnt; pnt.type.Set(GenericPnt);
-
-	CreateCalibration(N, teta, cal);
-	CalibratorParams calb_params(1000.203414900858);
-	Calibrator(calb_params,cal);
-	CalclFilmParamsTE(in_TE,outTE);
-	CalclFilmParamsTM(in_TM,outTM);
-	int a=5;
-
-	T.Format("****Statistics***"); log->CreateEntry("*",T,LogMessage::high_pr);
-	T.Format("---Calibration---"); log->CreateEntry("*",T);
-	T.Format("N0=%.10f L=%.10f d0=%.10f fi0=%.10f errabs=%g errrel=%g",cal.N0,cal.L,cal.d0,cal.fi0,cal.epsabs,cal.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",cal.dt.val(), cal.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("---Calibrator----"); log->CreateEntry("*",T);
-	T.Format("Npix=%g teta=%.10f betta=%.10f errabs=%g errrel=%g",calb_params.Npix,calb_params.teta, calb_params.betta,calb_params.epsabs,calb_params.epsrel); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",calb_params.dt.val(), calb_params.func_call_cntr); log->CreateEntry("*",T);
-	T.Format("--FilmParamsTE---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTE.n, outTE.H, outTE.epsabs, outTE.epsrel ); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTE.epsabs, outTE.epsrel, outTE.fval, outTE.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTE.dt.val(), outTE.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TE.betta_teor.GetSize();i++)
-	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TE.betta_teor[i].n,in_TE.betta_teor[i].val,bettaexp_TE[i]); log->CreateEntry("*",T);
-	}		
-	T.Format("--FilmParamsTM---"); log->CreateEntry("*",T);
-	T.Format("n=%.10f H=%.10f nm",outTM.n, outTM.H, outTM.epsabs, outTM.epsrel); log->CreateEntry("*",T);
-	T.Format("errabs=%g errrel=%g fval=%.10f, step=%.10f",outTM.epsabs, outTM.epsrel, outTM.fval, outTM.size ); log->CreateEntry("*",T);
-	T.Format("dt=%.3f ms func_calls=%d",outTM.dt.val(), outTM.func_call_cntr); log->CreateEntry("*",T);
-	for(int i=0;i<in_TM.betta_teor.GetSize();i++)
-	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",in_TM.betta_teor[i].n,in_TM.betta_teor[i].val,bettaexp_TM[i]); log->CreateEntry("*",T);
-	}		
-	log->Dispatch();
-
 }
 
 int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
 {
 	if (BarTemplate::OnCreate(lpCreateStruct) == -1)
 		return -1;
-
-	CalibratorDlg.Create(IDD_DIALOG_CAL,this);
-	CalibratorDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-
-	CalcTEDlg.Create(IDD_DIALOG_CALCTE,this);
-	CalcTEDlg.SetWindowPos(NULL,600,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-
-	CalcTMDlg.Create(IDD_DIALOG_CALCTE,this);
-	CalcTMDlg.SetWindowPos(NULL,300,300,0,0,SWP_NOSIZE | SWP_NOZORDER);
-	CalcTMDlg.SetWindowText("TM Calculator"); CalcTMDlg.IsTM=TRUE;
 
 	return 0;
 }
@@ -615,7 +537,7 @@ BOOL ImageWnd::OnEraseBkgnd(CDC* pDC)
 
 void ImageWnd::SetMarker( const OrgPoint& mark, MarkerNames pos )
 {
-	if (fiber.org.HasImage())
+	if (fiber.accum.GetSum() != NULL)
 	{
 		switch (pos)
 		{
@@ -648,16 +570,19 @@ void ImageWnd::PicWnd::OnMove(int x, int y)
 
 void ImageWnd::PicWnd::ConvertOrgToGrayscale()
 {
-	BMPanvas temp_replica; 
-	temp_replica.Create(&org, org.Rgn); org.CopyTo(&temp_replica, TOP_LEFT);
-	org.Destroy(); org.Create(this,temp_replica.w,temp_replica.h,8);
-	org.CreateGrayPallete(); Parent->CameraWnd.Ctrls.UpdateData();			
-	ColorTransform(&temp_replica, &org, Parent->CameraWnd.Ctrls.ColorTransformSelector);
+	if (accum.bmp != NULL)
+	{
+		BMPanvas temp_replica; BMPanvas &org = *(accum.bmp);
+		temp_replica.Create(&org, org.Rgn); org.CopyTo(&temp_replica, TOP_LEFT);
+		org.Destroy(); org.Create(this,temp_replica.w,temp_replica.h,8);
+		org.CreateGrayPallete(); Parent->CameraWnd.Ctrls.UpdateData();			
+		ColorTransform(&temp_replica, &org, Parent->CameraWnd.Ctrls.ColorTransformSelector);
+	}
 }
 
 void ImageWnd::PicWnd::SetMarker( const AvaPoint& mark, MarkerNames pos )
 {
-	if (org.HasImage())
+	if (accum.bmp != NULL)
 	{
 		switch (pos)
 		{
@@ -669,13 +594,13 @@ void ImageWnd::PicWnd::SetMarker( const AvaPoint& mark, MarkerNames pos )
 
 ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt )
 {
-	OrgPoint ret = pnt; BMPanvas& ref = org;
-	if (ref.HasImage())
+	OrgPoint ret = pnt; 
+	if (accum.bmp != NULL)
 	{
 		if (ret.x < 0) ret.x = 0;
-		if (ret.x >= ref.w)	 ret.x = ref.w - 1;
+		if (ret.x >= accum.w)	 ret.x = accum.w - 1;
 		if (ret.y < 0) ret.y = 0;
-		if (ret.y >= ref.h)	 ret.y = ref.h - 1;
+		if (ret.y >= accum.h)	 ret.y = accum.h - 1;
 	}
 	return ret;	
 }
@@ -683,42 +608,173 @@ ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt )
 ImageWnd::OrgPoint ImageWnd::PicWnd::Convert( const AvaPoint& pnt)
 {
 	OrgPoint ret; 
-	if ( ava.HasImage() )
+	if (accum.bmp != NULL)
 	{
-		struct {double cx, cy;} scale = {(double)org.Rgn.Width() / ava.Rgn.Width(), (double)org.Rgn.Height() / ava.Rgn.Height()}; 
+		BMPanvas &org = *accum.bmp;
+		if ( ava.HasImage() )
+		{
+			struct {double cx, cy;} scale = {(double)org.Rgn.Width() / ava.Rgn.Width(), (double)org.Rgn.Height() / ava.Rgn.Height()}; 
 		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy);
-	}
+		}
+	}	
 	return ret;
 }
 
 ImageWnd::AvaPoint ImageWnd::PicWnd::Convert( const OrgPoint& pnt)
 {
 	AvaPoint ret; 
-	if ( org.HasImage() )
+	if (accum.bmp != NULL)
 	{
-		struct {double cx, cy;} scale = {(double)ava.Rgn.Width() / org.Rgn.Width(), (double)ava.Rgn.Height() / org.Rgn.Height()}; 
+		BMPanvas &org = *accum.bmp;
+		if ( org.HasImage() )
+		{
+			struct {double cx, cy;} scale = {(double)ava.Rgn.Width() / org.Rgn.Width(), (double)ava.Rgn.Height() / org.Rgn.Height()}; 
 		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy); 
+		}
 	}
 	return ret;
 }
 
+void ImageWnd::PicWnd::UpdateHelpers( const HelperEvent &event )
+{
+	BaseForHelper * accumCapture = NULL;
+	ImageWnd::CtrlsTab &ctrls = Parent->Ctrls; ctrls.UpdateData();
+	switch (event)
+	{
+	case EvntOnCaptureButton:
+		this->accum.Reset();
+		accumCapture = new AccumHelper(this, ctrls.GetNofScans());
+		helpers.AddTail(accumCapture);
+		break;
+	default:
+		POSITION pos = helpers.GetHeadPosition();
+		while ( pos != NULL)
+		{
+			POSITION prev = pos;
+			BaseForHelper* helper = helpers.GetNext(pos); 
+			if (helper->Update(event) == RSLT_HELPER_COMPLETE)
+			{
+				delete helper; helpers.RemoveAt(prev);
+			}			
+		}
+	}
+}
+
+HRESULT ImageWnd::PicWnd::MakeAva()
+{
+	if (accum.bmp != NULL)
+	{
+		BMPanvas &org = *(accum.bmp);
+		SetStretchBltMode(ava.GetDC(),COLORONCOLOR);		
+		org.StretchTo(&ava, ava.Rgn, org.Rgn,SRCCOPY);
+		return S_OK;
+	}
+	else
+	{
+		return E_FAIL;
+	}
+}
+
+void ImageWnd::PicWnd::OnPicWndScanLine()
+{
+	//void* x; CString T; 	
+	//TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
+	//ConrtoledLogMessage log; log << _T("Speed tests results");
+
+	//if (accum.bmp != NULL)
+	//{
+	//	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+	//	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+
+	//	OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+	//	T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
+
+	//	if((x=chrt.Series.GainAcsess(WRITE))!=0)
+	//	{
+	//		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+	//		TPointVsErrorSeries *t2;
+	//		if((t2 = new TPointVsErrorSeries(T))!=0)	
+	//		{
+	//			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+	//			Series.Add(t2); 
+	//			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);
+	//			ChartMsg = t2->CreateDataImportMsg(); 
+	//			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+	//			t2->PointType.Set(GenericPnt); 
+	//			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+	//		}		
+	//	}
+	//	
+	//	accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
+	//	log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
+	//	log << log.T;
+	//	ChartMsg->Dispatch();
+	//	log.Dispatch();
+	//}
+}
+
+
+HelperEvent AccumHelper::Update( const HelperEvent &event )
+{
+	ImagesAccumulator &accum = parent->accum; CString T;
+	switch (event)
+	{
+	case EvntOnCaptureReady:
+		if (accum.n < n_max)
+		{
+			if (SUCCEEDED(accum.FillAccum(tmp_bmp)))
+			{
+				accum.ConvertToBitmap(parent);
+				//parent->Parent->SetScanRgn(parent->Parent->GetScanRgn());
+				
+				parent->MakeAva();
+				//parent->ScanRgn.Erase(NULL);
+
+				HGDIOBJ tfont = parent->ava.SelectObject(parent->font1);
+				parent->ava.SetBkMode(TRANSPARENT); COLORREF old_color = parent->ava.SetTextColor(clRED);
+				T.Format("Camera capture %d of %d", accum.n, n_max); parent->ava.TextOut(0,0,T);
+				T.Format("%dx%d", accum.w, accum.h); parent->ava.TextOut(0,10,T);
+				parent->ava.SelectObject(tfont); parent->ava.SetTextColor(old_color);
+				parent->UpdateNow();				
+
+				if (accum.n == n_max)
+				{
+					return RSLT_HELPER_COMPLETE;					
+				}
+				else
+				{
+					parent->Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)parent, (LPARAM)tmp_bmp);			
+				}
+			}		
+		}
+		else ASSERT(0);
+		break;
+	}
+	return RSLT_OK;
+}
+
+AccumHelper::AccumHelper( ImageWnd::PicWnd *_parent, const int _n_max ) : parent(_parent), n_max(_n_max)
+{
+	tmp_bmp = NULL; tmp_bmp = new BMPanvas();
+	parent->CaptureButton.EnableWindow(FALSE);
+	parent->Parent->CameraWnd.PostMessage(UM_CAPTURE_REQUEST,(WPARAM)parent, (LPARAM)tmp_bmp);
+	parent->CaptureButton.ShowWindow(SW_HIDE); parent->DragAcceptFiles(FALSE);
+}
+
+AccumHelper::~AccumHelper()
+{	
+	if (tmp_bmp != NULL)
+	{
+		delete tmp_bmp; tmp_bmp = NULL;
+	}
+	BaseForHelper::~BaseForHelper();
+}
+
+
 BOOL ImageWnd::CtrlsTab::DestroyWindow()
 {
-	CalibratorDlg.DestroyWindow();
-
 	return BarTemplate::DestroyWindow();
 }
-
-void ImageWnd::CtrlsTab::OnBnClickedCalcTE()
-{
-	CalcTEDlg.ShowWindow(SW_SHOW);
-}
-
-void ImageWnd::CtrlsTab::OnBnClickedCalcTM()
-{
-	CalcTMDlg.ShowWindow(SW_SHOW);
-}
-
 
 void ImageWnd::CtrlsTab::OnBnClickedButton5()
 {
@@ -732,6 +788,13 @@ LRESULT ImageWnd::CtrlsTab::OnButtonIntercepted( WPARAM wParam, LPARAM lParam )
 {
 	UpdateData(); ImageWnd* parent=(ImageWnd*)Parent;
 	return NULL;
+}
+
+int ImageWnd::CtrlsTab::GetNofScans()
+{
+	CString text;
+	NofScans.GetLBText(NofScans.GetCurSel(),text);
+	return atoi(text);
 }
 
 IMPLEMENT_DYNAMIC(CEditInterceptor, CEdit)

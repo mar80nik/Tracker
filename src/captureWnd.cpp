@@ -9,8 +9,8 @@ IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
 CaptureWnd::CaptureWnd(): thrd(444)
 {
 	Src=NULL;
-	CameraOutWnd=CRect(CPoint(0,0),CSize(800,600));
-	LevelsScanWnd=CRect(CPoint(0,600+10),CSize(800,200));
+	CameraOutWnd=CRect(CPoint(0,0),CSize(600,500));
+	LevelsScanWnd=CRect(CPoint(0,CameraOutWnd.bottom + 10),CSize(600,100));
 	penRed.CreatePen(PS_SOLID,1,clRED);
 	penBlue.CreatePen(PS_SOLID,1,clBLUE);
 	penGreen.CreatePen(PS_SOLID,1,clGREEN);

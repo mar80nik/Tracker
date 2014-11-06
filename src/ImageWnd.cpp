@@ -47,7 +47,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
 #define TEST1
 #ifdef DEBUG
- 	//fiber.LoadPic(CString("exe\\fiber.png"));
+ 	fiber.LoadPic(CString("..\\exe\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
 	SetMarker(OrgPoint(CPoint(282, 243)), BGN);

@@ -39,28 +39,25 @@ protected:
 	virtual void OnOK() {};
 	virtual void OnCancel() {};
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnBnClicked_Capture();
 	afx_msg void OnBnClicked_StopCapture();
 	afx_msg void OnBnClicked_PauseCapture();
 	afx_msg void OnBnClicked_ResumeCapture();
 	afx_msg void OnBnClicked_FilterParams();
-//	afx_msg void OnBnClickedButton6();
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);
-public:
 	afx_msg void OnBnClickedChooseCam();
-	CComboBox PreviewSize;
 	afx_msg void OnCbnSelchangeCombo1();
-	eDcm800Size GetPreviewSize();
-	CButton BtnFilterParams;
-public:
-	BOOL IsProgramBW;
 	afx_msg void OnBnClickedRadio1();
 	afx_msg void OnBnClickedRadio4();
+	//}}AFX_MSG
+	DECLARE_MESSAGE_MAP()
+	virtual void DoDataExchange(CDataExchange* pDX);
+public:
+	BOOL IsProgramBW;
+	CComboBox PreviewSize;
+	CButton BtnFilterParams;
 	ColorTransformModes ColorTransformSelector;
+
+	eDcm800Size GetPreviewSize();	
 };
 
 void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWndCtrlsTab::ColorTransformModes mode);

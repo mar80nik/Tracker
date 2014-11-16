@@ -28,6 +28,7 @@ struct AngleFromCalibration: public SolverData
 	AngleFromCalibration& operator=(const AngleFromCalibration& ref) 
 	{
 		status = ref.status; teta = ref.teta; cal = ref.cal; Npix = ref.Npix;
+		*((SolverData*)this) = *((SolverData*)&ref);
 		return (*this);
 	}
 };
@@ -54,6 +55,10 @@ struct CalibrationParams: public SolverData
 				A = B = NULL; size = N.GetSize(); 
 				funcCB = &FuncParams::func;
 			}
+			virtual ~FuncParams()
+			{
+				DestroyBuffers();			
+			}							
 			FuncParams(FuncParams& p):
 				N(p.N), teta(p.teta), n_p(p.n_p), n_s(p.n_s), alfa(p.alfa), funcCB(p.funcCB)
 			{
@@ -66,8 +71,8 @@ struct CalibrationParams: public SolverData
 			}
 			virtual void DestroyBuffers()
 			{
-				if(A!=NULL) {delete[] A; A=NULL;}
-				if(B!=NULL) {delete[] B; B=NULL;}
+				if(A != NULL) {delete[] A; A = NULL;}
+				if(B != NULL) {delete[] B; B = NULL;}
 			}	
 			virtual void CleanUp()
 			{
@@ -100,6 +105,7 @@ public:
 	DoubleArray Nexp, teta;
 	
 	CalibrationParams(): SolverData()  {CleanUp();}
+	//~CalibrationParams() {CleanUp();}
 	virtual void Serialize(CArchive& ar);
 	CalibrationParams& operator=(CalibrationParams& t);
 
@@ -108,7 +114,7 @@ public:
 	AngleFromCalibration ConvertPixelToAngle(double Npix);
 	double ConertAngleToBeta(double teta) { return val[ind_n_p]*sin(teta); }
 	static double Get_k(const DoubleArray& cal_val) {return 2*M_PI/cal_val[ind_lambda];}
-	void CleanUp()
+	virtual void CleanUp()
 	{
 		val.RemoveAll(); Nexp.RemoveAll(); teta.RemoveAll();	
 	}

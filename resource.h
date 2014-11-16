@@ -149,6 +149,7 @@
 #define IDC_RADIO5                      1052
 #define IDC_RADIO6                      1053
 #define IDC_LIST3                       1056
+#define IDC_CHECK2                      1058
 #define IDC_RADIO7                      1060
 #define VOLTMETER1                      32771
 #define ID_CONFIG                       32772
@@ -289,7 +290,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        238
 #define _APS_NEXT_COMMAND_VALUE         32823
-#define _APS_NEXT_CONTROL_VALUE         1057
+#define _APS_NEXT_CONTROL_VALUE         1059
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

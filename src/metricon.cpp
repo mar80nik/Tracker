@@ -72,7 +72,7 @@ AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
 
 	if ((ret.status = FindTETA.Run(&params, BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12))) == GSL_SUCCESS) 
 	{
-		ret.teta = FindTETA.Roots[0]/DEGREE;
+		ret.teta = FindTETA.Roots[0];
 		ret.cal = params.cal; ret.Npix = Npix;
 		*((SolverData*)(&ret)) = *((SolverData*)&FindTETA);
 	}
@@ -107,23 +107,20 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 
 	if ((status = FindBettas.Run(&params, BoundaryConditions(n_s, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 
 	{
-		double cur_ret; 
+		ret = 0;
 		int i, j, roots_n = FindBettas.Roots.GetSize(), betta_n = bettaexp.GetSize(); 
 		for (i = 0; i <= roots_n - betta_n; i++)
 		{
-			cur_ret = 0;			
 			for (j = 0; j < betta_n; j++)
 			{
-				cur_ret += abs(FindBettas.Roots[j + i] - bettaexp[j].teta);
+				double a = FindBettas.Roots[j + i];
+				double b = bettaexp[j].teta;
+				ret += abs(FindBettas.Roots[j + i] - bettaexp[j].teta);
 			}
-			if (cur_ret < ret) 
+			betta_teor.RemoveAll();
+			for (j = 0; j < betta_n; j++)
 			{
-				ret = cur_ret;
-				betta_teor.RemoveAll();
-				for (j = 0; j < betta_n; j++)
-				{
-					betta_teor << betta_info(FindBettas.Roots[j + i], j + i);
-				}
+				betta_teor << betta_info(FindBettas.Roots[j + i], j + i);
 			}
 		}
 	}

@@ -67,7 +67,6 @@ int BaseForMultiFitterFuncParams::df( const gsl_vector * x, gsl_matrix * J )
 }
 BaseForMultiFitterFuncParams::~BaseForMultiFitterFuncParams()
 {
-	BaseForFuncParams::~BaseForFuncParams();
 	delete[] pDerivatives;
 }
 //////////////////////////////////////////////////////////////////////////

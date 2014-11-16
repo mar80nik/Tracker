@@ -9,6 +9,8 @@
 
 // CalcTEDialog dialog
 
+//enum PolarizationModes {TE, TM};
+
 class CalcTEDialog : public CDialog
 {
 	DECLARE_DYNAMIC(CalcTEDialog)
@@ -16,7 +18,7 @@ class CalcTEDialog : public CDialog
 public:
 	double N[modes_num]; TypeArray<AngleFromCalibration> betta_exp;
 	double Q[modes_num];
-	BOOL IsTM;
+	//BOOL IsTM;
 
 	CalcTEDialog(CWnd* pParent = NULL);   // standard constructor
 	virtual ~CalcTEDialog();
@@ -26,6 +28,7 @@ public:
 
 protected:
 	ProtectedSeriesArray* Series;
+	Polarization pol;
 
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 

@@ -128,7 +128,10 @@ struct SolverData
 	{
 		CleanUp(); max_iter = _max_iter;
 	}
-	virtual ~SolverData() { CleanUp(); }
+	virtual ~SolverData() 
+	{ 
+		CleanUp(); 
+	}
 	virtual void CleanUp() {status = GSL_FAILURE; err.CleanUp(); cntr.CleanUp();}
 };
 
@@ -180,6 +183,10 @@ public:
 		F.function = func; F.params = this; params = NULL;
 		subrgns_max = 50;
 	}
+	virtual ~Solver1dTemplate()
+	{
+		CleanUp();
+	}
 	virtual int Run(FuncParams *_params, const BoundaryConditions &_X, const SolverErrors &Err)
 	{
 		MyTimer Timer1; Timer1.Start(); CleanUp(); 
@@ -208,10 +215,9 @@ public:
 		}
 		dt=Timer1.StopStart(); 
 		return status;
-	}
+	}	
 	virtual void CleanUp()
 	{
-		SolverData::CleanUp();
 		if (s != NULL) { gsl_root_fsolver_free(s); s = NULL; }
 		Roots.RemoveAll(); SubRgns.RemoveAll(); 
 		if (params != NULL)
@@ -273,6 +279,10 @@ public:
 		fminimizer_type = gsl_multimin_fminimizer_nmsimplex; 
 		s = NULL; X = dX = NULL; 
 		F.f = func; F.params = this; params = NULL;
+	}
+	~MultiDimMinimizerTemplate()
+	{
+		CleanUp();
 	}
 	int Run(FuncParams* _params, DoubleArray &initX, DoubleArray &initdX, const SolverErrors &Err)
 	{

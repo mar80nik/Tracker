@@ -11,13 +11,12 @@ IMPLEMENT_DYNAMIC(CalcTEDialog, CDialog)
 
 CalcTEDialog::CalcTEDialog(CWnd* pParent /*=NULL*/)
 	: CDialog(CalcTEDialog::IDD, pParent)
-	, nf(0)
-	, hf(0)
+	, nf(0), hf(0), pol(TE)
 {
 	for(int i=0;i<modes_num;i++) { N[i] = 0; Q[i] = 0;}
-	Series=NULL; IsTM=FALSE; 
+	Series=NULL; 
 #if defined DEBUG
-	N[0]=3077; N[1]=2594; N[2]=1951; N[3]=1161;
+	N[3]=3077; N[2]=2594; N[1]=1951; N[0]=1161;
 #endif
 	lambda = 632.8; n3 = 1.45705;
 }
@@ -42,6 +41,7 @@ void CalcTEDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT17, hf);
 	DDX_Text(pDX, IDC_EDIT18, lambda);
 	DDX_Text(pDX, IDC_EDIT19, n3);
+	DDX_Radio(pDX, IDC_RADIO1, (int&)pol);
 }
 
 
@@ -58,12 +58,12 @@ END_MESSAGE_MAP()
 void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
-	MainCfg.GetCalibration(&cal);
+	MainCfg.GetCalibration(&cal); betta_exp.RemoveAll(); 
 	for(int i = 0; i < modes_num; i++)
-	{
+	{		
 		betta_exp << cal.ConvertPixelToAngle(N[i]);
-		Q[i] = betta_exp[i].teta;
-		betta_exp[i].teta = cal.ConertAngleToBeta(Q[i]);
+		Q[i] = betta_exp[i].teta/DEGREE;
+		betta_exp[i].teta = cal.ConertAngleToBeta(betta_exp[i].teta);
 	}
 	UpdateData(0);
 }
@@ -118,27 +118,25 @@ void CalcTEDialog::OnCbnSelchangeCombo1()
 void CalcTEDialog::OnBnClickedCalculate()
 {
 	CString T; LogMessage *log=new LogMessage(); FilmParams film;
-	double k, n1; Polarization pol;
 	UpdateData();
-	k = 2.*M_PI/lambda;	n1 = 1.; 
 
-	if (IsTM)
+	if (pol == TM)
 	{
-		pol = TM; T.Format("--FilmParamsTM---"); 
+		T.Format("--FilmParamsTM---"); 
 	} 
 	else
 	{
-		pol = TE; T.Format("--FilmParamsTE---");
+		T.Format("--FilmParamsTE---");
 	}
 	log->CreateEntry("*",T);
+	betta_exp[0].cal[CalibrationParams::ind_lambda] = lambda;
 
 	film.Calculator(pol, betta_exp);
 	T.Format("status = %s", gsl_strerror (film.status)); 
 
 	if(film.Calculator(pol, betta_exp) == GSL_SUCCESS)
 	{
-		nf = film.n;
-		hf = film.H;
+		nf = film.n; hf = film.H;
 		UpdateData(0);
 		log->CreateEntry(CString('*'),T);
 	}

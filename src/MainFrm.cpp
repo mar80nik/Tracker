@@ -147,7 +147,6 @@ LRESULT CMainFrame::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 {
 	Img.Ctrls.CalibratorDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	Img.Ctrls.CalcTEDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
-	Img.Ctrls.CalcTMDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	Chart1.Panel.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	return 0;
 }

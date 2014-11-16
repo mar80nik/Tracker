@@ -38,6 +38,17 @@ public:
 		}
 		return TRUE;
 	}
+	type get(int n) const
+	{
+		if (n < GetSize())
+		{
+			return operator[](n);
+		}
+		else
+		{
+			return 0;
+		}
+	}
 };
 
 class DoubleArray: public TypeArray<double>

@@ -155,9 +155,41 @@ public:
 	LogMessage& operator <<(const CString &Message);
 	void SetPriority(const LogMessage::MessagePriorities &pr) {priority = pr;}
 	void SetPriority(const ::MessagePriorities &pr) {priority = pr;}
-	LogMessage();
-	int GetSize() {return (int)(Msgs.GetSize()-1);}
-	BOOL HasMessages() {return (GetSize()!=0);}
+	LogMessage(::MessagePriorities prio = ::lmprLOW);
+	int GetSize() {return (int)(Msgs.GetSize());}
+	BOOL HasMessages() {return (GetSize() != 0);}
+};
+
+class ControledLogMessage
+{
+protected:
+	LogMessage* msg; 
+public:
+	CString T;
+
+	ControledLogMessage(::MessagePriorities prio = ::lmprLOW)	
+		{msg = NULL;	msg = new LogMessage(prio);}
+	~ControledLogMessage()	
+		{if (msg != NULL) delete msg;}	
+	virtual void Dispatch()	
+	{
+		if (msg->HasMessages())
+		{
+			msg->Dispatch(); msg = NULL;
+		}
+		else
+		{
+			delete msg; msg = NULL;
+		}
+	}
+	LogMessage& operator <<(const CString &Message)
+		{return (*msg) << Message;}
+	void SetPriority(const ::MessagePriorities &pr) 
+		{msg->SetPriority(pr);}
+	int GetSize() const
+		{msg->GetSize();}
+	BOOL HasMessages() const
+		{msg->HasMessages();}
 };
 
 class MyThread;

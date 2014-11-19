@@ -108,6 +108,7 @@ public:
 	~CalibrationParams() {CleanUp();}
 	virtual void Serialize(CArchive& ar);
 	CalibrationParams& operator=(const CalibrationParams& t);
+	BOOL IsValidCalibration() {return (val.GetSize() == ind_max);}
 
 	int CalculateFrom(	DoubleArray& _Nexp, DoubleArray& _teta, 
 						double _n_p, double _n_i, double _n_s, double _alfa, double _lambda);

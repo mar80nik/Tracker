@@ -544,45 +544,68 @@ void ImageWnd::PicWnd::OnPicWndSave()
 	}
 }
 
-void MyGSL_Tester_Helper(LogMessage *log, DoubleArray &Nexp, DoubleArray &teta_exp)
+void MyGSL_Tester_Helper(Polarization pol, DoubleArray &Nexp, DoubleArray &teta_exp)
 {
-	CString T; FilmParams film; CalibrationParams cal; 
+	// TE	
+	//Metricon			nf = 1.9572		Hf = 993.8
+	//Victor Ivanovich	nf = 1.9591		Hf = 989.6
+	//Refractometr		nf = 2.01086	Hf = 1174.25
+	//NewRefractmtr		nf = 1.959		Hf = 989.67
+	//					
+	// TM
+	//Metricon			nf = 1.9490		Hf = 1026.2	
+	//Victor Ivanovich	nf = 1.9488		Hf = 1028.7	
+	//Refractometr		nf = 1.9488		Hf = 1028.57	
+	//NewRefractmtr		nf = 1.9488		Hf = 1028.57
 
+	FilmParams film; CalibrationParams cal; ControledLogMessage log;
+	if (pol == TE)
+	{
+		log.T.Format("Log: ---=== TE testing ===---"); log << log.T;
+	}
+	if (pol == TM)
+	{
+		log.T.Format("Log: ---=== TM testing ===---"); log << log.T;
+	}
+	
 	// tetsing calibration creation
 	cal.CalculateFrom(Nexp, teta_exp, 2.15675, 1., 1.45705, 51*DEGREE, 632.8);
-	T.Format("---Calibration (status = %s)---", gsl_strerror (cal.status)); *log << T;
-	T.Format("N0=%.10f L=%.10f\nd0=%.10f fi0=%.10f", 
-		cal.val[CalibrationParams::ind_N0], cal.val[CalibrationParams::ind_L], 
-		cal.val[CalibrationParams::ind_d0],	cal.val[CalibrationParams::ind_fi0]); *log << T;
-	T.Format("errabs=%g errrel=%g dt=%.3f ms func_calls=%d",
-		cal.err.abs, cal.err.rel, cal.dt.val(), cal.cntr.func_call); *log << T;
+	log.T.Format("---Calibration (status = %s)---", gsl_strerror (cal.status)); log << log.T;
+	log.T.Format("N0=%.10f L=%.10f", 
+		cal.val[CalibrationParams::ind_N0], cal.val[CalibrationParams::ind_L]); log << log.T;
+	log.T.Format("d0=%.10f fi0=%.10f", 
+		cal.val[CalibrationParams::ind_d0],	cal.val[CalibrationParams::ind_fi0]); log << log.T;
+
+	log.T.Format("errabs=%g errrel=%g dt=%.3f ms func_calls=%d",
+		cal.err.abs, cal.err.rel, cal.dt.val(), cal.cntr.func_call); log << log.T;
 
 	// testing pixel to angle conversion with calibration
-	T.Format("---Calibrator----"); *log << T;
+	log.T.Format("---Calibrator----"); log << log.T;
 	TypeArray<AngleFromCalibration> bettaexp; 
 	for(int i = 0; i < Nexp.GetSize(); i++)
 	{
 		AngleFromCalibration angle;
 		angle = cal.ConvertPixelToAngle(Nexp[i]); 
-		T.Format("status = %s", gsl_strerror (angle.status)); *log << T;
-		T.Format("teta_calc=%.10f teta_orig=%.10f diff=%g%%", 
-			angle.teta, teta_exp[i], (angle.teta - teta_exp[i])/teta_exp[i]); *log << T;
-		T.Format("dt=%.3f ms func_calls=%d", angle.dt.val(), angle.cntr.func_call); *log << T;
+		log.T.Format("status = %s", gsl_strerror (angle.status)); log << log.T;
+		log.T.Format("teta_calc=%.10f teta_orig=%.10f diff=%g%%", 
+			angle.teta, teta_exp[i], (angle.teta - teta_exp[i])/teta_exp[i]); log << log.T;
+		log.T.Format("dt=%.3f ms func_calls=%d", angle.dt.val(), angle.cntr.func_call); log << log.T;
 		bettaexp << angle;
 	}
 		
 	// test film parameters calculation
-	film.Calculator(TE, cal, bettaexp); 
-	T.Format("--FilmParams (status = %s)---", gsl_strerror (film.status)); *log << T;	
-	T.Format("n=%.10f H=%.10f nm", film.n, film.H); *log << T;
-	T.Format("errabs=%g errrel=%g fval=%.10f", 
-		film.err.abs, film.err.rel, film.minimum_value); *log << T;
-	T.Format("dt=%.3f ms func_calls=%d", film.dt.val(), film.cntr.func_call); *log << T;
+	film.Calculator(pol, cal, bettaexp); 
+	log.T.Format("--FilmParams (status = %s)---", gsl_strerror (film.status)); log << log.T;	
+	log.T.Format("n=%.10f H=%.10f nm", film.n, film.H); log << log.T;
+	log.T.Format("errabs=%g errrel=%g fval=%.10f", 
+		film.err.abs, film.err.rel, film.minimum_value); log << log.T;
+	log.T.Format("dt=%.3f ms func_calls=%d", film.dt.val(), film.cntr.func_call); log << log.T;
 	for( int i = 0; i < film.betta_teor.GetSize(); i++)
 	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f", 
-			film.betta_teor[i].n, film.betta_teor[i].val, film.betta_exp[i]); *log << T;
-	}		
+		log.T.Format("betta_teor[%d]=%.5f betta_exp=%.5f", 
+			film.betta_teor[i].n, film.betta_teor[i].val, film.betta_exp[i]); log << log.T;
+	}	
+	log.Dispatch();
 }
 
 void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
@@ -591,7 +614,7 @@ void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 
 	TSimplePointSeries *t1=NULL; 
 	TSimplePointSeries::DataImportMsg *CHM1, *CHM2; CHM1=CHM2=NULL; 
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); LogMessage *log=new LogMessage(); 
+	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
 	SimplePoint pnt; pnt.type.Set(GenericPnt);
 	ImageWnd* parent=(ImageWnd*)Parent; void *x=NULL; MyTimer Timer1; ms dt1, dt2;
 	DoubleArray Nexp_TE, Nexp_TM, teta_exp_TE, teta_exp_TM; CString T; 
@@ -608,28 +631,8 @@ void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 	Nexp_TM << 1014 << 1856 << 2514 << 2990 ;
 	teta_exp_TM << 47.4*DEGREE << 54.08*DEGREE << 59.63*DEGREE << 63.4*DEGREE;
 
-	T.Format("Log: Speed tests results"); *log << T;	
-	T.Format("Log: ---=== TE ===---"); *log << T;	
-	MyGSL_Tester_Helper(log, Nexp_TE, teta_exp_TE);
-	T.Format("Log: ---=== TM ===---"); *log << T;	
-	MyGSL_Tester_Helper(log, Nexp_TM, teta_exp_TM);
-		
-	// TE
-	//Metricon
-	//nf = 1.9572 Hf = 993.8
-	//Victor Ivanovich
-	//nf = 1.9591, Hf = 989.6
-	//Refractometr
-	//nf = 2.01086, Hf = 1174.25
-	// TM
-	//Metricon
-	//nf = 1.9490 Hf = 1026.2
-	//Victor Ivanovich
-	//nf = 1.9488, Hf = 1028.7
-	//Refractometr
-	//nf = 1.9488, Hf = 1028.57
-
-	log->Dispatch();
+	MyGSL_Tester_Helper(TE, Nexp_TE, teta_exp_TE);
+	MyGSL_Tester_Helper(TM, Nexp_TM, teta_exp_TM);
 }
 
 int ImageWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )

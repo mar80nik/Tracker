@@ -67,6 +67,11 @@ double CalibrationParams::PixelToAngleSolver::FuncParams::func( double teta )
 AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
 {
 	AngleFromCalibration ret;
+	if (this->IsValidCalibration() == FALSE)
+	{
+		ret.status = E_FAIL;
+		return ret;
+	}
 	PixelToAngleSolver::FuncParams params(Npix, this->val);
 	Solver1dTemplate<PixelToAngleSolver::FuncParams> FindTETA(SINGLE_ROOT);	
 

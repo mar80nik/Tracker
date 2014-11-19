@@ -59,10 +59,20 @@ void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
 	MainCfg.GetCalibration(&cal); teta_exp.RemoveAll(); 
-	for(int i = 0; i < modes_num; i++)
-	{		
-		teta_exp << cal.ConvertPixelToAngle(N[i]);
-		Q[i] = teta_exp[i].teta/DEGREE;
+	for(int i = 0, j = 0; i < modes_num; i++)
+	{	
+		AngleFromCalibration angle = cal.ConvertPixelToAngle(N[i]);
+		if (SUCCEEDED(angle.status))
+		{
+			teta_exp << angle;
+			Q[j++] = teta_exp[i].teta/DEGREE;
+		}
+	}
+	if (teta_exp.GetSize() != modes_num)
+	{
+		ControledLogMessage log(::lmprHIGH);
+		log.T.Format("Wrong number of converted angles because of wrong calibrations"); log << log.T;
+		log.Dispatch();
 	}
 	UpdateData(0);
 }
@@ -118,7 +128,13 @@ void CalcTEDialog::OnBnClickedCalculate()
 {
 	CString T; LogMessage *log=new LogMessage(); FilmParams film;
 	UpdateData();
-
+	if (teta_exp.GetSize() != modes_num)
+	{
+		ControledLogMessage log(::lmprHIGH);
+		log.T.Format("Film params could not be calculated because of wrong number of converted angles"); log << log.T;
+		log.Dispatch();
+		return;
+	}
 	if (pol == TM)
 	{
 		T.Format("--FilmParamsTM---"); 

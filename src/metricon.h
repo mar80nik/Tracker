@@ -105,9 +105,9 @@ public:
 	DoubleArray Nexp, teta;
 	
 	CalibrationParams(): SolverData()  {CleanUp();}
-	//~CalibrationParams() {CleanUp();}
+	~CalibrationParams() {CleanUp();}
 	virtual void Serialize(CArchive& ar);
-	CalibrationParams& operator=(CalibrationParams& t);
+	CalibrationParams& operator=(const CalibrationParams& t);
 
 	int CalculateFrom(	DoubleArray& _Nexp, DoubleArray& _teta, 
 						double _n_p, double _n_i, double _n_s, double _alfa, double _lambda);
@@ -164,27 +164,44 @@ public:
 	};
 	struct FuncParams: public BaseForFuncParams
 	{
+	protected:
+		CalibrationParams cal;
+		double k, n_i, n_s;
 	public:
-		TypeArray<AngleFromCalibration> &bettaexp; Polarization pol;
+		TypeArray<AngleFromCalibration> betta_exp; Polarization pol;
 		TypeArray<betta_info> betta_teor;
 	public:
 		double func(const gsl_vector * x);
-		FuncParams(Polarization _pol, TypeArray<AngleFromCalibration> &_bettaexp): 
-			pol(_pol), bettaexp(_bettaexp)
-		{}
+		FuncParams(const Polarization _pol, const TypeArray<AngleFromCalibration> &tetaexp, 
+			const CalibrationParams &_cal): 
+			pol(_pol)
+		{			
+			cal = _cal;
+			k = 2*M_PI/cal.val[CalibrationParams::ind_lambda];
+			n_i = cal.val[CalibrationParams::ind_n_i]; n_s = cal.val[CalibrationParams::ind_n_s];
+
+			for(int i = 0; i < tetaexp.GetSize(); i++)
+			{
+				AngleFromCalibration angle(tetaexp[i]);				
+				angle.teta = cal.ConertAngleToBeta(angle.teta); 
+				betta_exp << angle;
+			}
+		}
 		FuncParams(FuncParams& params): 
-			pol(params.pol), bettaexp(params.bettaexp)
+			pol(params.pol), betta_exp(params.betta_exp)
 		{}
 		virtual void CleanUp();
 
 	};	
 public:
 	double n, H, m, minimum_value;
-	TypeArray<betta_info> betta_teor;
+	DoubleArray betta_exp;
+	TypeArray<betta_info> betta_teor;	
 
 	FilmParams(double _n = 0, double _H = 0, double _m = 0): n(_n), H(_H), m(_m), SolverData() {minimum_value = 0; m = 0;}
-	int Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &bettaexp, 
-					FilmParams initX = FilmParams(), FilmParams initdX = FilmParams(1e-4, 1e-1));
+	int Calculator( const Polarization pol, const CalibrationParams &cal, 
+		const TypeArray<AngleFromCalibration> &tetaexp, 
+		FilmParams initX = FilmParams(), FilmParams initdX = FilmParams(1e-4, 1e-1));
 };
 
 //////////////////////////////////////////////////////////////////////////

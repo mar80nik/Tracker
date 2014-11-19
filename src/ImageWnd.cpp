@@ -568,12 +568,11 @@ void MyGSL_Tester_Helper(LogMessage *log, DoubleArray &Nexp, DoubleArray &teta_e
 		T.Format("teta_calc=%.10f teta_orig=%.10f diff=%g%%", 
 			angle.teta, teta_exp[i], (angle.teta - teta_exp[i])/teta_exp[i]); *log << T;
 		T.Format("dt=%.3f ms func_calls=%d", angle.dt.val(), angle.cntr.func_call); *log << T;
-		angle.teta = cal.ConertAngleToBeta(angle.teta); 
 		bettaexp << angle;
 	}
 		
 	// test film parameters calculation
-	film.Calculator(TE, bettaexp); 
+	film.Calculator(TE, cal, bettaexp); 
 	T.Format("--FilmParams (status = %s)---", gsl_strerror (film.status)); *log << T;	
 	T.Format("n=%.10f H=%.10f nm", film.n, film.H); *log << T;
 	T.Format("errabs=%g errrel=%g fval=%.10f", 
@@ -582,7 +581,7 @@ void MyGSL_Tester_Helper(LogMessage *log, DoubleArray &Nexp, DoubleArray &teta_e
 	for( int i = 0; i < film.betta_teor.GetSize(); i++)
 	{
 		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f", 
-			film.betta_teor[i].n, film.betta_teor[i].val, bettaexp[i].teta); *log << T;
+			film.betta_teor[i].n, film.betta_teor[i].val, film.betta_exp[i]); *log << T;
 	}		
 }
 
@@ -613,7 +612,7 @@ void ImageWnd::CtrlsTab::OnBnClickedCalibrate()
 	T.Format("Log: ---=== TE ===---"); *log << T;	
 	MyGSL_Tester_Helper(log, Nexp_TE, teta_exp_TE);
 	T.Format("Log: ---=== TM ===---"); *log << T;	
-	//MyGSL_Tester_Helper(log, Nexp_TM, teta_exp_TM);
+	MyGSL_Tester_Helper(log, Nexp_TM, teta_exp_TM);
 		
 	// TE
 	//Metricon

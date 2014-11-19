@@ -58,12 +58,11 @@ END_MESSAGE_MAP()
 void CalcTEDialog::OnBnClickedConvertToAngles()
 {
 	CalibrationParams cal; UpdateData();
-	MainCfg.GetCalibration(&cal); betta_exp.RemoveAll(); 
+	MainCfg.GetCalibration(&cal); teta_exp.RemoveAll(); 
 	for(int i = 0; i < modes_num; i++)
 	{		
-		betta_exp << cal.ConvertPixelToAngle(N[i]);
-		Q[i] = betta_exp[i].teta/DEGREE;
-		betta_exp[i].teta = cal.ConertAngleToBeta(betta_exp[i].teta);
+		teta_exp << cal.ConvertPixelToAngle(N[i]);
+		Q[i] = teta_exp[i].teta/DEGREE;
 	}
 	UpdateData(0);
 }
@@ -129,12 +128,11 @@ void CalcTEDialog::OnBnClickedCalculate()
 		T.Format("--FilmParamsTE---");
 	}
 	log->CreateEntry("*",T);
-	betta_exp[0].cal[CalibrationParams::ind_lambda] = lambda;
 
-	film.Calculator(pol, betta_exp);
-	T.Format("status = %s", gsl_strerror (film.status)); 
+	CalibrationParams cal; MainCfg.GetCalibration(&cal);
+	cal.val[CalibrationParams::ind_lambda] = lambda;
 
-	if(film.Calculator(pol, betta_exp) == GSL_SUCCESS)
+	if(film.Calculator(pol, cal, teta_exp) == GSL_SUCCESS)
 	{
 		nf = film.n; hf = film.H;
 		UpdateData(0);
@@ -142,13 +140,15 @@ void CalcTEDialog::OnBnClickedCalculate()
 	}
 	else log->CreateEntry(CString('*'),T,LogMessage::high_pr);
 	
+	T.Format("status = %s", gsl_strerror (film.status)); 
 	T.Format("n=%.10f H=%.10f nm",film.n, film.H); log->CreateEntry("*",T);
 	T.Format("errabs=%g errrel=%g fval=%.10f",film.err.abs, film.err.rel, film.minimum_value); log->CreateEntry("*",T);
 	T.Format("dt=%.3f ms func_calls=%d",film.dt.val(), film.cntr.func_call); log->CreateEntry("*",T);
 
 	for(int i = 0; i < film.betta_teor.GetSize(); i++)
 	{
-		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",film.betta_teor[i].n, film.betta_teor[i].val, betta_exp[i].teta); 
+		T.Format("betta_teor[%d]=%.5f betta_exp=%.5f",
+			film.betta_teor[i].n, film.betta_teor[i].val, film.betta_exp[i]); 
 		log->CreateEntry("*",T);
 	}		
 	log->Dispatch();

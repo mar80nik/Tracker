@@ -16,7 +16,7 @@ void CalibrationParams::Serialize( CArchive& ar )
 		Nexp.Serialize(ar);  teta.Serialize(ar);	
 	}
 }
-CalibrationParams& CalibrationParams::operator=( CalibrationParams& t )
+CalibrationParams& CalibrationParams::operator=(const CalibrationParams& t )
 {
 	val = t.val; Nexp = t.Nexp; teta = t.teta;
 	return *this;
@@ -70,7 +70,8 @@ AngleFromCalibration CalibrationParams::ConvertPixelToAngle(double Npix)
 	PixelToAngleSolver::FuncParams params(Npix, this->val);
 	Solver1dTemplate<PixelToAngleSolver::FuncParams> FindTETA(SINGLE_ROOT);	
 
-	if ((ret.status = FindTETA.Run(&params, BoundaryConditions(35*DEGREE, 68.*DEGREE), SolverErrors(1e-12))) == GSL_SUCCESS) 
+	if ((ret.status = FindTETA.Run(&params, BoundaryConditions(35*DEGREE, 68.*DEGREE), 
+		SolverErrors(1e-12))) == GSL_SUCCESS) 
 	{
 		ret.teta = FindTETA.Roots[0];
 		ret.cal = params.cal; ret.Npix = Npix;
@@ -99,23 +100,20 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 {
     double ret=100; int status;	DoubleArray film; film = *x;
 
-	DoubleArray cal = bettaexp[0].cal; 
-	double k = 2*M_PI/cal[CalibrationParams::ind_lambda];
-	double n_i = cal[CalibrationParams::ind_n_i], n_s = cal[CalibrationParams::ind_n_s];
 	Solver1dTemplate<FilmParams::DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
 	FilmParams::DispEqSolver::FuncParams params(pol, n_i, film[index_n], n_s, k*film[index_H]);
 
 	if ((status = FindBettas.Run(&params, BoundaryConditions(n_s, film[index_n]), SolverErrors(1e-6))) == GSL_SUCCESS) 
 	{
 		ret = 0;
-		int i, j, roots_n = FindBettas.Roots.GetSize(), betta_n = bettaexp.GetSize(); 
+		int i, j, roots_n = FindBettas.Roots.GetSize(), betta_n = betta_exp.GetSize(); 
 		for (i = 0; i <= roots_n - betta_n; i++)
 		{
 			for (j = 0; j < betta_n; j++)
 			{
 				double a = FindBettas.Roots[j + i];
-				double b = bettaexp[j].teta;
-				ret += abs(FindBettas.Roots[j + i] - bettaexp[j].teta);
+				double b = betta_exp[j].teta;
+				ret += abs(FindBettas.Roots[j + i] - betta_exp[j].teta);
 			}
 			betta_teor.RemoveAll();
 			for (j = 0; j < betta_n; j++)
@@ -127,13 +125,16 @@ double FilmParams::FuncParams::func(const gsl_vector * x)
 	return ret;
 }
 void FilmParams::FuncParams::CleanUp()
-{
-	BaseForFuncParams::CleanUp(); bettaexp.RemoveAll(); betta_teor.RemoveAll(); 
+{	
+	betta_exp.RemoveAll(); betta_teor.RemoveAll(); 
 }
-int FilmParams::Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &bettaexp,FilmParams initX, FilmParams initdX)
+int FilmParams::Calculator(	const Polarization pol, const CalibrationParams &cal, 
+						   const TypeArray<AngleFromCalibration> &tetaexp,
+						   FilmParams initX, FilmParams initdX)
 {
+	CleanUp();
 	MultiDimMinimizerTemplate<FuncParams> FindFilmParams(200);
-	FuncParams params(pol,  bettaexp);
+	FuncParams params(pol, tetaexp, cal);
 	DoubleArray X0, dX0; 
 	switch (pol)
 	{
@@ -154,6 +155,10 @@ int FilmParams::Calculator(	Polarization pol, TypeArray<AngleFromCalibration> &b
 		n = FindFilmParams.Roots[index_n]; H = FindFilmParams.Roots[index_H]; 
 		minimum_value = FindFilmParams.minimum_value;
 		betta_teor = params.betta_teor;
+		for (int i = 0; i < params.betta_exp.GetSize(); i++)
+		{
+			betta_exp << params.betta_exp[i].teta;
+		}		
 		*((SolverData*)(this)) = *((SolverData*)&FindFilmParams);
 	}
 	return FindFilmParams.status;

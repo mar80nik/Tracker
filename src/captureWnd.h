@@ -36,37 +36,7 @@ public:
 	}
 };
 
-struct AccumInfo
-{	
-	USHORT w, h, n;
-	virtual void Serialize(CArchive &ar);
-	size_t GetSumsSize() const;
-	size_t GetCompressorBufferSize() const;
-};
 
-struct ImagesAccumulator: public AccumInfo
-{
-protected:
-	BYTE *sums;
-public:
-	BMPanvas *bmp; 
-	
-	ms fillTime;
-
-	ImagesAccumulator();;
-	~ImagesAccumulator() {Reset();};
-	void Reset();
-	void ResetSums();	
-	unsigned short *GetSum();
-	unsigned int *GetSums2();
-
-	void Initialize(int _w, int _h);
-	HRESULT FillAccum(BMPanvas *src);
-	void ConvertToBitmap(CWnd *ref);
-	HRESULT SaveTo(const CString &file);
-	HRESULT LoadFrom(const CString &file);
-	void ScanLine( void *buf, const int y, const int xmin, const int xmax );
-};
 
 class CaptureWnd : public CWnd, public PerfomanceStaff
 {

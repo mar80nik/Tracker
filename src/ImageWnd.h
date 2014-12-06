@@ -24,7 +24,6 @@ struct BaseForHelper
 
 //================================================
 
-
 class CEditInterceptor : public CEdit
 {
 	DECLARE_DYNAMIC(CEditInterceptor)
@@ -35,6 +34,43 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
+};
+
+struct ScanRgnData
+{ int stroka, Xmin, Xmax, AvrRange;};
+
+struct AccumInfo
+{		
+	USHORT w, h, n; BYTE HasErrors;
+	virtual void Serialize(CArchive &ar);
+	AccumInfo() {w = h = n = 0; HasErrors = FALSE; }
+	size_t GetSumsSize() const;
+	size_t GetCompressorBufferSize() const;
+};
+
+struct ImagesAccumulator: public AccumInfo
+{
+protected:
+	BYTE *sums; size_t OldSumsSize;
+public:
+	BMPanvas *bmp; 
+
+	ms fillTime;
+
+	ImagesAccumulator();
+	~ImagesAccumulator() {Reset();};
+	void Reset();
+	void ResetSums();	
+	unsigned short *GetSum() const;
+	unsigned int *GetSums2() const;
+	HRESULT GetPicRgn(CRect&) const;
+
+	HRESULT Initialize(int _w, int _h, BOOL hasErrors = TRUE);
+	HRESULT FillAccum(BMPanvas *src);
+	void ConvertToBitmap(CWnd *ref);
+	HRESULT SaveTo(const CString &file);
+	HRESULT LoadFrom(const CString &file);
+	void ScanLine( void *buf, const ScanRgnData &data);
 };
 
 class ImageWnd : public CWnd
@@ -140,6 +176,7 @@ public:
 		afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 		afx_msg void OnMove(int x, int y);	
 		void ConvertOrgToGrayscale();
+		HRESULT TryLoadBitmap(CString T, BMPanvas &bmp);
 	};
 	
 	DECLARE_DYNAMIC(ImageWnd)

@@ -138,6 +138,8 @@ public:
 enum MyThreadMessages {UM_STOP=WM_USER + 76, UM_PAUSE, UM_CONTINUE, UM_START, UM_EXIT_THREAD,UM_EVENTLOG};
 enum StopState {None=0, ToDo, Done};
 
+enum MessagePriorities {lmprLOW = 0, lmprHIGH = 78};
+
 class LogMessage: public MessageForWindow 
 {	
 //protected:
@@ -150,10 +152,44 @@ public:
 
 	LogMessage* CreateEntry(const CString& obj, const CString Message=CString(""),int _priority=low_pr);
 	LogMessage* CreateEntry(ErrorsArray* err);
+	LogMessage& operator <<(const CString &Message);
+	void SetPriority(const LogMessage::MessagePriorities &pr) {priority = pr;}
+	void SetPriority(const ::MessagePriorities &pr) {priority = pr;}
+	LogMessage(::MessagePriorities prio = ::lmprLOW);
+	int GetSize() {return (int)(Msgs.GetSize());}
+	BOOL HasMessages() {return (GetSize() != 0);}
+};
 
-	LogMessage();
-	int GetSize() {return (int)(Msgs.GetSize()-1);}
-	BOOL HasMessages() {return (GetSize()!=0);}
+class ControledLogMessage
+{
+protected:
+	LogMessage* msg; 
+public:
+	CString T;
+
+	ControledLogMessage(::MessagePriorities prio = ::lmprLOW)	
+		{msg = NULL;	msg = new LogMessage(prio);}
+	~ControledLogMessage()	
+		{if (msg != NULL) delete msg;}	
+	virtual void Dispatch()	
+	{
+		if (msg->HasMessages())
+		{
+			msg->Dispatch(); msg = NULL;
+		}
+		else
+		{
+			delete msg; msg = NULL;
+		}
+	}
+	LogMessage& operator <<(const CString &Message)
+		{return (*msg) << Message;}
+	void SetPriority(const ::MessagePriorities &pr) 
+		{msg->SetPriority(pr);}
+	int GetSize() const
+		{msg->GetSize();}
+	BOOL HasMessages() const
+		{msg->HasMessages();}
 };
 
 class MyThread;

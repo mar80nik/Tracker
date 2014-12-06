@@ -249,7 +249,7 @@ public:
 			for(j=size-2;j>=0;j--) (this->*_LineStyle::Draw)(canvas,pnts[j]);
 		if(_SymbolStyle::Draw!=NULL)
 			for(j=0;j<size;j++) (this->*_SymbolStyle::Draw)(canvas,pnts[j]);
-		delete pnts;
+		delete[] pnts;
 	}
 	void ClearAll() {Values.RemoveAll();PostParentMessage(UM_SERIES_UPDATE);}
 	DataImportMsg* CreateDataImportMsg()
@@ -272,7 +272,7 @@ enum SeriesArrayDeleteSeries {DELETE_SERIES,DO_NOT_DELETE_SERIES};
 class TSeriesArray: public TAbstractGraphics
 {
 	friend class TChart;
-	CArray<WORD,WORD&> ColorsTable;	
+	CArray<WORD> ColorsTable;	
 private:	
 	SeriesArrayDeleteSeries ToDeleteSeries;
 public:

@@ -48,7 +48,12 @@ void EventLogDialog::OnClearBtn()
 
 void EventLogDialog::Add(LogMessage& Msg)
 {	
-	for(int i=0;i<Msg.Msgs.GetSize();i++) m_ListBox1.AddString(Msg.Msgs[i]); 
+	COLORREF col = 0;
+	if(Msg.priority==LogMessage::high_pr) col = RGB(255,0,0);
+	for(int i=0;i<Msg.Msgs.GetSize();i++) 
+	{
+		m_ListBox1.AddString(Msg.Msgs[i], col); 
+	}
 	if(Msg.priority==LogMessage::high_pr) 
 		ShowWindow(SW_SHOW);	
 }

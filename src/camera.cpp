@@ -14,7 +14,9 @@ void GetWH(eDcm800Size& size, int& w, int &h)
 	case eDcm800Size_640_480:   w=640; h=480; break;
 	}
 }
-
+// This is callback for the thread which runs Grabber. 
+// It makes setup then runs it and wait for control signals from user via CEvents. 
+// All the grabbing makes in callback
 UINT CaptureThread::proc(void* p)
 {
 	UINT ret=444; CString T;
@@ -28,12 +30,12 @@ UINT CaptureThread::proc(void* p)
 
 	CoInitialize(NULL);
 	hr = Grabber.Create(Src);
-	if(hr==S_OK) 
+	if (SUCCEEDED(hr)) 
 	{
 		hr = Src->Setup(&(thrd->params)); 		
 		hr = Grabber.Render(Src);	
 		hr = Grabber.Setup(&(thrd->params));		
-		if(Grabber.status==S_OK)
+		if (SUCCEEDED(Grabber.status))
 		{
 			Params.StopCapture.ResetEvent();	
 			hr=Grabber.Run();
@@ -41,19 +43,23 @@ UINT CaptureThread::proc(void* p)
 			{		
 				if ( (n=Grabber.WaitForHandles(1000))!=WAIT_TIMEOUT )
 				{ 
-					switch(n-WAIT_OBJECT_0)
+					switch (n - WAIT_OBJECT_0)
 					{
-					case 0: if(Grabber.StreamIsCOMPLETE()==S_OK) bDone=true; break;
-					case 1: bDone=true; Params.StopCapture.ResetEvent(); break;
+					case 0: if (SUCCEEDED(Grabber.StreamIsCOMPLETE())) 
+							{
+								bDone=true; 
+							}
+							break;
+					case 1: bDone = true; Params.StopCapture.ResetEvent(); break;
 					case 2: Grabber.Pause(); Params.PauseCapture.ResetEvent(); break;
 					case 3: Grabber.Run(); Params.ResumeCapture.ResetEvent(); break;
-					case 4: hr=Src->ShowFilterProperties(); Params.ShowFilterParams.ResetEvent(); break;
+					case 4: hr = Src->ShowFilterProperties(); Params.ShowFilterParams.ResetEvent(); break;
 					}	
 				}
-				if(hr!=S_OK) bDone=TRUE;
+				if (FAILED(hr)) bDone=TRUE;
 			}
 			hr=Grabber.Stop();
-			if(hr!=S_OK) { T="GRAPH RUN error"; log->CreateEntry("Err",T); }
+			if (FAILED(hr)) { T="GRAPH RUN error"; log->CreateEntry("Err",T); }
 		}
 		else { T="GRAPH SETUP error"; log->CreateEntry("Err",T); }
 	}
@@ -80,20 +86,15 @@ STDMETHODIMP FrameGrabCallback::SampleCB( double n,IMediaSample *pms )
 		BMPanvasGuard guard1(x); BMPanvas &buf(guard1); t2.Start();		
 		ret=buf.SetBitmapArray(BMPanvas::MIN_SCANLINE,BMPanvas::MAX_SCANLINE,pbuf);
 		ASSERT(ret==header.bmiHeader.biHeight);
-
-		//dt2=t2.StopStart();		
-
 		BMPanvasTAGSmk1* tags=(BMPanvasTAGSmk1*)buf.tags;
-		tags->d1=n; tags->i1=header.bmiHeader.biWidth; tags->i2=header.bmiHeader.biHeight; 
-		tags->i3=header.bmiHeader.biBitCount;
+		tags->d1=n; tags->i1=header.bmiHeader.biWidth; tags->i2=header.bmiHeader.biHeight; tags->i3=header.bmiHeader.biBitCount;
 		tags->d2=(1./dt1.val()); 
-		//tags->d3=dt2.val();
 		tags->timel=t2.StopStart();
 
 		MessageForWindow* msg=new MessageForWindow(UM_DATA_UPDATE,Params.Parent);
 		thrd->PostParentMessage(UM_GENERIC_MESSAGE,msg);
 	}
-	else ASSERT(0);	
+	//else ASSERT(0);	
 	return 0;	
 }
 
@@ -117,13 +118,13 @@ HRESULT DSSampleGrabber::Create()
 	mt.majortype = MEDIATYPE_Video; mt.subtype = MEDIASUBTYPE_RGB24;
 
 	status = CoCreateInstance(CLSID_SampleGrabber, NULL, CLSCTX_INPROC_SERVER, IID_IBaseFilter, (void**)(&pFilter)); 
-	if( status!=S_OK ) return status;
+	if (FAILED(status)) return status;
 	status = pFilter->QueryInterface(IID_ISampleGrabber, (void**)(&pGrabber));
-	if( status!=S_OK ) { SAFE_RELEASE_(pFilter); return status; }
+	if (FAILED(status)) { SAFE_RELEASE_(pFilter); return status; }
 	status = pGrabber->SetMediaType(&mt);		
-	if( status!=S_OK ) { SAFE_RELEASE_(pFilter); SAFE_RELEASE_(pGrabber); return status; }
+	if (FAILED(status)) { SAFE_RELEASE_(pFilter); SAFE_RELEASE_(pGrabber); return status; }
 	status = pGrabber->SetCallback( &m_FrameGrabCallback, 0 );
-	if( status!=S_OK ) { SAFE_RELEASE_(pFilter); SAFE_RELEASE_(pGrabber); return status; }
+	if (FAILED(status)) { SAFE_RELEASE_(pFilter); SAFE_RELEASE_(pGrabber); return status; }
 	return status;
 }
 //////////////////////////////////////////////////////////////////////////
@@ -132,27 +133,27 @@ HRESULT DSGraphBuilder::Create()
 {
 	HANDLE  hEvent; 
 	status = CoCreateInstance(CLSID_FilterGraph, NULL, CLSCTX_INPROC, IID_IGraphBuilder, (void **)&pGraph); 
-	if(status!=S_OK) { return status; }
+	if (FAILED(status)) { return status; }
 	status = CoCreateInstance(CLSID_CaptureGraphBuilder2, NULL, CLSCTX_INPROC, IID_ICaptureGraphBuilder2, (void **)&pBuilder);
-		if(status!=S_OK) { Destroy(); return status; }
+		if (FAILED(status)) { Destroy(); return status; }
 	status = pBuilder->SetFiltergraph(pGraph);  
-		if(status!=S_OK) { Destroy(); return status; }
+		if (FAILED(status)) { Destroy(); return status; }
 	status = pGraph->QueryInterface(IID_IMediaControl,(void**)&pControl);
-		if(status!=S_OK) { Destroy(); return status; }
+		if (FAILED(status)) { Destroy(); return status; }
 	status = pGraph->QueryInterface(IID_IMediaEventEx,(void**)&pEvent);
-		if(status!=S_OK) { Destroy(); return status; }
+		if (FAILED(status)) { Destroy(); return status; }
 	status = pEvent->GetEventHandle((OAEVENT*)&hEvent);
-		if(status!=S_OK) { Destroy(); return status; }
+		if (FAILED(status)){ Destroy(); return status; }
 	Handles.Add(hEvent);
 	return status;
 }
 
 DSGraphBuilder& DSGraphBuilder::operator<<( MyDSFilter& filter )
 {
-	if(status==S_OK)
+	if (SUCCEEDED(status))
 	{
 		status = filter.status;
-		if(status == S_OK)
+		if (SUCCEEDED(status))
 		{
 			status = pGraph->AddFilter(filter.pFilter, filter.Name);	
 		}			
@@ -170,7 +171,7 @@ HRESULT DSGraphBuilder::SaveGraph( CStringW filename )
 		filename,
 		STGM_CREATE | STGM_TRANSACTED | STGM_READWRITE | STGM_SHARE_EXCLUSIVE,
 		0, &pStorage);
-	if(FAILED(hr)) {return hr;}
+	if (FAILED(hr)) {return hr;}
 
 	IStream *pStream;
 	hr = pStorage->CreateStream(
@@ -181,9 +182,12 @@ HRESULT DSGraphBuilder::SaveGraph( CStringW filename )
 
 	IPersistStream *pPersist = NULL;
 	pGraph->QueryInterface(IID_IPersistStream, (void**)&pPersist);
-	hr = pPersist->Save(pStream, TRUE);
+	if (pPersist != NULL)
+	{
+		hr = pPersist->Save(pStream, TRUE);	
+		pPersist->Release();
+	}
 	pStream->Release();
-	pPersist->Release();
 	if (SUCCEEDED(hr)) { hr = pStorage->Commit(STGC_DEFAULT); }
 	pStorage->Release();
 	return hr;
@@ -191,13 +195,13 @@ HRESULT DSGraphBuilder::SaveGraph( CStringW filename )
 
 HRESULT DSGraphBuilder::StreamIsCOMPLETE()
 {
-	HRESULT hr, ret=S_FALSE; DWORD n=0; long    evCode, param1, param2;
-	while ((hr = pEvent->GetEvent(&evCode, &param1, &param2, 0))==S_OK) 
-	{
-		hr = pEvent->FreeEventParams(evCode, param1, param2);
-		if(evCode==EC_COMPLETE) ret=S_OK;
+	long evCode, param1, param2;
+	while (SUCCEEDED(pEvent->GetEvent(&evCode, &param1, &param2, 0))) 
+	{		
+		if (evCode == EC_COMPLETE) return S_OK;
+		pEvent->FreeEventParams(evCode, param1, param2);
 	}
-	return ret;
+	return E_FAIL;
 }
 
 HRESULT DSGraphBuilder::Pause() {if(status==S_OK) pControl->Pause(); return status;}
@@ -213,9 +217,9 @@ void DSGraphBuilder::Destroy()
 
 HRESULT GrabberStream::Render( MyDSFilter* Src )
 {
-	if(status!=S_OK) return status;
+	if (FAILED(status)) return status;
 	status = pBuilder->RenderStream(&PIN_CATEGORY_CAPTURE, &MEDIATYPE_Video, *Src, Grabber, NullRenderer);
-	if(status!=S_OK) { Destroy(); return status; }
+	if (FAILED(status)) { Destroy(); return status; }
 	SaveGraph(CStringW("graph.grf"));
     return status;
 }
@@ -223,24 +227,27 @@ HRESULT GrabberStream::Render( MyDSFilter* Src )
 HRESULT GrabberStream::Setup( void* params )
 {
 	CaptureThreadParams& Params=*((CaptureThreadParams*)params); void *x;
-	if(Grabber.status==S_OK)
+	if(SUCCEEDED(Grabber.status))
 	{
-		Grabber.GetPinsInfo(); VIDEOINFOHEADER hdr=Grabber.Pins[0].header;
-		Grabber.m_FrameGrabCallback.header=hdr;
-		Grabber.m_FrameGrabCallback.pthrd=Params.thrd;
-		Grabber.m_FrameGrabCallback.framenum=1;		
-//		Grabber.m_FrameGrabCallback.CreateTempBuf();
-		Grabber.m_FrameGrabCallback.t1.Start();
-
-		Handles.Add(Params.StopCapture);
-		Handles.Add(Params.PauseCapture);
-		Handles.Add(Params.ResumeCapture);
-		Handles.Add(Params.ShowFilterParams);	
-
-		if((x=Params.Pbuf->GainAcsess(WRITE))!=NULL)
+		if (SUCCEEDED(Grabber.GetPinsInfo()))
 		{
-			BMPanvasGuard guard1(x); BMPanvas &buf(guard1);
-			buf.Create((HDC)NULL,hdr.bmiHeader.biWidth, hdr.bmiHeader.biHeight, hdr.bmiHeader.biBitCount);
+			VIDEOINFOHEADER hdr=Grabber.Pins[0].header;
+			Grabber.m_FrameGrabCallback.header=hdr;
+			Grabber.m_FrameGrabCallback.pthrd=Params.thrd;
+			Grabber.m_FrameGrabCallback.framenum=1;		
+			//		Grabber.m_FrameGrabCallback.CreateTempBuf();
+			Grabber.m_FrameGrabCallback.t1.Start();
+
+			Handles.Add(Params.StopCapture);
+			Handles.Add(Params.PauseCapture);
+			Handles.Add(Params.ResumeCapture);
+			Handles.Add(Params.ShowFilterParams);	
+
+			if((x=Params.Pbuf->GainAcsess(WRITE))!=NULL)
+			{
+				BMPanvasGuard guard1(x); BMPanvas &buf(guard1);
+				buf.Create((HDC)NULL,hdr.bmiHeader.biWidth, hdr.bmiHeader.biHeight, hdr.bmiHeader.biBitCount);
+			}
 		}
 	}	
     return Grabber.status;
@@ -249,11 +256,11 @@ HRESULT GrabberStream::Setup( void* params )
 HRESULT GrabberStream::Create(MyDSFilter* Src)
 {
 	Destroy();
-	if(Src->status!=S_OK) return (status=Src->status);
-	status = DSGraphBuilder::Create(); if(status!=S_OK) {Destroy(); return status;}
-	status = Grabber.Create();	if(status!=S_OK) { Destroy(); return status; }
-	status = NullRenderer.Create();	if(status!=S_OK) { Destroy(); return status; }
-	(*this) << *Src << Grabber << NullRenderer; if(status!=S_OK) { Destroy(); return status; }
+	if (FAILED(Src->status)) return (status = Src->status);
+	status = DSGraphBuilder::Create(); if (FAILED(status)) {Destroy(); return status;}
+	status = Grabber.Create();	if (FAILED(status)) { Destroy(); return status; }
+	status = NullRenderer.Create();	if (FAILED(status)) { Destroy(); return status; }
+	(*this) << *Src << Grabber << NullRenderer; if (FAILED(status)) { Destroy(); return status; }
     return status;
 }
 
@@ -262,18 +269,19 @@ HRESULT GrabberStream::Create(MyDSFilter* Src)
 HRESULT MyDSFilter::GetPinsInfo()
 {
 	HRESULT hr;	Pins.RemoveAll();
-	if(status!=S_OK) return status;
+	if(FAILED(status)) return status;
 
 	IEnumPins *EPins; IPin *pin; PinInfo PIN;
-	status = pFilter->EnumPins(&EPins); 
-	if(status!=S_OK) return status;
-	while(EPins->Next(1, &pin,NULL) == S_OK)
+	if (SUCCEEDED(status = pFilter->EnumPins(&EPins)))
 	{
-		SAM_MEDIA_TYPE amt;
-        hr=pin->QueryPinInfo(&PIN.i);
-		hr=pin->ConnectionMediaType(&amt);	
-        PIN=amt; Pins.Add(PIN); 
-		SAFE_RELEASE_(pin);
+		while(EPins->Next(1, &pin,NULL) == S_OK)
+		{
+			SAM_MEDIA_TYPE amt;
+			hr=pin->QueryPinInfo(&PIN.i);
+			hr=pin->ConnectionMediaType(&amt);	
+			PIN=amt; Pins.Add(PIN); 
+			SAFE_RELEASE_(pin);
+		}
 	}
 	SAFE_RELEASE_(EPins);
     return status;    
@@ -282,21 +290,29 @@ HRESULT MyDSFilter::GetPinsInfo()
 HRESULT MyDSFilter::ShowFilterProperties()
 {
 	HRESULT hr;
-	ISpecifyPropertyPages *pProp=NULL; IUnknown *pFilterUnk=NULL; CAUUID caGUID;
+	ISpecifyPropertyPages *pProp = NULL; IUnknown *pFilterUnk = NULL; CAUUID caGUID;
 	hr = pFilter->QueryInterface(IID_ISpecifyPropertyPages, (void **)&pProp);
-	hr = pFilter->QueryInterface(IID_IUnknown, (void **)&pFilterUnk);
-	hr = pProp->GetPages(&caGUID);
-	OleCreatePropertyFrame(NULL,0,0,NULL,1,&pFilterUnk,caGUID.cElems,caGUID.pElems,0,0, NULL);
-	SAFE_RELEASE_(pFilterUnk);
-	SAFE_RELEASE_(pProp);
-	if(caGUID.pElems!=NULL) CoTaskMemFree(caGUID.pElems);
+	hr = pFilter->QueryInterface(IID_IUnknown, (void **)&pFilterUnk);	
+	if (pProp != NULL)
+	{		
+		hr = pProp->GetPages(&caGUID);
+		if (SUCCEEDED(hr))
+		{
+			OleCreatePropertyFrame(NULL,0,0,NULL,1,&pFilterUnk,caGUID.cElems,caGUID.pElems,0,0, NULL);
+			if (caGUID.pElems != NULL) 
+			{
+				CoTaskMemFree(caGUID.pElems);
+			}				
+		}		
+	}	
+	SAFE_RELEASE_(pFilterUnk); SAFE_RELEASE_(pProp);	
 	return hr;
 }
 
 HRESULT ScopeTek_DCM800::Setup( void* params )
 {
 	CaptureThreadParams& Params=*((CaptureThreadParams*)params); 
-	if(status!=S_OK) return status;	
+	if (FAILED(status)) return status;	
 	if(params==NULL) return (status=S_FALSE);
 	
 	status=pCntrl->put_PreviewSize(Params.size);
@@ -369,10 +385,10 @@ HRESULT MyEnumerator::FindMonikers( MonikersArray& ret )
 	IEnumMoniker *pEnumCat = NULL; IMoniker *pMoniker=NULL;
 
 	status = CoCreateInstance(CLSID_SystemDeviceEnum, NULL,	CLSCTX_INPROC_SERVER,IID_ICreateDevEnum, (void **)&pSysDevEnum);
-	if(status==S_OK)
+	if (SUCCEEDED(status))
 	{
 		status = pSysDevEnum->CreateClassEnumerator(CLSID_VideoInputDeviceCategory, &pEnumCat, 0);
-		if(status==S_OK)
+		if (SUCCEEDED(status))
 		{
 			while(pEnumCat->Next(1, &pMoniker, &cFetched) == S_OK)
 			{

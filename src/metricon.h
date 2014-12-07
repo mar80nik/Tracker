@@ -1,25 +1,10 @@
 #pragma once
 
-#include "TChart\TChartSeries.h"
+//#include "TChart\TChartSeries.h"
 #include "my_gsl.h"
 
 enum Polarization {TE, TM};
 
-//////////////////////////////////////////////////////////////////////////
-//struct FittingPerfomanceInfo: public PerfomanceInfoMk1
-//{	
-//protected:
-//	int p;
-//public:
-//	double *a,*da;
-//	double chisq_dof, leftmostX, rightmostX, dx;
-//	size_t n;
-//
-//	FittingPerfomanceInfo(int p);
-//	virtual ~FittingPerfomanceInfo();
-//	void GetSolverResults(gsl_multifit_fdfsolver *s);	
-//	void operator= (const FittingPerfomanceInfo& t);
-//};
 //////////////////////////////////////////////////////////////////////////
 struct AngleFromCalibration: public SolverData
 { 
@@ -206,18 +191,22 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////
+struct CalcR_Result
+{
+	double teta, Ra, ST;
+	CalcR_Result(double t = 0, double ra = 0, double st = 0): teta(t), Ra(ra), ST(st) {}
+};
+typedef TypeArray<CalcR_Result> CalcR_ResultArray;
+
 struct CalcRParams
 {
 	FilmParams i,f,s;
 	double lambda, Np, teta_min, teta_max;
 	int num_pnts;
-	TSimplePointSeries::DataImportMsg* R, *teta;
-	CalcRParams() { num_pnts=7000; R=teta=NULL; }
+	CalcRParams() { num_pnts=7000; }
 };
 
-void CalcR_TE(CalcRParams& params);
-void CalcR_TM(CalcRParams& params);
-//////////////////////////////////////////////////////////////////////////
+CalcR_ResultArray CalcR(const Polarization pol, const CalcRParams& params);
 //////////////////////////////////////////////////////////////////////////
 class ParabolaFitFunc: public BaseForFitFunc
 {

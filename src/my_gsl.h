@@ -93,17 +93,18 @@ public:
 	ComplexGSL(ComplexReGSL r) { z=gsl_complex_rect(r.Re,0); }
 	ComplexGSL(ComplexImGSL i) { z=gsl_complex_rect(0,i.Im); }
 	~ComplexGSL() {};
-	ComplexGSL operator-(ComplexGSL& c)		{ return ComplexGSL(gsl_complex_sub(z,c.z)); }
-	ComplexGSL operator-(double r)			{ return ComplexGSL(gsl_complex_sub_real(z,r)); }
-	ComplexGSL operator+(ComplexGSL& c)		{ return ComplexGSL(gsl_complex_add(z,c.z)); }
-	ComplexGSL operator+(double r)			{ return ComplexGSL(gsl_complex_add_real(z,r)); }
-	ComplexGSL operator/(ComplexGSL& c)		{ return ComplexGSL(gsl_complex_div(z,c.z)); }
-	ComplexGSL operator*(ComplexGSL& c)		{ return ComplexGSL(gsl_complex_mul(z,c.z)); }
-	ComplexGSL operator*(double r)			{ return ComplexGSL(gsl_complex_mul_real(z,r)); }
-	ComplexGSL operator*(ComplexImGSL& i)	{ return ComplexGSL(gsl_complex_mul_imag(z,i.Im)); }
-	void operator*=(double r)				{ z=gsl_complex_mul_real(z,r); return;}
-	void operator*=(ComplexImGSL i)			{ z=gsl_complex_mul_imag(z,i.Im); return;}
-	double abs2()							{ return gsl_complex_abs2(z); }
+	ComplexGSL operator-(const ComplexGSL& c)	{ return ComplexGSL(gsl_complex_sub(z,c.z)); }
+	ComplexGSL operator-(const double r)		{ return ComplexGSL(gsl_complex_sub_real(z,r)); }
+	ComplexGSL operator+(const ComplexGSL& c)	{ return ComplexGSL(gsl_complex_add(z,c.z)); }
+	ComplexGSL operator+(const double r)		{ return ComplexGSL(gsl_complex_add_real(z,r)); }
+	ComplexGSL operator/(const ComplexGSL& c)	{ return ComplexGSL(gsl_complex_div(z,c.z)); }
+	ComplexGSL operator*(const ComplexGSL& c)	{ return ComplexGSL(gsl_complex_mul(z,c.z)); }
+	void operator*=(const ComplexGSL& c)		{ z = gsl_complex_mul(z,c.z); }
+	ComplexGSL operator*(const double r)		{ return ComplexGSL(gsl_complex_mul_real(z,r)); }
+	ComplexGSL operator*(const ComplexImGSL& i)	{ return ComplexGSL(gsl_complex_mul_imag(z,i.Im)); }
+	void operator*=(const double r)				{ z=gsl_complex_mul_real(z,r); return;}
+	void operator*=(const ComplexImGSL i)		{ z=gsl_complex_mul_imag(z,i.Im); return;}
+	double abs2()								{ return gsl_complex_abs2(z); }
 
 };
 ComplexGSL sqrt(ComplexGSL& c);

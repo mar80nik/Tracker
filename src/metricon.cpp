@@ -170,74 +170,68 @@ int FilmParams::Calculator(	const Polarization pol, const CalibrationParams &cal
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-void CalcR_TE(CalcRParams& params)
+typedef void (*CalcRHelper)(const ComplexGSL &gam2, const ComplexGSL &gam3, const ComplexGSL &gam4,
+							const ComplexGSL &epsi, const ComplexGSL &epsf, const ComplexGSL &epss,
+							const double &CT, const double &Np,
+							ComplexGSL &A, ComplexGSL &B, ComplexGSL &C);
+
+void CalcRTEhelper(const ComplexGSL &gam2, const ComplexGSL &gam3, const ComplexGSL &gam4,
+				   const ComplexGSL &epsi, const ComplexGSL &epsf, const ComplexGSL &epss,
+				   const double &CT, const double &Np,
+				   ComplexGSL &A, ComplexGSL &B, ComplexGSL &C)
 {
-	SimplePoint pnt; pnt.type.Set(GenericPnt);
-	double k, teta, ST, CT, dteta;
-	ComplexGSL gam2, gam3, A, B, C, t, gam4, As, Ra;
-	double &Np = params.Np; FilmParams &i=params.i, &f=params.f, &s=params.s;
-
-	k = 2*M_PI/params.lambda; dteta=(params.teta_max-params.teta_min)/(params.num_pnts-1);
-
-	ComplexGSL epsi(i.n, i.m), epsf(f.n, f.m), epss(s.n, s.m);
-	epsi=pow2(epsi); epsf=pow2(epsf); epss=pow2(epss);
-	
-	for(int j=0; j<params.num_pnts; j++)
-	{
-		teta=params.teta_min+j*dteta;
-		ST = Np*sin(teta*DEGREE); ST*=ST; CT = Np*cos(teta*DEGREE);
-
-		gam2=sqrt((epsi-ST)*-1.); 
-		gam3=sqrt((epsf-ST)*-1.); 
-		gam4=sqrt((epss-ST)*-1.); 
-
-		A=(gam2 - gam3)/(gam2 + gam3); 
-		B=(gam3 - gam4)/(gam3 + gam4);
-		t=gam2*cJ; C=(t - CT)/(t + CT); C*=-1;
-
-		t=B*exp(gam3*(-2*k*f.H)); As=( A + t )/( A*t + 1. );
-
-		t=As*exp(gam2*(-2*k*i.H)); Ra=( C + t )/( C*t + 1 );
-		
-		if(params.R!=NULL) { pnt.x=teta; pnt.y=Ra.abs2(); params.R->Points.Add(pnt); }
-		if(params.teta!=NULL) { pnt.x=teta; pnt.y=sqrt(ST); params.teta->Points.Add(pnt); }
-	}	
-	
+	ComplexGSL t, t1;
+	t = gam2;			t1 = gam3;	A = (t - t1)/(t + t1); 
+	t = gam3;			t1 = gam4;	B = (t - t1)/(t + t1); 			
+	t = gam2; t *= cJ;	t1 = CT;	C = (t - t1)/(t + t1); 
+	C*=-1;
 }
-void CalcR_TM(CalcRParams& params)
+
+void CalcRTMhelper(const ComplexGSL &gam2, const ComplexGSL &gam3, const ComplexGSL &gam4,
+				   const ComplexGSL &epsi, const ComplexGSL &epsf, const ComplexGSL &epss,
+				   const double &CT, const double &Np,
+				   ComplexGSL &A, ComplexGSL &B, ComplexGSL &C)
 {
-	SimplePoint pnt; pnt.type.Set(GenericPnt);
-	double k, teta, ST, CT, dteta;
-	ComplexGSL gam2, gam3, A, B, C, t, t1, gam4, Ap, Ra;
-	double &Np = params.Np; FilmParams &i=params.i, &f=params.f, &s=params.s;
+	ComplexGSL t, t1;
+	t = epsf;	t *= gam2;	t1 = epsi;	t1 *= gam3;	
+		A = (t - t1)/(t + t1);
+	t = epss;	t *= gam3;	t1 = epsf;	t1 *= gam4;	
+		B = (t - t1)/(t + t1);
+	t = epsi;	t *= CT;	t1 = gam2; t1 *= ComplexImGSL(Np*Np);	
+		C = (t - t1)/(t + t1);	
+}
+
+CalcR_ResultArray CalcR(const Polarization pol, const CalcRParams& params)
+{
+	CalcR_ResultArray ret; CalcRHelper func;
+	double k, teta, ST, ST2, CT, dteta;
+	ComplexGSL gam2, gam3, gam4, A, B, C, t, t1, Ax, Ra;
+	const double &Np = params.Np; const FilmParams &i=params.i, &f=params.f, &s=params.s;
+
+	switch (pol)
+	{
+	case TE: func = CalcRTEhelper; break;
+	case TM: func = CalcRTMhelper; break;
+	}
 
 	k = 2*M_PI/params.lambda; dteta=(params.teta_max-params.teta_min)/(params.num_pnts-1);
 
 	ComplexGSL epsi(i.n, i.m), epsf(f.n, f.m), epss(s.n, s.m);
 	epsi=pow2(epsi); epsf=pow2(epsf); epss=pow2(epss);
-
+	
 	for(int j=0; j<params.num_pnts; j++)
 	{
-		teta=params.teta_min+j*dteta;
-		ST = Np*sin(teta*DEGREE); ST*=ST; CT = Np*cos(teta*DEGREE);
+		teta = params.teta_min + j*dteta;
+		ST = Np*sin(teta*DEGREE); ST2 = ST*ST; CT = Np*cos(teta*DEGREE);
 
-		gam2=sqrt((epsi-ST)*-1.); 
-		gam3=sqrt((epsf-ST)*-1.); 
-		gam4=sqrt((epss-ST)*-1.); 
-
-		t=epsf*gam2; t1=epsi*gam3;				A = (t - t1)/(t + t1);
-		t=epss*gam3; t1=epsf*gam4;				B = (t - t1)/(t + t1);
-		t=epsi*CT; t1=gam2*ComplexImGSL(Np*Np); C = (t - t1)/(t + t1);
-
-		t=B*exp(gam3*(-2*k*f.H));
-		Ap=( A + t )/( A*t + 1. );		
-
-		t=Ap*exp(gam2*(-2*k*i.H));
-		Ra=( C + t )/( C*t + 1 );
-
-		if(params.R!=NULL) { pnt.x=teta; pnt.y=Ra.abs2(); params.R->Points.Add(pnt); }
-		if(params.teta!=NULL) { pnt.x=teta; pnt.y=sqrt(ST); params.teta->Points.Add(pnt); }
-	}		
+		gam2 = sqrt((epsi-ST2)*-1.);	gam3 = sqrt((epsf-ST2)*-1.);	gam4 = sqrt((epss-ST2)*-1.); 
+		func(gam2, gam3, gam4, epsi, epsf, epss, CT, Np, A, B, C);
+		t = B*exp(gam3*(-2*k*f.H));		Ax = ( A + t )/( A*t + 1. );
+		t = Ax*exp(gam2*(-2*k*i.H));	Ra = ( C + t )/( C*t + 1 );
+		
+		ret << CalcR_Result(teta, Ra.abs2(), ST);
+	}
+	return ret;	
 }
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

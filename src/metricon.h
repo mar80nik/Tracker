@@ -129,7 +129,8 @@ public:
 			//This is callback function for GSL solver
 			double (FuncParams::*funcCB) (double x); 
 			double funcTE (double x); double funcTM (double x);
-			void SetFunc(Polarization pol)
+			FuncParams(Polarization pol, double _n1, double _n2, double _n3, double _kHf):
+				n_i(_n1), n_f(_n2), n_s(_n3), kHf(_kHf)
 			{
 				switch (pol)
 				{
@@ -137,11 +138,6 @@ public:
 				case TM: funcCB = &FuncParams::funcTM; break;
 				default: funcCB = NULL;
 				}
-			}
-			FuncParams(Polarization pol, double _n1, double _n2, double _n3, double _kHf):
-			n_i(_n1), n_f(_n2), n_s(_n3), kHf(_kHf)
-			{
-				SetFunc(pol);
 			}
 			FuncParams(FuncParams& params):
 				n_i(params.n_i), n_f(params.n_f), n_s(params.n_s), kHf(params.kHf), funcCB(params.funcCB)
@@ -207,64 +203,63 @@ struct CalcRParams
 };
 
 CalcR_ResultArray CalcR(const Polarization pol, const CalcRParams& params);
-//////////////////////////////////////////////////////////////////////////
-class ParabolaFitFunc: public BaseForFitFunc
-{
-//f = a*x*x + b*x + c
-public:
+/////////////////////////////////////////////////////////////////
+////////////    f = a*x*x + b*x + c    //////////////////////////
+/////////////////////////////////////////////////////////////////
+struct ParabolaFuncParams: public BaseForMultiFitterFuncParams
+{	
 	enum {ind_c, ind_b, ind_a, ind_max};
-protected:
-	struct FuncParams: public BaseForMultiFitterFuncParams
+
+	static double func(const double &x, const double *a, const size_t &p);	
+
+	static double df_da(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_db(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dc(const double &x, const double *a, const size_t &p, double *c);	
+
+	ParabolaFuncParams( const DoubleArray& y, const DoubleArray& sigma ) : 
+		BaseForMultiFitterFuncParams(ind_max, y, sigma)
 	{
-		static double func(const double &x, const double *a, const size_t &p);	
+		pFunction = ParabolaFuncParams::func;
+		pDerivatives[ind_a] = df_da; pDerivatives[ind_b] = df_db; pDerivatives[ind_c] = df_dc;
+	}
+};
 
-		static double df_da(const double &x, const double *a, const size_t &p, double *c);	
-		static double df_db(const double &x, const double *a, const size_t &p, double *c);	
-		static double df_dc(const double &x, const double *a, const size_t &p, double *c);	
-
-		FuncParams( const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma ) : 
-			BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
-		{
-			pFunction = FuncParams::func;
-			pDerivatives[ind_a] = df_da; pDerivatives[ind_b] = df_db; pDerivatives[ind_c] = df_dc;
-		}
-	};
+class ParabolaFitFunc: public MultiFitterTemplate<ParabolaFuncParams>
+{
 public:
 	double GetTop(double &x);	
-	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);
 };
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////
-class KneeFitFunc: public BaseForFitFunc
+/////////////////////////////////////////////////////////////////
+////////////   f = C + (A/(1 + exp(-2*k*(x - B))))   ////////////
+/////////////////////////////////////////////////////////////////
+struct KneeFuncParams: public BaseForMultiFitterFuncParams
 {
-//f = C + (A/(1 + exp(-2*k*(x - B))));
-public:
 	enum {ind_A, ind_B, ind_C, ind_k, ind_max};
-protected:	
-	struct FuncParams: public BaseForMultiFitterFuncParams
+
+	double buf;
+
+	static double func(const double &x, const double *a, const size_t &p);	
+
+	static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dB(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dC(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dk(const double &x, const double *a, const size_t &p, double *c);	
+
+	KneeFuncParams( const DoubleArray& y, const DoubleArray& sigma ) : 
+		BaseForMultiFitterFuncParams(ind_max, y, sigma)
 	{
-		double buf;
-		
-		static double func(const double &x, const double *a, const size_t &p);	
+		pFunction = KneeFuncParams::func;
+		pDerivatives[ind_A] = df_dA; pDerivatives[ind_B] = df_dB; 
+		pDerivatives[ind_C] = df_dC; pDerivatives[ind_k] = df_dk;
+	}
+	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);	
+};//////////////////////////////////////////////////////////////////////////
 
-		static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
-		static double df_dB(const double &x, const double *a, const size_t &p, double *c);	
-		static double df_dC(const double &x, const double *a, const size_t &p, double *c);	
-		static double df_dk(const double &x, const double *a, const size_t &p, double *c);	
 
-		FuncParams( const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma ) : 
-			BaseForMultiFitterFuncParams(ind_max, x, y, sigma)
-		{
-			pFunction = FuncParams::func;
-			pDerivatives[ind_A] = df_dA; pDerivatives[ind_B] = df_dB; 
-			pDerivatives[ind_C] = df_dC; pDerivatives[ind_k] = df_dk;
-		}
-		virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);	
-	};
-	
+class KneeFitFunc: public MultiFitterTemplate<KneeFuncParams>
+{
 public:
 	double GetInflection(double &x, const double &level);	
-	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a);
 };
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

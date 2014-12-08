@@ -67,16 +67,6 @@ struct SolverErrors
 	SolverErrors(double _abs, double _rel = 0) {CleanUp(); abs = _abs; rel = _rel; } 
 	void CleanUp() {abs = rel = 0.;}
 };
-
-struct PerfomanceInfoMk1 
-{
-	SolverErrors err;
-	struct Counters {size_t func_call, iter; Counters() {CleanUp();} void CleanUp() {func_call = iter = 0;}} cntr;
-	ms dt; int status; size_t max_iter;
-	PerfomanceInfoMk1() {status = GSL_FAILURE; max_iter = 0; CleanUp();}
-	virtual ~PerfomanceInfoMk1() { CleanUp(); }
-	virtual void CleanUp() {status = GSL_FAILURE; max_iter = 0; err.CleanUp(); cntr.CleanUp();}
-};
 //////////////////////////////////////////////////////////////////////////
 struct ComplexImGSL {double Im; ComplexImGSL(double i=1.) {Im=i;}};
 struct ComplexReGSL {double Re; ComplexReGSL(double r=0) {Re=r;}};
@@ -327,31 +317,30 @@ typedef double (*pDerivFunc)(const double &x, const double *a, const size_t &p, 
 struct BaseForMultiFitterFuncParams:public BaseForFuncParams
 {
 public:
-	size_t n, p; const double *y; double *sigma; double leftmostX, rightmostX, dx;
+	size_t n, p; const double *y; double *sigma;
 	pDerivFunc *pDerivatives; pFunc pFunction;
 
-	BaseForMultiFitterFuncParams(const size_t _p, const DoubleArray &_x, const DoubleArray &_y, const DoubleArray &_sigma);
+	BaseForMultiFitterFuncParams(const size_t _p, const DoubleArray &_y, const DoubleArray &_sigma);
 	virtual ~BaseForMultiFitterFuncParams();
 	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p) { return NULL; };
 	size_t GetPointsNum() {return n;}
-	int f(const gsl_vector * x, gsl_vector * f);
-	int df(const gsl_vector * x, gsl_matrix * J);
+	int f(const gsl_vector * a, gsl_vector * f);
+	int df(const gsl_vector * a, gsl_matrix * J);
 	int FillSigma(const DoubleArray &sigma);
 };
 
-
-struct BaseForFitFunc: public SolverData
+struct BaseForFitFunc
 {
 	double leftmostX, rightmostX, dx;
 	DoubleArray a, da; pFunc pFunction;
 
-	BaseForFitFunc(): SolverData() { leftmostX = rightmostX = dx = 0; pFunction = NULL;}
+	BaseForFitFunc() { leftmostX = rightmostX = dx = 0; pFunction = NULL;}
 	double GetXabsY(const double &x);
 	double GetXrelY(double &x);
 };
 
 template <class FuncParams>
-class MultiFitterTemplate: public SolverData
+class MultiFitterTemplate: public SolverData, public BaseForFitFunc
 {
 private:
 	const gsl_multifit_fdfsolver_type *multifit_fdfsolver_type; 
@@ -380,15 +369,12 @@ protected:
 		solver->params->df(x, J);
 		return GSL_SUCCESS;
 	}
-public:	
-	DoubleArray a, da;
-
 public:
 	MultiFitterTemplate(const int _max_iter = 100): SolverData(_max_iter)
 	{
 		multifit_fdfsolver_type=gsl_multifit_fdfsolver_lmsder; s = NULL; initX = NULL;
-		F.f = f; F.df = df; F.fdf = fdf; 
-		F.params = this; params = NULL;		
+		F.f = f; F.df = df; F.fdf = fdf; F.params = this; 
+		params = NULL;		
 	}
 	virtual ~MultiFitterTemplate() {CleanUp();}
 	virtual void CleanUp()
@@ -398,61 +384,64 @@ public:
 		if (initX != NULL) { gsl_vector_free(initX); initX = NULL; }
 		a.RemoveAll(); da.RemoveAll(); params = NULL;
 	}
+	int CalculateFrom(const DoubleArray& x, const DoubleArray& y, const DoubleArray& sigma, DoubleArray& init_a)
+	{
+		FuncParams params(y, sigma); 
+		leftmostX = x[0]; rightmostX = x[params.n - 1]; dx = (rightmostX - leftmostX)/(params.n - 1);
+		Run(&params, init_a, SolverErrors(1e-6));
+		return status;
+	}
+protected:
 	int Run(FuncParams* _params, DoubleArray& init_a, const SolverErrors &Err)
 	{
 		MyTimer Timer1; Timer1.Start(); CleanUp(); 
-		params = _params; ASSERT(params); params->PrepareBuffers(); 
-		F.p = p = init_a.GetSize(); F.n = n = params->GetPointsNum(); 
-		initX = init_a.CreateGSLReplica(); err = Err;
-		s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
-		gsl_multifit_fdfsolver_set (s, &F, initX);
-		do
+		if ((params = _params) != NULL)
 		{
-			cntr.iter++;
-			status = gsl_multifit_fdfsolver_iterate (s);
-			status = gsl_multifit_test_delta (s->dx, s->x, err.abs, err.rel);
-		}
-		while (status == GSL_CONTINUE && cntr.iter < max_iter);
-		a = *(s->x);
-		if (status == GSL_SUCCESS)
-		{
-			gsl_matrix *covar = gsl_matrix_alloc(p, p);
-			if (covar != NULL)
+			params->PrepareBuffers(); 
+			F.p = p = init_a.GetSize(); F.n = n = params->GetPointsNum(); 
+			initX = init_a.CreateGSLReplica(); err = Err;
+			s = gsl_multifit_fdfsolver_alloc (multifit_fdfsolver_type, n, p);
+			gsl_multifit_fdfsolver_set (s, &F, initX);
+			do
 			{
-				gsl_multifit_covar(s->J, 0.0, covar);
-				double c = GSL_MAX_DBL(1, gsl_blas_dnrm2(s->f) / sqrt((double)(n - p))); 
-				da = (gsl_matrix_diagonal (covar)).vector;
-				for (int i = 0; i < da.GetSize(); i++)
-				{
-					da[i] = fabs(c*sqrt(da[i]));
-				}
-				gsl_matrix_free(covar);
+				cntr.iter++;
+				status = gsl_multifit_fdfsolver_iterate (s);
+				status = gsl_multifit_test_delta (s->dx, s->x, err.abs, err.rel);
 			}
-		}	
-		dt=Timer1.StopStart(); params->DestroyBuffers();
-		return status;
-	}
-	HRESULT Fill_FitFunc(BaseForFitFunc* FitFunc)
-	{
-		if (FitFunc != NULL && params != NULL)
-		{
-			FitFunc->a = a; 
-			FitFunc->leftmostX = params->leftmostX;
-			FitFunc->rightmostX = params->rightmostX; 
-			FitFunc->dx = params->dx; FitFunc->pFunction = params->pFunction;
-			*((SolverData*)FitFunc) = *((SolverData*)this); 
-			return S_OK;
+			while (status == GSL_CONTINUE && cntr.iter < max_iter);
+			a = *(s->x);
+			if (status == GSL_SUCCESS)
+			{
+				gsl_matrix *covar = gsl_matrix_alloc(p, p);
+				if (covar != NULL)
+				{
+					gsl_multifit_covar(s->J, 0.0, covar);
+					double c = GSL_MAX_DBL(1, gsl_blas_dnrm2(s->f) / sqrt((double)(n - p))); 
+					da = (gsl_matrix_diagonal (covar)).vector;
+					for (int i = 0; i < da.GetSize(); i++)
+					{
+						da[i] = fabs(c*sqrt(da[i]));
+					}
+					gsl_matrix_free(covar);
+				}
+			}	
+			params->DestroyBuffers(); 
 		}
-		return E_FAIL;		
+		else
+		{
+			status = GSL_FAILURE;			
+		}
+		dt=Timer1.StopStart(); params = NULL;
+		return status;
 	}
 };
 //////////////////////////////////////////////////////////////////////////
-
-class FFTRealTransform: public PerfomanceInfoMk1
+//////////////////////////////////////////////////////////////////////////
+class FFTRealTransform: public SolverData
 {
 public:
 	enum Direction {FORWARD, BACKWARD};
-	struct Params: public PerfomanceInfoMk1
+	struct Params: public SolverData
 	{
 		DoubleArray* y; Direction dir;
 		Params() { y=NULL; dir=FORWARD;}

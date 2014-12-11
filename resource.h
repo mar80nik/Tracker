@@ -152,6 +152,7 @@
 #define IDC_RADIO5                      1052
 #define IDC_RADIO6                      1053
 #define IDC_LIST3                       1056
+#define IDC_CHECK2                      1058
 #define IDC_RADIO7                      1060
 #define VOLTMETER1                      32771
 #define ID_CONFIG                       32772

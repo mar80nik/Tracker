@@ -22,30 +22,25 @@ protected:
 	CFont font1;
 	ProtectedSeriesArray* Series;
 	CalibrationParams cal;
+public:
 	CalibratorDialog CalibratorDlg;
 	CalcTEDialog	CalcTEDlg, CalcTMDlg;
 
 public:
 	DialogBarTab1(CWnd* pParent = NULL);   // standard constructor	
-//	void CreateScenarioParams(ScenarioParams &Params);
-// Dialog Data
 	//{{AFX_DATA(DialogBarTab1)
 	enum { IDD = IDD_DIALOGBARTAB11 };
 	//}}AFX_DATA
 
-
-// Overrides
-	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(DialogBarTab1)
 	public:
 	virtual void Serialize(CArchive& ar);
 	protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
-// Implementation
 protected:
-	// Generated message map functions
 	//{{AFX_MSG(DialogBarTab1)
+	DECLARE_MESSAGE_MAP()
 	virtual BOOL OnInitDialog();
 	afx_msg void OnKillfocus();
 	virtual void OnOK() {};
@@ -55,7 +50,6 @@ protected:
 	afx_msg void OnBnClickedCalcTE();
 	afx_msg void OnBnClickedCalcTM();		
 	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
 public:
 	int spec_wdth;
 	int Nmin;

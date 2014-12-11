@@ -717,40 +717,40 @@ HRESULT ImageWnd::PicWnd::MakeAva()
 
 void ImageWnd::PicWnd::OnPicWndScanLine()
 {
-	//void* x; CString T; 	
-	//TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
-	//ConrtoledLogMessage log; log << _T("Speed tests results");
+	void* x; CString T; 	
+	TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
+	ControledLogMessage log; log << _T("Speed tests results");
 
-	//if (accum.bmp != NULL)
-	//{
-	//	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
-	//	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+	if (accum.bmp != NULL)
+	{
+		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
 
-	//	OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
-	//	T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
+		//OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+		//T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
 
-	//	if((x=chrt.Series.GainAcsess(WRITE))!=0)
-	//	{
-	//		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-	//		TPointVsErrorSeries *t2;
-	//		if((t2 = new TPointVsErrorSeries(T))!=0)	
-	//		{
-	//			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-	//			Series.Add(t2); 
-	//			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);
-	//			ChartMsg = t2->CreateDataImportMsg(); 
-	//			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-	//			t2->PointType.Set(GenericPnt); 
-	//			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-	//		}		
-	//	}
-	//	
-	//	accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
-	//	log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
-	//	log << log.T;
-	//	ChartMsg->Dispatch();
-	//	log.Dispatch();
-	//}
+		if((x=chrt.Series.GainAcsess(WRITE))!=0)
+		{
+			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+			TPointVsErrorSeries *t2;
+			if((t2 = new TPointVsErrorSeries(T))!=0)	
+			{
+				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+				Series.Add(t2); 
+				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);
+				ChartMsg = t2->CreateDataImportMsg(); 
+				t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+				t2->PointType.Set(GenericPnt); 
+				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+			}		
+		}
+		
+		//accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
+		log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
+		log << log.T;
+		ChartMsg->Dispatch();
+		log.Dispatch();
+	}
 }
 
 

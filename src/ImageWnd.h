@@ -66,14 +66,18 @@ struct AccumInfo
 	size_t GetCompressorBufferSize() const;
 };
 
+struct PointVsError3D
+{
+	double x, y, z, dz;
+	PointVsError3D() {x = y = z = dz = 0.;};
+};
+
 struct ImagesAccumulator: public AccumInfo
 {
 protected:
 	BYTE *sums; size_t OldSumsSize;
 public:
 	BMPanvas *bmp; 
-
-	ms fillTime;
 
 	ImagesAccumulator();
 	~ImagesAccumulator() {Reset();};
@@ -84,11 +88,13 @@ public:
 	HRESULT GetPicRgn(CRect&) const;
 
 	HRESULT Initialize(int _w, int _h, BOOL hasErrors = TRUE);
-	HRESULT FillAccum(BMPanvas *src);
-	void ConvertToBitmap(CWnd *ref);
+	HRESULT FillAccum(BMPanvas *src, MyTimer *Timer1 = NULL);
+	void ConvertToBitmap(CWnd *ref, MyTimer *Timer1 = NULL);
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
-	void ScanLine( void *buf, const ScanRgnData &data);
+	void ScanLine( void *buf, const ScanRgnData &data, MyTimer *Timer1 = NULL) const;
+	PointVsError3D GetPoint(const CPoint &pnt) const;
+	BOOL HasImage() const {return (sums != NULL);};
 };
 
 class ImageWnd : public CWnd

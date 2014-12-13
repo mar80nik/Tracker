@@ -910,9 +910,9 @@ HRESULT ImagesAccumulator::Initialize(int _w, int _h, BOOL _HasErrors/* = TRUE*/
 	return S_OK;
 }
 
-HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
+HRESULT ImagesAccumulator::FillAccum(BMPanvas *src, MyTimer *Timer1)
 {
-	HRESULT ret; MyTimer Timer1;
+	HRESULT ret;
 	if (src == NULL) return E_FAIL;
 	if (src->HasImage() == FALSE) return E_FAIL;	
 
@@ -945,7 +945,7 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 		Reset();
 		return E_FAIL;
 	}		
-	Timer1.Start(); 
+	if (Timer1 != NULL) Timer1->Start(); 
 	src->LoadBitmapArray(); 
 	if (HasErrors)
 	{		
@@ -974,17 +974,16 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 	}
 	src->UnloadBitmapArray();		
 	n++; 
-	Timer1.Stop(); fillTime = Timer1.GetValue();
+	if (Timer1 != NULL) Timer1->Stop();
 	return S_OK;
 }
 
-void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
+void ImagesAccumulator::ConvertToBitmap(CWnd *ref, MyTimer *Timer1)
 {
-	MyTimer Timer1; 
 	if (sums != NULL)
 	{
 		BYTE *dst_pxl; 
-		Timer1.Start();
+		if (Timer1 != NULL) Timer1->Start();
 		if (bmp == NULL)
 		{
 			bmp = new BMPanvas(); 
@@ -1017,7 +1016,7 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 			}
 		}
 		bmp->SetBitmapArray(); 
-		Timer1.Stop(); fillTime = Timer1.GetValue();
+		if (Timer1 != NULL) Timer1->Stop(); 
 	}
 }
 
@@ -1110,14 +1109,13 @@ HRESULT ImagesAccumulator::LoadFrom( const CString &file )
 	return ret;
 }
 
-void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data)
+void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data, MyTimer *Timer1 ) const
 {	
 	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
-	MyTimer Timer1; 
-	if (sums != NULL)
+	if (HasImage())
 	{
 		PointVsError pnte; pnte.type.Set(GenericPnt);
-		Timer1.Start(); 
+		if (Timer1 != NULL) Timer1->Start(); 
 		CSize size(data.Xmax - data.Xmin, 2*data.AvrRange + 1); int N = n*size.cy;	
 		UINT *avr_accum = new UINT[size.cx];
 		ULONG *avr_accum2 = new ULONG[size.cx];
@@ -1167,7 +1165,7 @@ void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data)
 			}				
 			buf->Add(pnte);
 		}
-		Timer1.Stop(); fillTime = Timer1.GetValue();
+		if (Timer1 != NULL) Timer1->Stop();
 		delete[] avr_accum; delete[] avr_accum2;
 	}
 }
@@ -1195,6 +1193,39 @@ HRESULT ImagesAccumulator::GetPicRgn( CRect& PicRgn ) const
 		return S_OK;
 	}
 	return E_FAIL;
+}
+
+PointVsError3D ImagesAccumulator::GetPoint( const CPoint &pnt ) const
+{
+	PointVsError3D pnte; USHORT avr_accum;	UINT avr_accum2;
+	const int N = n; const int shift = pnt.y*w + pnt.x;	
+	
+	if (HasErrors)
+	{	
+		USHORT *accum_pxl = GetSum(); UINT *accum_pxl2 = GetSums2(); 
+		accum_pxl += shift; accum_pxl2 += shift;
+		avr_accum = *accum_pxl;
+		avr_accum2 = *accum_pxl2;
+	}
+	else
+	{
+		BYTE *accum_pxl = (BYTE*)GetSum();
+		accum_pxl += shift;
+		avr_accum = *accum_pxl;
+		avr_accum2 = (*accum_pxl)*(*accum_pxl);
+	}
+
+	if (N > 1)
+	{				
+		ULONGLONG val = N*avr_accum2 - avr_accum*avr_accum;
+		pnte.dz = sqrt(((float)val)/((N - 1)*N));
+	}
+	else
+	{
+		pnte.dz = 0;
+	}		
+	pnte.x = pnt.x; pnte.y = pnt.y; pnte.z = (float)(avr_accum)/N; 
+	return pnte;
 }
 
 size_t AccumInfo::GetSumsSize() const

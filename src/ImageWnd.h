@@ -39,6 +39,24 @@ public:
 struct ScanRgnData
 { int stroka, Xmin, Xmax, AvrRange;};
 
+struct ScanLineData
+{ 
+protected:
+	HRESULT status;
+public:
+	CPoint beg, end;
+	double dX, dY, len, cosfi, sinfi;
+	
+	ScanLineData() {dX = dY= len = 0; cosfi = 1.; sinfi = 0; status = E_FAIL;};
+	HRESULT Init(const CPoint &_beg, const CPoint &_end);
+protected:
+	double Get_Length() const;
+	double Get_dX() const;
+	double Get_dY() const;
+	HRESULT Get_cosfi(double &cosfi) const;
+	HRESULT Get_sinfi(double &sinfi) const;
+};
+
 struct AccumInfo
 {		
 	USHORT w, h, n; BYTE HasErrors;

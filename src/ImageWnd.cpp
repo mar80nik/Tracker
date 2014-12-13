@@ -1239,3 +1239,34 @@ size_t AccumInfo::GetCompressorBufferSize() const
 	}
 	return ret;	
 }
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+double ScanLineData::Get_Length() const
+{
+	double dy = Get_dY(), dx = Get_dX();
+	return sqrt(dy*dy + dx*dx);
+}
+
+double ScanLineData::Get_dX() const { return (double)(end.x - beg.x); }
+double ScanLineData::Get_dY() const { return (double)(end.y - beg.y); }
+HRESULT ScanLineData::Init( const CPoint &_beg, const CPoint &_end ) 
+{ 
+	beg = _beg; end = _end; 
+	dX = Get_dX(); dY = Get_dY();
+	if ((len = Get_Length()) != 0) { Get_cosfi(cosfi); Get_sinfi(sinfi); return (status = S_OK); }
+	else { cosfi = 1.; sinfi = 0.; return (status = E_FAIL);	}
+}
+
+HRESULT ScanLineData::Get_cosfi( double &cosfi ) const
+{
+	double len;;
+	if ((len = Get_Length()) != 0) { cosfi = Get_dX()/len; return S_OK; }
+	return E_FAIL;
+}
+
+HRESULT ScanLineData::Get_sinfi( double &sinfi ) const
+{
+	double len;;
+	if ((len = Get_Length()) != 0) { sinfi = Get_dY()/len; return S_OK; }
+	return E_FAIL;
+}

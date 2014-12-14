@@ -49,6 +49,7 @@ public:
 	
 	ScanLineData() {dX = dY= len = 0; cosfi = 1.; sinfi = 0; status = E_FAIL;};
 	HRESULT Init(const CPoint &_beg, const CPoint &_end);
+	BOOL IsInited() const { return (status == S_OK);}
 protected:
 	double Get_Length() const;
 	double Get_dX() const;
@@ -93,6 +94,7 @@ public:
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
 	void ScanLine( void *buf, const ScanRgnData &data, MyTimer *Timer1 = NULL) const;
+	void ScanArbitaryLine( void *buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
 	PointVsError3D GetPoint(const CPoint &pnt) const;
 	BOOL HasImage() const {return (sums != NULL);};
 };
@@ -182,6 +184,7 @@ public:
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void OnPicWndScanLine();
+		void OnPicWndScanArbitaryLine();
 		void EraseAva();
 		void SetMarker(const AvaPoint& mark, MarkerNames pos);
 		HRESULT MakeAva();

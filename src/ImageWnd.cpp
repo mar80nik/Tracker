@@ -48,11 +48,12 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CameraWnd.Ctrls.ShowWindow(SW_SHOW);
 #define TEST1
 #ifdef DEBUG
+//	fiber.LoadPic(CString("..\\exe\\strips.png"));
  	fiber.LoadPic(CString("..\\exe\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
-	SetMarker(OrgPoint(CPoint(282, 243)), BGN);
-	SetMarker(OrgPoint(CPoint(507, 784)), END);
+	SetMarker(CPoint(282, 243), BGN);
+	SetMarker(CPoint(507, 784), END);
 
 	return 0;
 }
@@ -151,34 +152,6 @@ void ImageWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBO1, NofScans);
 	//}}AFX_DATA_MAP
 
-}
-
-void Interpolate(CPoint Beg, CPoint End, double dr, BYTE *arr, int wbyte, SimplePointArray* Points)
-{
-	int x1, y1, z1, z2, z3; double z, r, cosfi, sinfi, dx, dy; int A, B, D, N; 
-	SimplePoint pnt; pnt.type.Set(GenericPnt); 
-	double rmax = sqrt((double)(End.x - Beg.x)*(End.x - Beg.x) + (End.y - Beg.y)*(End.y - Beg.y));
-	cosfi = (End.x - Beg.x)/rmax; sinfi = (End.y - Beg.y)/rmax;
-	N = (int)(1 + rmax/dr); dx = dr*cosfi; dy = dr*sinfi; r = 0.; pnt.x = Beg.x; pnt.y = Beg.y;
-
-	for (int i = 0; i < N; i++)
-	{
-		x1 = (int)pnt.x; y1 = (int)pnt.y; 
-		z1 = arr[y1*wbyte + x1]; z3 = arr[(y1 + 1)*wbyte + (x1 + 1)];
-		if ((double)(pnt.x - x1 + pnt.y - y1) > 1.)
-		{
-			z2 = arr[y1*wbyte + (x1 + 1)];
-			A = z1 - z2; B = z2 - z3;
-		}
-		else
-		{
-			z2 = arr[(y1 + 1)*wbyte + x1];
-			A = z2 - z3; B = z1 - z2;
-		}
-		D = -z1 - x1*A - y1*B; z = -D - A*pnt.x - B*pnt.y;
-		Points->Add(pnt);	
-		r += dr; pnt.x += dx; pnt.y += dy;
-	}
 }
 
 void ImageWnd::CtrlsTab::OnBnClickedScan()
@@ -287,9 +260,35 @@ BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
 	ON_COMMAND(ID_PICWNDMENU_SAVE, OnPicWndSave)
-	ON_COMMAND(ID_PICWNDMENU_SCANLINE, OnPicWndScanLine)
+	ON_COMMAND(ID_PICWNDMENU_SCANLINE, OnPicWndScanArbitaryLine)
 	ON_WM_MOVE()
 END_MESSAGE_MAP()
+
+HRESULT ImageWnd::PicWnd::ConvertAvaToOrg( CPoint& pnt ) const
+{
+	CRect AvaRgn, OrgRgn; GetClientRect(&AvaRgn);
+	if (SUCCEEDED(accum.GetPicRgn(OrgRgn)))
+	{
+		CSize Ava = AvaRgn.Size(), Org = OrgRgn.Size();
+		pnt.x = (LONG)((double)pnt.x*Org.cx/Ava.cx); 
+		pnt.y = (LONG)((double)pnt.y*Org.cy/Ava.cy);
+		return S_OK;
+	}
+	return E_FAIL;
+}
+
+HRESULT ImageWnd::PicWnd::ConvertOrgToAva( CPoint& pnt ) const
+{
+	CRect AvaRgn, OrgRgn; GetClientRect(&AvaRgn);
+	if (SUCCEEDED(accum.GetPicRgn(OrgRgn)))
+	{
+		CSize Ava = AvaRgn.Size(), Org = OrgRgn.Size();
+		pnt.x = (LONG)((double)pnt.x*Ava.cx/Org.cx); 
+		pnt.y = (LONG)((double)pnt.y*Ava.cy/Org.cy); 
+		return S_OK;
+	}
+	return E_FAIL;
+}
 
 int ImageWnd::PicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
@@ -311,29 +310,38 @@ int ImageWnd::PicWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void ImageWnd::PicWnd::EraseAva()
 {
 	CString T,T1;  GetWindowText(T1); T.Format("Drag or Capture %s image",T1);
-	CRect r; GetClientRect(&r); 
+	CRect r; GetClientRect(&r); MarkerAvaBGN.Erase(NULL); MarkerAvaEND.Erase(NULL);
 	ava.PatBlt(WHITENESS); ava.Rectangle(r);
 	ava.TextOut(10,10,T);
 }
 
 void ImageWnd::PicWnd::OnPaint()
 {
-	CPaintDC dc(this); 	
+	CPaintDC dc(this); CPoint marker;
 	HDC hdc=dc.GetSafeHdc();
-	if (accum.bmp != NULL)
+ 	if (accum.bmp != NULL)
 	{
 		if(accum.bmp->HasImage())
 		{
-		MarkerAvaBGN.Draw(&ava);
-		MarkerAvaEND.Draw(&ava);			
+			marker = Parent->MarkerBGN;
+			if (SUCCEEDED(ConvertOrgToAva(marker)))
+			{
+				MarkerAvaBGN.Draw(&ava, marker);
+			}
+			marker = Parent->MarkerEND;
+			if (SUCCEEDED(ConvertOrgToAva(marker)))
+			{
+				MarkerAvaEND.Draw(&ava, marker);
+			}
 		}
 	}
 	ava.CopyTo(hdc,TOP_LEFT);
 }
 
-void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas )
+
+void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const CPoint& pnt )
 {
-	Draw( canvas, *this, DRAW ); 
+	Draw( canvas, pnt, DRAW ); 
 }
 
 void ImageWnd::PicWnd::AvaMarker::Erase( BMPanvas * canvas )
@@ -349,13 +357,13 @@ void ImageWnd::PicWnd::AvaMarker::Erase( BMPanvas * canvas )
 	}
 }
 
-void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const AvaPoint& pnt, DrawModes mode )
+void ImageWnd::PicWnd::AvaMarker::Draw( BMPanvas* canvas, const CPoint& pnt, DrawModes mode )
 {
 	int lastMode;
 	if ( canvas == NULL) return;
 	switch ( mode)
 	{
-	case DRAW: Erase( canvas ); lastMode = canvas->SetROP2(R2_NOT); last = *this; ToErase=TRUE; break;
+	case DRAW: Erase( canvas ); lastMode = canvas->SetROP2(R2_NOT); last = pnt; ToErase=TRUE; break;
 	case ERASE: 
 	default:		
 		lastMode = canvas->SetROP2(R2_NOT); 
@@ -438,7 +446,6 @@ HRESULT ImageWnd::PicWnd::LoadPic(CString T)
 	return ret;
 }
 
-
 void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 {
 	char buf[1000]; CString T,T2;  GetWindowText(T2);
@@ -450,7 +457,6 @@ void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 	if (SUCCEEDED(LoadPic(T)))
 	{
 		BMPanvas &org = *(accum.bmp); ControledLogMessage log;
-		//Parent->SetScanRgn(Parent->GetScanRgn());
 		Timer1.Stop(); 
 		time=Timer1.GetValue(); 
 		log.T.Format("%s org (%.2f Mpix) load time=%s", T2, org.w*org.h/1e6, ConvTimeToStr(time)); log << log.T;		
@@ -461,42 +467,22 @@ void ImageWnd::PicWnd::OnDropFiles(HDROP hDropInfo)
 
 void ImageWnd::PicWnd::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	BOOL update = FALSE; 
-	if (accum.bmp == NULL) return;
-	if (accum.bmp->HasImage() == FALSE ) return;
-	switch( nFlags )
+	CPoint OrgPnt(point); 
+	if (SUCCEEDED(ConvertAvaToOrg(OrgPnt)))
 	{
-	case MK_SHIFT: Parent->SetMarker(Convert(AvaPoint(point)), BGN); update = TRUE; break;
-	case MK_CONTROL: Parent->SetMarker(Convert(AvaPoint(point)), END); update = TRUE; break;
-	case 0: update=TRUE; break;	
-	}
-	if (update == TRUE)
-	{
-		UpdateNow();
+		switch( nFlags )
 		{
-			//Parent->SetScanRgn( Convert(tmpRgn) );
-		}		
+		case MK_SHIFT: Parent->SetMarker(OrgPnt, BGN); break;
+		case MK_CONTROL: Parent->SetMarker(OrgPnt, END); break;
+		case 0: break;	
+		}
 	}
 	CWnd::OnLButtonUp(nFlags, point);
 }
 
 void ImageWnd::PicWnd::OnRButtonUp(UINT nFlags, CPoint point)
 {
-	BOOL update = FALSE; 
-	if (accum.bmp == NULL) return;
-	if (accum.bmp->HasImage() == FALSE ) return;
-	switch( nFlags )
-	{
-	case MK_SHIFT: update=TRUE; break;
-	default: ;
-	}
-	if (update)
-	{
-	}
-	else
-	{
-		CWnd::OnRButtonUp(nFlags, point);
-	}	
+	CWnd::OnRButtonUp(nFlags, point);
 }
 
 void ImageWnd::PicWnd::OnCaptureButton()
@@ -575,14 +561,19 @@ BOOL ImageWnd::OnEraseBkgnd(CDC* pDC)
 	return CWnd::OnEraseBkgnd(pDC);
 }
 
-void ImageWnd::SetMarker( const OrgPoint& mark, MarkerNames pos )
+void ImageWnd::SetMarker( const CPoint& _mark, MarkerNames pos )
 {
-	if (fiber.accum.GetSum() != NULL)
+	CPoint mark = _mark;
+	if (fiber.accum.HasImage())
 	{
-		switch (pos)
+		if (SUCCEEDED(fiber.ValidatePnt(mark)))
 		{
-		case BGN: MarkerBGN = fiber.ValidatePnt(mark); fiber.SetMarker(fiber.Convert(MarkerBGN), BGN); break;
-		case END: MarkerEND = fiber.ValidatePnt(mark); fiber.SetMarker(fiber.Convert(MarkerEND), END);break;
+			switch (pos)
+			{
+			case BGN: MarkerBGN = mark; break;
+			case END: MarkerEND = mark; break;
+			}
+			fiber.UpdateNow();
 		}
 	}
 }
@@ -620,59 +611,22 @@ void ImageWnd::PicWnd::ConvertOrgToGrayscale()
 	}
 }
 
-void ImageWnd::PicWnd::SetMarker( const AvaPoint& mark, MarkerNames pos )
+HRESULT ImageWnd::PicWnd::ValidatePnt( CPoint& pnt )
 {
-	if (accum.bmp != NULL)
-	{
-		switch (pos)
-		{
-		case BGN: MarkerAvaBGN = ValidatePnt(mark); break;
-		case END: MarkerAvaEND = ValidatePnt(mark); break;
-		}
-	}	
-}
-
-ImageWnd::OrgPoint ImageWnd::PicWnd::ValidatePnt( const OrgPoint& pnt )
-{
-	OrgPoint ret = pnt; 
+	CPoint ret = pnt; 
 	if (accum.bmp != NULL)
 	{
 		if (ret.x < 0) ret.x = 0;
 		if (ret.x >= accum.w)	 ret.x = accum.w - 1;
 		if (ret.y < 0) ret.y = 0;
 		if (ret.y >= accum.h)	 ret.y = accum.h - 1;
+		pnt = ret;
+		return S_OK;
 	}
-	return ret;	
-}
-
-ImageWnd::OrgPoint ImageWnd::PicWnd::Convert( const AvaPoint& pnt)
-{
-	OrgPoint ret; 
-	if (accum.bmp != NULL)
+	else
 	{
-		BMPanvas &org = *accum.bmp;
-		if ( ava.HasImage() )
-		{
-			struct {double cx, cy;} scale = {(double)org.Rgn.Width() / ava.Rgn.Width(), (double)org.Rgn.Height() / ava.Rgn.Height()}; 
-		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy);
-		}
-	}	
-	return ret;
-}
-
-ImageWnd::AvaPoint ImageWnd::PicWnd::Convert( const OrgPoint& pnt)
-{
-	AvaPoint ret; 
-	if (accum.bmp != NULL)
-	{
-		BMPanvas &org = *accum.bmp;
-		if ( org.HasImage() )
-		{
-			struct {double cx, cy;} scale = {(double)ava.Rgn.Width() / org.Rgn.Width(), (double)ava.Rgn.Height() / org.Rgn.Height()}; 
-		ret.x = (LONG)(pnt.x * scale.cx); ret.y = (LONG)(pnt.y * scale.cy); 
-		}
+		return E_FAIL;	
 	}
-	return ret;
 }
 
 void ImageWnd::PicWnd::UpdateHelpers( const HelperEvent &event )
@@ -717,19 +671,57 @@ HRESULT ImageWnd::PicWnd::MakeAva()
 
 void ImageWnd::PicWnd::OnPicWndScanLine()
 {
-	void* x; CString T; 	
-	TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
-	ControledLogMessage log; log << _T("Speed tests results");
+	//void* x; CString T; 	
+	//TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
+	//ControledLogMessage log; log << _T("Speed tests results");
 
-	if (accum.bmp != NULL)
+	//if (accum.bmp != NULL)
+	//{
+	//	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+	//	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+
+	//	//OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
+	//	//T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
+
+	//	if((x=chrt.Series.GainAcsess(WRITE))!=0)
+	//	{
+	//		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+	//		TPointVsErrorSeries *t2;
+	//		if((t2 = new TPointVsErrorSeries(T))!=0)	
+	//		{
+	//			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+	//			Series.Add(t2); 
+	//			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);
+	//			ChartMsg = t2->CreateDataImportMsg(); 
+	//			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+	//			t2->PointType.Set(GenericPnt); 
+	//			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+	//		}		
+	//	}
+	//	
+	//	//accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
+	//	log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
+	//	log << log.T;
+	//	ChartMsg->Dispatch();
+	//	log.Dispatch();
+	//}
+}
+
+void ImageWnd::PicWnd::OnPicWndScanArbitaryLine()
+{
+	ScanLineData line; 
+	CPoint beg = Parent->MarkerBGN; beg.y = accum.h -1 - beg.y;
+	CPoint end = Parent->MarkerEND; end.y = accum.h -1 - end.y;
+	if (accum.HasImage() && SUCCEEDED(line.Init(beg, end)))
 	{
+		void* x; CString T; MyTimer Timer1;
+		TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
+		ControledLogMessage log; log << _T("Speed tests results");
+
 		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
 		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
 
-		//OrgPicRgn scan_rgn = Parent->ScanRgn; CPoint cntr = scan_rgn.CenterPoint();
-		//T.Format("Scan line y = %d N = %d", cntr.y, accum.n);
-
-		if((x=chrt.Series.GainAcsess(WRITE))!=0)
+		if((x = chrt.Series.GainAcsess(WRITE))!=0)
 		{
 			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
 			TPointVsErrorSeries *t2;
@@ -737,16 +729,19 @@ void ImageWnd::PicWnd::OnPicWndScanLine()
 			{
 				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
 				Series.Add(t2); 
-				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(POINTvsERROR_BAR);
+				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
 				ChartMsg = t2->CreateDataImportMsg(); 
 				t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
 				t2->PointType.Set(GenericPnt); 
 				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
 			}		
 		}
-		
-		//accum.ScanLine(&(ChartMsg->Points), cntr.y, scan_rgn.left, scan_rgn.right);
-		log.T.Format("Scan of %d points took %g ms", ChartMsg->Points.GetSize(), accum.fillTime.val()); 
+
+		accum.ScanArbitaryLine(&(ChartMsg->Points), line, &Timer1);
+		log.T.Format("Scan of %d points from (%d,%d) to (%d,%d) took %g ms", 
+											ChartMsg->Points.GetSize(), 
+											Parent->MarkerBGN.x, Parent->MarkerBGN.y, Parent->MarkerEND.x, Parent->MarkerEND.y,
+											Timer1.GetValue().val()); 
 		log << log.T;
 		ChartMsg->Dispatch();
 		log.Dispatch();
@@ -910,9 +905,9 @@ HRESULT ImagesAccumulator::Initialize(int _w, int _h, BOOL _HasErrors/* = TRUE*/
 	return S_OK;
 }
 
-HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
+HRESULT ImagesAccumulator::FillAccum(BMPanvas *src, MyTimer *Timer1)
 {
-	HRESULT ret; MyTimer Timer1;
+	HRESULT ret;
 	if (src == NULL) return E_FAIL;
 	if (src->HasImage() == FALSE) return E_FAIL;	
 
@@ -945,7 +940,7 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 		Reset();
 		return E_FAIL;
 	}		
-	Timer1.Start(); 
+	if (Timer1 != NULL) Timer1->Start(); 
 	src->LoadBitmapArray(); 
 	if (HasErrors)
 	{		
@@ -974,17 +969,16 @@ HRESULT ImagesAccumulator::FillAccum(BMPanvas *src)
 	}
 	src->UnloadBitmapArray();		
 	n++; 
-	Timer1.Stop(); fillTime = Timer1.GetValue();
+	if (Timer1 != NULL) Timer1->Stop();
 	return S_OK;
 }
 
-void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
+void ImagesAccumulator::ConvertToBitmap(CWnd *ref, MyTimer *Timer1)
 {
-	MyTimer Timer1; 
 	if (sums != NULL)
 	{
 		BYTE *dst_pxl; 
-		Timer1.Start();
+		if (Timer1 != NULL) Timer1->Start();
 		if (bmp == NULL)
 		{
 			bmp = new BMPanvas(); 
@@ -1017,7 +1011,7 @@ void ImagesAccumulator::ConvertToBitmap(CWnd *ref)
 			}
 		}
 		bmp->SetBitmapArray(); 
-		Timer1.Stop(); fillTime = Timer1.GetValue();
+		if (Timer1 != NULL) Timer1->Stop(); 
 	}
 }
 
@@ -1110,14 +1104,13 @@ HRESULT ImagesAccumulator::LoadFrom( const CString &file )
 	return ret;
 }
 
-void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data)
+void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data, MyTimer *Timer1 ) const
 {	
 	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
-	MyTimer Timer1; 
-	if (sums != NULL)
+	if (HasImage())
 	{
 		PointVsError pnte; pnte.type.Set(GenericPnt);
-		Timer1.Start(); 
+		if (Timer1 != NULL) Timer1->Start(); 
 		CSize size(data.Xmax - data.Xmin, 2*data.AvrRange + 1); int N = n*size.cy;	
 		UINT *avr_accum = new UINT[size.cx];
 		ULONG *avr_accum2 = new ULONG[size.cx];
@@ -1167,7 +1160,7 @@ void ImagesAccumulator::ScanLine( void *_buf, const ScanRgnData &data)
 			}				
 			buf->Add(pnte);
 		}
-		Timer1.Stop(); fillTime = Timer1.GetValue();
+		if (Timer1 != NULL) Timer1->Stop();
 		delete[] avr_accum; delete[] avr_accum2;
 	}
 }
@@ -1195,6 +1188,77 @@ HRESULT ImagesAccumulator::GetPicRgn( CRect& PicRgn ) const
 		return S_OK;
 	}
 	return E_FAIL;
+}
+
+PointVsError3D ImagesAccumulator::GetPoint( const CPoint &pnt ) const
+{
+	PointVsError3D pnte; USHORT avr_accum;	UINT avr_accum2;
+	const int N = n; const int shift = pnt.y*w + pnt.x;	
+	
+	if (HasErrors)
+	{	
+		USHORT *accum_pxl = GetSum(); UINT *accum_pxl2 = GetSums2(); 
+		accum_pxl += shift; accum_pxl2 += shift;
+		avr_accum = *accum_pxl;
+		avr_accum2 = *accum_pxl2;
+	}
+	else
+	{
+		BYTE *accum_pxl = (BYTE*)GetSum();
+		accum_pxl += shift;
+		avr_accum = *accum_pxl;
+		avr_accum2 = avr_accum*avr_accum;
+	}
+
+	if (N > 1)
+	{				
+		ULONGLONG val = N*avr_accum2 - avr_accum*avr_accum;
+		pnte.dz = sqrt(((float)val)/((N - 1)*N));
+	}
+	else
+	{
+		pnte.dz = 0;
+	}		
+	pnte.x = pnt.x; pnte.y = pnt.y; pnte.z = (float)(avr_accum)/N; 
+	return pnte;
+}
+
+void ImagesAccumulator::ScanArbitaryLine( void *_buf, const ScanLineData &line, MyTimer *Timer1 /*= NULL*/ ) const
+{
+	PointVsErrorArray *buf = (PointVsErrorArray*)_buf;
+	if (line.IsInited())
+	{
+		int N, X, Y; double A, B; 
+		double r, x, y, dr, dx, dy; 
+		PointVsError3D pnt[3];
+		PointVsError pnte; pnte.type.Set(GenericPnt);
+
+		if (Timer1 != NULL) Timer1->Start(); 
+		r = 0;		x = line.beg.x;			y = line.beg.y;		
+		dr = 0.5;	dx = dr*line.cosfi;		dy = dr*line.sinfi; 
+		N = (int)(1 + line.len/dr);
+		
+		for (int i = 0; i < N; i++)
+		{
+			X = (int)x; Y = (int)y; 
+			pnt[0] = GetPoint(CPoint(X, Y)); pnt[2] = GetPoint(CPoint(X + 1, Y + 1));	
+			if ((double)(x - X + y - Y) > 1.)
+			{
+				pnt[1] = GetPoint(CPoint(X + 1, Y));
+				A = pnt[0].z - pnt[1].z; B = pnt[1].z - pnt[2].z;
+			}
+			else
+			{
+				pnt[1] = GetPoint(CPoint(X, Y + 1));
+				A = pnt[1].z - pnt[2].z; B = pnt[0].z - pnt[1].z;
+			}
+
+			pnte.x = r; pnte.y = pnt[0].z - (x - X)*A - (y - Y)*B; pnte.dy = 0.;
+			buf->Add(pnte);	
+			r = i*dr; x = line.beg.x + i*dx; y = line.beg.y + i*dy;
+		}
+		if (Timer1 != NULL) Timer1->Stop();
+	}
 }
 
 size_t AccumInfo::GetSumsSize() const
@@ -1238,4 +1302,35 @@ size_t AccumInfo::GetCompressorBufferSize() const
 		ret = w*10*sizeof(BYTE);				
 	}
 	return ret;	
+}
+//////////////////////////////////////////////////
+//////////////////////////////////////////////////
+double ScanLineData::Get_Length() const
+{
+	double dy = Get_dY(), dx = Get_dX();
+	return sqrt(dy*dy + dx*dx);
+}
+
+double ScanLineData::Get_dX() const { return (double)(end.x - beg.x); }
+double ScanLineData::Get_dY() const { return (double)(end.y - beg.y); }
+HRESULT ScanLineData::Init( const CPoint &_beg, const CPoint &_end ) 
+{ 
+	beg = _beg; end = _end; 
+	dX = Get_dX(); dY = Get_dY();
+	if ((len = Get_Length()) != 0) { Get_cosfi(cosfi); Get_sinfi(sinfi); return (status = S_OK); }
+	else { cosfi = 1.; sinfi = 0.; return (status = E_FAIL);	}
+}
+
+HRESULT ScanLineData::Get_cosfi( double &cosfi ) const
+{
+	double len;;
+	if ((len = Get_Length()) != 0) { cosfi = Get_dX()/len; return S_OK; }
+	return E_FAIL;
+}
+
+HRESULT ScanLineData::Get_sinfi( double &sinfi ) const
+{
+	double len;;
+	if ((len = Get_Length()) != 0) { sinfi = Get_dY()/len; return S_OK; }
+	return E_FAIL;
 }

@@ -39,6 +39,25 @@ public:
 struct ScanRgnData
 { int stroka, Xmin, Xmax, AvrRange;};
 
+struct ScanLineData
+{ 
+protected:
+	HRESULT status;
+public:
+	CPoint beg, end;
+	double dX, dY, len, cosfi, sinfi;
+	
+	ScanLineData() {dX = dY= len = 0; cosfi = 1.; sinfi = 0; status = E_FAIL;};
+	HRESULT Init(const CPoint &_beg, const CPoint &_end);
+	BOOL IsInited() const { return (status == S_OK);}
+protected:
+	double Get_Length() const;
+	double Get_dX() const;
+	double Get_dY() const;
+	HRESULT Get_cosfi(double &cosfi) const;
+	HRESULT Get_sinfi(double &sinfi) const;
+};
+
 struct AccumInfo
 {		
 	USHORT w, h, n; BYTE HasErrors;
@@ -48,14 +67,18 @@ struct AccumInfo
 	size_t GetCompressorBufferSize() const;
 };
 
+struct PointVsError3D
+{
+	double x, y, z, dz;
+	PointVsError3D() {x = y = z = dz = 0.;};
+};
+
 struct ImagesAccumulator: public AccumInfo
 {
 protected:
 	BYTE *sums; size_t OldSumsSize;
 public:
 	BMPanvas *bmp; 
-
-	ms fillTime;
 
 	ImagesAccumulator();
 	~ImagesAccumulator() {Reset();};
@@ -66,26 +89,29 @@ public:
 	HRESULT GetPicRgn(CRect&) const;
 
 	HRESULT Initialize(int _w, int _h, BOOL hasErrors = TRUE);
-	HRESULT FillAccum(BMPanvas *src);
-	void ConvertToBitmap(CWnd *ref);
+	HRESULT FillAccum(BMPanvas *src, MyTimer *Timer1 = NULL);
+	void ConvertToBitmap(CWnd *ref, MyTimer *Timer1 = NULL);
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
-	void ScanLine( void *buf, const ScanRgnData &data);
+	void ScanLine( void *buf, const ScanRgnData &data, MyTimer *Timer1 = NULL) const;
+	void ScanArbitaryLine( void *buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
+	PointVsError3D GetPoint(const CPoint &pnt) const;
+	BOOL HasImage() const {return (sums != NULL);};
 };
 
 class ImageWnd : public CWnd
 {
 public:
-	struct AvaPoint: public CPoint 
-	{ 
-		AvaPoint(): CPoint() {}
-		AvaPoint(const CPoint& pnt): CPoint(pnt) {}
-	};
-	struct OrgPoint: public CPoint
-	{
-		OrgPoint(): CPoint() {}
-		OrgPoint(const CPoint& pnt): CPoint(pnt) {}	
-	};
+	//struct AvaPoint: public CPoint 
+	//{ 
+	//	AvaPoint(): CPoint() {}
+	//	AvaPoint(const CPoint& pnt): CPoint(pnt) {}
+	//};
+	//struct OrgPoint: public CPoint
+	//{
+	//	OrgPoint(): CPoint() {}
+	//	OrgPoint(const CPoint& pnt): CPoint(pnt) {}	
+	//};
 
 	enum DrawModes { DRAW, ERASE };
 	enum MarkerNames { BGN, END};
@@ -122,19 +148,19 @@ public:
 	class PicWnd: public CWnd
 	{
 		friend struct AccumHelper;
-	//public:		
-		class AvaMarker: public AvaPoint
+
+		class AvaMarker
 		{
 		protected:
 			BOOL ToErase; 
-			AvaPoint last;
+			CPoint last;
 
-			void Draw(BMPanvas* bmp, const AvaPoint& rgn, DrawModes mode );
+			void Draw(BMPanvas* bmp, const CPoint& pnt, DrawModes mode );
 		public:
 			AvaMarker() { ToErase=FALSE; }
-			virtual void Draw(BMPanvas* Parent);
+			virtual void Draw(BMPanvas* Parent, const CPoint& pnt);
 			virtual void Erase(BMPanvas * canvas);		
-			AvaMarker& operator= (const AvaPoint& pnt) { *((AvaPoint*)this) = pnt; return *this; }
+			//AvaMarker& operator= (const AvaPoint& pnt) { *((AvaPoint*)this) = pnt; return *this; }
 		};
 
 	protected:
@@ -158,12 +184,11 @@ public:
 		void OnPicWndErase();
 		void OnPicWndSave();
 		void OnPicWndScanLine();
+		void OnPicWndScanArbitaryLine();
 		void EraseAva();
-		void SetMarker(const AvaPoint& mark, MarkerNames pos);
+		void SetMarker(const CPoint& mark, MarkerNames pos);
 		HRESULT MakeAva();
-		AvaPoint Convert(const OrgPoint&);
-		OrgPoint Convert(const AvaPoint&);
-		OrgPoint ValidatePnt( const OrgPoint& );
+		HRESULT ValidatePnt( CPoint& );
 
 		DECLARE_MESSAGE_MAP()
 		afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -177,12 +202,14 @@ public:
 		afx_msg void OnMove(int x, int y);	
 		void ConvertOrgToGrayscale();
 		HRESULT TryLoadBitmap(CString T, BMPanvas &bmp);
+		HRESULT ConvertAvaToOrg( CPoint& pnt ) const;
+		HRESULT ConvertOrgToAva( CPoint& pny ) const;
 	};
 	
 	DECLARE_DYNAMIC(ImageWnd)
 protected:
 	PicWnd fiber;
-    int scale;	OrgPoint MarkerBGN, MarkerEND;
+    int scale;	CPoint MarkerBGN, MarkerEND;
 public:
 	CtrlsTab Ctrls;
 	CaptureWnd	CameraWnd;
@@ -194,7 +221,7 @@ protected:
 public:
 	void OnChildMove();
 	void * GetChartFromParent();
-	void SetMarker(const OrgPoint& mark, MarkerNames pos);
+	void SetMarker(const CPoint& mark, MarkerNames pos);
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);	

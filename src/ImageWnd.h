@@ -188,8 +188,6 @@ public:
 		void EraseAva();
 		void SetMarker(const CPoint& mark, MarkerNames pos);
 		HRESULT MakeAva();
-		//AvaPoint Convert(const OrgPoint&);
-		//OrgPoint Convert(const AvaPoint&);
 		HRESULT ValidatePnt( CPoint& );
 
 		DECLARE_MESSAGE_MAP()

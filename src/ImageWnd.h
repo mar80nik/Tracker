@@ -39,6 +39,8 @@ public:
 struct ScanRgnData
 { int stroka, Xmin, Xmax, AvrRange;};
 
+enum ScanLineRotationMode { BEG, CNTR, END };
+
 struct ScanLineData
 { 
 protected:
@@ -50,6 +52,7 @@ public:
 	ScanLineData() {dX = dY= len = 0; cosfi = 1.; sinfi = 0; status = E_FAIL;};
 	HRESULT Init(const CPoint &_beg, const CPoint &_end);
 	BOOL IsInited() const { return (status == S_OK);}
+	void RotateByAngle(const double RadiansAngle, const ScanLineRotationMode mode);
 protected:
 	double Get_Length() const;
 	double Get_dX() const;
@@ -102,17 +105,6 @@ public:
 class ImageWnd : public CWnd
 {
 public:
-	//struct AvaPoint: public CPoint 
-	//{ 
-	//	AvaPoint(): CPoint() {}
-	//	AvaPoint(const CPoint& pnt): CPoint(pnt) {}
-	//};
-	//struct OrgPoint: public CPoint
-	//{
-	//	OrgPoint(): CPoint() {}
-	//	OrgPoint(const CPoint& pnt): CPoint(pnt) {}	
-	//};
-
 	enum DrawModes { DRAW, ERASE };
 	enum MarkerNames { BGN, END};
 
@@ -185,6 +177,7 @@ public:
 		void OnPicWndSave();
 		void OnPicWndScanLine();
 		void OnPicWndScanArbitaryLine();
+		void OnPicWndMultiCross();
 		void EraseAva();
 		void SetMarker(const CPoint& mark, MarkerNames pos);
 		HRESULT MakeAva();

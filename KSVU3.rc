@@ -616,6 +616,7 @@ BEGIN
         MENUITEM "Erase",                       ID_PICWNDMENU_ERASE
         MENUITEM "Save...",                     ID_PICWNDMENU_SAVE
         MENUITEM "ScanLine",                    ID_PICWNDMENU_SCANLINE
+        MENUITEM "Multi cross-section",         ID_PICWNDMENU_MULTICROSS
     END
 END
 

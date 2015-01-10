@@ -261,6 +261,9 @@ BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
 	ON_COMMAND(ID_PICWNDMENU_SAVE, OnPicWndSave)
 	ON_COMMAND(ID_PICWNDMENU_SCANLINE, OnPicWndScanArbitaryLine)
+	ON_COMMAND(ID_PICWNDMENU_MULTICROSS, OnPicWndMultiCross)
+
+	
 	ON_WM_MOVE()
 END_MESSAGE_MAP()
 
@@ -746,6 +749,32 @@ void ImageWnd::PicWnd::OnPicWndScanArbitaryLine()
 		ChartMsg->Dispatch();
 		log.Dispatch();
 	}
+}
+
+void ImageWnd::PicWnd::OnPicWndMultiCross()
+{	
+	const int dd = 20;
+	CPoint ParentBgn = Parent->MarkerBGN, ParentEnd = Parent->MarkerEND;
+
+	CPoint pnt = Parent->MarkerBGN;
+	CPoint beg = pnt - CPoint(dd, 0), end = pnt + CPoint(dd, 0);
+	ScanLineData line, tmp_line;
+	line.Init(beg, end);
+
+	tmp_line = line;
+	//cross_section
+	Parent->MarkerBGN = tmp_line.beg; Parent->MarkerEND = tmp_line.end; OnPicWndScanArbitaryLine();
+	tmp_line = line; tmp_line.RotateByAngle(45*DEGREE, ScanLineRotationMode::CNTR);
+	//cross_section
+	Parent->MarkerBGN = tmp_line.beg; Parent->MarkerEND = tmp_line.end; OnPicWndScanArbitaryLine();
+	tmp_line = line; tmp_line.RotateByAngle(90*DEGREE, ScanLineRotationMode::CNTR);
+	//cross_section
+	Parent->MarkerBGN = tmp_line.beg; Parent->MarkerEND = tmp_line.end; OnPicWndScanArbitaryLine();
+	tmp_line = line; tmp_line.RotateByAngle(135*DEGREE, ScanLineRotationMode::CNTR);
+	//cross_section
+	Parent->MarkerBGN = tmp_line.beg; Parent->MarkerEND = tmp_line.end; OnPicWndScanArbitaryLine();
+
+	Parent->MarkerBGN = ParentBgn; Parent->MarkerEND = ParentEnd;
 }
 
 

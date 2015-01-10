@@ -1334,3 +1334,35 @@ HRESULT ScanLineData::Get_sinfi( double &sinfi ) const
 	if ((len = Get_Length()) != 0) { sinfi = Get_dY()/len; return S_OK; }
 	return E_FAIL;
 }
+
+CPoint ShiftRotateShift(const CPoint pnt, const double shift_x, const double shift_y, const double Cos, const double Sin)
+{
+	CPoint ret; 
+	double x = pnt.x - shift_x,		y = pnt.y - shift_y;
+	double x1 = x*Cos - y*Sin,		y1 = x*Sin + y*Cos;
+	x1 += shift_x;			y1 += shift_y;
+	ret.x = (LONG)x1;	ret.y = (LONG)y1;	
+	return ret;
+}
+
+void ScanLineData::RotateByAngle( const double RadiansAngle, const ScanLineRotationMode mode )
+{
+	if (IsInited())
+	{
+		CPoint tmp; double cx, cy;
+		double Cos = cos(RadiansAngle), Sin = sin(RadiansAngle);
+		switch (mode)
+		{
+			case BEG: 
+				Init(beg, ShiftRotateShift(end, beg.x, beg.y, Cos, Sin));
+				break;
+			case CNTR: 
+				cx = beg.x + len*cosfi/2; cy = beg.y + len*sinfi/2;
+				Init(ShiftRotateShift(beg, cx, cy, Cos, Sin), ShiftRotateShift(end, cx, cy, Cos, Sin));
+				break;
+			case END: 
+				Init(ShiftRotateShift(beg, end.x, end.y, Cos, Sin), end);
+				break;
+		}
+	}
+}

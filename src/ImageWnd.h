@@ -95,7 +95,7 @@ public:
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
 	void ScanLine( void *buf, const ScanRgnData &data, MyTimer *Timer1 = NULL) const;
-	void ScanArbitaryLine( void *buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
+	void ScanArbitaryLine( void * const buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
 	PointVsError3D GetPoint(const CPoint &pnt) const;
 	BOOL HasImage() const {return (sums != NULL);};
 };
@@ -195,6 +195,8 @@ public:
 		HRESULT TryLoadBitmap(CString T, BMPanvas &bmp);
 		HRESULT ConvertAvaToOrg( CPoint& pnt ) const;
 		HRESULT ConvertOrgToAva( CPoint& pny ) const;
+		HRESULT ScanArbitaryLine(void * const buf, CPoint beg, CPoint end, MyTimer &Timer);
+		void OnPicWndMultiCrossHelper(ScanLineData tmp_line, GaussFitFunc &GaussFit);
 	};
 	
 	DECLARE_DYNAMIC(ImageWnd)

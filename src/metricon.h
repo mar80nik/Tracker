@@ -1,6 +1,5 @@
 #pragma once
 
-//#include "TChart\TChartSeries.h"
 #include "my_gsl.h"
 
 enum Polarization {TE, TM};
@@ -260,6 +259,38 @@ class KneeFitFunc: public MultiFitterTemplate<KneeFuncParams>
 {
 public:
 	double GetInflection(double &x, const double &level);	
+};
+/////////////////////////////////////////////////////////////////
+////////////   f = A + C*exp(-(x - x0)^2/b)		     ////////////
+/////////////////////////////////////////////////////////////////
+struct GaussFuncParams: public BaseForMultiFitterFuncParams
+{
+	enum {ind_A, ind_C, ind_x0, ind_b, ind_max};
+
+	double buf[2];
+
+	static double func(const double &x, const double *a, const size_t &p);	
+
+	static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dC(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dx0(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_db(const double &x, const double *a, const size_t &p, double *c);	
+
+	GaussFuncParams( const DoubleArray& y, const DoubleArray& sigma ) : 
+		BaseForMultiFitterFuncParams(ind_max, y, sigma)
+	{
+		pFunction = GaussFuncParams::func;
+		pDerivatives[ind_A] = df_dA; pDerivatives[ind_x0] = df_dx0; 
+		pDerivatives[ind_C] = df_dC; pDerivatives[ind_b] = df_db;
+	}
+	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);	
+};//////////////////////////////////////////////////////////////////////////
+
+
+class GaussFitFunc: public MultiFitterTemplate<GaussFuncParams>
+{
+public:
+	double GetWidth();	
 };
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

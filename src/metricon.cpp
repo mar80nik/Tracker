@@ -300,4 +300,48 @@ int FourierFilter( FFTRealTransform::Params& in, double spec_width, FFTRealTrans
 	return ret;
 
 }
-//////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+////////////   f = A + C*exp(-(x - x0)^2/b)		     ////////////
+/////////////////////////////////////////////////////////////////
+double GaussFuncParams::func( const double &x, const double *a, const size_t &p )
+{
+	//double t1 = (x - a[ind_x0]);
+	//double t2 = t1*t1/a[ind_b];
+	double ret = a[ind_A] + a[ind_C]*exp(-(x - a[ind_x0])*(x - a[ind_x0])/a[ind_b]);
+	return ret;
+}
+
+double GaussFuncParams::df_dA( const double &x, const double *a, const size_t &p, double *c )
+{
+	return 1;
+}
+
+double GaussFuncParams::df_dC( const double &x, const double *a, const size_t &p, double *c )
+{
+	double ret = c[1];
+	return ret;
+}
+
+double GaussFuncParams::df_dx0( const double &x, const double *a, const size_t &p, double *c )
+{
+	double ret = 2*a[ind_C]*c[0]*c[1];
+	return ret;
+}
+
+double GaussFuncParams::df_db( const double &x, const double *a, const size_t &p, double *c )
+{
+	double ret = a[ind_C]*c[0]*c[0]*c[1];
+	return ret;
+}
+
+double * GaussFuncParams::PrepareDerivBuf( const double &x, const double *a, const size_t &p )
+{
+	buf[0] = (x - a[ind_x0])/a[ind_b];
+	buf[1] = exp(-a[ind_b]*buf[0]*buf[0]);
+	return &buf[0];
+}
+
+double GaussFitFunc::GetWidth()
+{
+	return 2*sqrt(a[GaussFuncParams::ind_b]);
+}

@@ -819,11 +819,6 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 	line.Init(beg, end);
 	GaussFitFunc GaussFit; 
 
-	//tmp_line = line; OnPicWndMultiCrossHelper(tmp_line, TODO);	
-	//tmp_line = line; tmp_line.RotateByAngle(45*DEGREE, ScanLineRotationMode::CNTR); OnPicWndMultiCrossHelper(tmp_line, TODO);
-	//tmp_line = line; tmp_line.RotateByAngle(90*DEGREE, ScanLineRotationMode::CNTR); OnPicWndMultiCrossHelper(tmp_line, TODO);
-	//tmp_line = line; tmp_line.RotateByAngle(135*DEGREE, ScanLineRotationMode::CNTR); OnPicWndMultiCrossHelper(tmp_line, TODO);
-
 	void *x; TSimplePointSeries::DataImportMsg *ChartMsg = NULL; 
 	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
 	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
@@ -842,7 +837,7 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
 		}		
 	}
-	SimplePoint spnt;
+	SimplePoint spnt; PointVsErrorArray pnts; PointVsError epnt;
 	for (spnt.x = -90; spnt.x <= 260; spnt.x += 5)
 	{
 		tmp_line = line; tmp_line.RotateByAngle(spnt.x*DEGREE, ScanLineRotationMode::CNTR); 
@@ -851,6 +846,10 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 		{
 			spnt.y = 1/GaussFit.GetWidth();
 			ChartMsg->Points.Add(spnt);
+			epnt.x = spnt.x;
+			epnt.y = spnt.y;
+			epnt.dy = 0;
+			pnts.Add(epnt);
 		}
 		else
 		{
@@ -859,6 +858,44 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 		
 	}
 	ChartMsg->Dispatch();
+
+	Sin2FitFunc Sin2Fit; DoubleArray init; ControledLogMessage log;
+	init << .1 << M_PI/180 << 5 << .1;
+	Sin2Fit.CalculateFrom(pnts.x, pnts.y, pnts.dy, init);	
+	log.T.Format("************ Sin2Fit **********************"); log << log.T;
+	Sin2Fit.GetReport(log);	
+	log.T.Format("shift = %g", Sin2Fit.GetShift()); log << log.T;
+	log.Dispatch();
+
+	DoubleArray X, Y;
+	if (SUCCEEDED(Sin2Fit.MakeGraph(X, Y)))
+	{
+		void *x; TSimplePointSeries::DataImportMsg *ChartMsg = NULL; 
+		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
+		if((x = chrt.Series.GainAcsess(WRITE))!=0)
+		{
+			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
+			TSimplePointSeries *t2;
+			if((t2 = new TSimplePointSeries(_T("Sin2Fit graph")))!=0)	
+			{
+				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
+				Series.Add(t2); 
+				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
+				ChartMsg = t2->CreateDataImportMsg(); 
+				t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
+				t2->PointType.Set(GenericPnt); 
+				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
+			}		
+		}
+		SimplePoint pnt;
+		for (int i = 0; i < X.GetSize(); i++)
+		{
+			pnt.x = X[i]; pnt.y = Y[i];
+			ChartMsg->Points.Add(pnt);
+		}
+		ChartMsg->Dispatch();
+	}
 
 	Parent->MarkerBGN = ParentBgn; Parent->MarkerEND = ParentEnd;
 }

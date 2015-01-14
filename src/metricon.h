@@ -292,6 +292,38 @@ class GaussFitFunc: public MultiFitterTemplate<GaussFuncParams>
 public:
 	double GetWidth();	
 };
+/////////////////////////////////////////////////////////////////
+////////////   f = A*sin^2(W*x + x0) + C			     ////////////
+/////////////////////////////////////////////////////////////////
+struct Sin2FuncParams: public BaseForMultiFitterFuncParams
+{
+	enum {ind_A, ind_W, ind_x0, ind_C, ind_max};
+
+	double buf[2];
+
+	static double func(const double &x, const double *a, const size_t &p);	
+
+	static double df_dA(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dW(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dx0(const double &x, const double *a, const size_t &p, double *c);	
+	static double df_dC(const double &x, const double *a, const size_t &p, double *c);	
+
+	Sin2FuncParams( const DoubleArray& y, const DoubleArray& sigma ) : 
+		BaseForMultiFitterFuncParams(ind_max, y, sigma)
+	{
+		pFunction = Sin2FuncParams::func;
+		pDerivatives[ind_A] = df_dA;	pDerivatives[ind_W] = df_dW; 
+		pDerivatives[ind_x0] = df_dx0;	pDerivatives[ind_C] = df_dC; 
+	}
+	virtual double * PrepareDerivBuf(const double &x, const double *a, const size_t &p);	
+};//////////////////////////////////////////////////////////////////////////
+
+
+class Sin2FitFunc: public MultiFitterTemplate<Sin2FuncParams>
+{
+public:	
+	double GetShift();
+};
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 int FourierFilter(FFTRealTransform::Params& in, double spec_width, FFTRealTransform::Params& out);

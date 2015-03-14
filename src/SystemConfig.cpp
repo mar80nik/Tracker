@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "SystemConfig.h"
 #include "resource.h"
+#include "GlobalHeader.h"
 #include <math.h>
 
 #define SpN (Coeff1*StepPerNanometer)

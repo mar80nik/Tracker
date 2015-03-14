@@ -1,0 +1,152 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\BarTemplate.cpp" />
+    <ClCompile Include="src\CalcTEDialog.cpp" />
+    <ClCompile Include="src\calibratorDialog.cpp" />
+    <ClCompile Include="src\camera.cpp" />
+    <ClCompile Include="src\cameraChooser.cpp" />
+    <ClCompile Include="src\captureWnd.cpp" />
+    <ClCompile Include="src\compressor.cpp" />
+    <ClCompile Include="src\devices.cpp" />
+    <ClCompile Include="src\DialogBarTab1.cpp" />
+    <ClCompile Include="src\DialogBarTab2.cpp" />
+    <ClCompile Include="src\EventLogDialog.cpp" />
+    <ClCompile Include="src\ImageWnd.cpp" />
+    <ClCompile Include="src\KSVU3.cpp" />
+    <ClCompile Include="src\KSVU3Doc.cpp" />
+    <ClCompile Include="src\KSVU3View.cpp" />
+    <ClCompile Include="src\MainFrm.cpp" />
+    <ClCompile Include="src\metricon.cpp" />
+    <ClCompile Include="src\ModifyValueDialog.cpp" />
+    <ClCompile Include="src\MyListBox.cpp" />
+    <ClCompile Include="src\MyListCtrl.cpp" />
+    <ClCompile Include="src\MyTabCtrl.cpp" />
+    <ClCompile Include="src\MyToolBar.cpp" />
+    <ClCompile Include="src\OwnerDrawBtn.cpp" />
+    <ClCompile Include="src\SeriesStyleDialog.cpp" />
+    <ClCompile Include="src\SeriesValuesDialog.cpp" />
+    <ClCompile Include="src\SystemConfig.cpp" />
+    <ClCompile Include="src\TConfigDialog.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
+    <ClCompile Include="TChart\MouseTrackerWnd.cpp" />
+    <ClCompile Include="TChart\SetAxisRangeDlg.cpp" />
+    <ClCompile Include="tchart\TChart.cpp" />
+    <ClCompile Include="tchart\TChartElements.cpp" />
+    <ClCompile Include="tchart\TChartPoints.cpp" />
+    <ClCompile Include="tchart\TChartSeries.cpp" />
+    <ClCompile Include="..\..\my_gsl\src\my_gsl.cpp">
+      <Filter>my_gsl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\BMPanvas.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\MessageInspector.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\my_color.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\MyThread.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\MyTime.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\ProtectedObject.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\my_lib\src\type_array.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="src\BarTemplate.h" />
+    <ClInclude Include="src\CalcTEDialog.h" />
+    <ClInclude Include="src\calibratorDialog.h" />
+    <ClInclude Include="src\camera.h" />
+    <ClInclude Include="src\cameraChooser.h" />
+    <ClInclude Include="src\captureWnd.h" />
+    <ClInclude Include="src\compressor.h" />
+    <ClInclude Include="src\externals.h" />
+    <ClInclude Include="src\ImageWnd.h" />
+    <ClInclude Include="src\KSVU3.h" />
+    <ClInclude Include="src\MainFrm.h" />
+    <ClInclude Include="src\MouseTrackerWnd.h" />
+    <ClInclude Include="src\SystemConfig.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="tchart\TChart.h" />
+    <ClInclude Include="tchart\TChartElements.h" />
+    <ClInclude Include="tchart\TChartGlobal.h" />
+    <ClInclude Include="tchart\TChartPoints.h" />
+    <ClInclude Include="tchart\TChartSeries.h" />
+    <ClInclude Include="..\..\my_gsl\src\my_gsl.h">
+      <Filter>my_gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\BMPanvas.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\MessageInspector.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\my_color.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\my_lib_globals.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\my_lib_resources.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\MyThread.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\MyTime.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\ProtectedObject.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\my_lib\src\type_array.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\my_lib\src\my_lib_resources.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="KSVU3.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\bitmap1.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="res\KSVU3.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="res\KSVU3Doc.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="res\stateico.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="res\toolbar2.bmp">
+      <Filter>Resources</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="my_gsl">
+      <UniqueIdentifier>{b1a955d5-b83d-4ef6-8565-6830762e868c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="my_lib">
+      <UniqueIdentifier>{80605f0c-fe6f-4906-8922-b70b2738b86a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{49f48c3d-d097-4854-82d2-37da7d8cf043}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,9 +1,7 @@
-// MainFrm.cpp : implementation of the CMainFrame class
-//
-
 #include "stdafx.h"
 #include "KSVU3.h"
 #include "MainFrm.h"
+#include "ksvu3doc.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -11,8 +9,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-#include "ksvu3doc.h"
-#include ".\mainfrm.h"
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame
 
@@ -38,14 +34,13 @@ END_MESSAGE_MAP()
 ////////////////////////////////////////////////////////////////////////////
 // CMainFrame construction/destruction
 
-CMainFrame::CMainFrame(): TabCtrl1(&MainBar,IDC_TAB1), Chart1(GlobalChart)
+CMainFrame::CMainFrame(): TabCtrl1(&MainBar,IDC_TAB1)
 {
 }
 
 CMainFrame::~CMainFrame()
 {
 	Chart1.DestroyWindow();
-	SeriesList.DestroyWindow();	
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -108,7 +103,7 @@ void CMainFrame::InitChart()
 	TabCtrl1.AddTab("Image control",&Img.Ctrls,IDD_DIALOGBARTAB1);		
 
 	Img.Create(0, "ImageWnd", WS_CHILD, r, pFirstView, ID_MV_WND+1, 0);
-	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); Chart1.SeriesDataWnd=&SeriesList;
+	Chart1.Create(pFirstView,r); Chart1.SetVisible(true); 
 
 #ifdef DEBUG
 	Img.CameraWnd.SelectCaptureSrc(CString("Logitech HD Webcam C270"));
@@ -127,13 +122,10 @@ void CMainFrame::OnShowWindow(BOOL bShow, UINT nStatus)
 	ShowWindow(SW_SHOWMAXIMIZED);
 	CFrameWnd::OnShowWindow(bShow, nStatus);
 
-//	ModifyStyle(0,WS_MAXIMIZE,SWP_FRAMECHANGED);
-	
 	if(bShow)
 	{		
 		EventLog1.Create(IDD_DIALOG5,this);
 		Config.Create(IDD_CONFIG,this);
-		SeriesList.Create(IDD_DIALOGBARTAB2,this);	
 	}
 }
 
@@ -145,8 +137,6 @@ LRESULT CMainFrame::OnUpdateConfig(WPARAM wParam, LPARAM lParam )
 
 LRESULT CMainFrame::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 {
-	Chart1.Panel.CalibratorDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
-	Chart1.Panel.CalcTEDlg.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	Chart1.Panel.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	return 0;
 }

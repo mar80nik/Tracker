@@ -2,19 +2,14 @@
 
 #include "MyToolBar.h"	// Added by ClassView
 #include "DialogBarTab1.h"	// Added by ClassView
-#include "DialogBarTab2.h"	// Added by ClassView
 #include "MyTabCtrl.h"	// Added by ClassView
-//#include "mystatusbar.h"
-
 #include "EventLogDialog.h"	// Added by ClassView
 #include "tconfigdialog.h"
 #include "ImageWnd.h"
 #include "captureWnd.h"
 
-
 #define PAUSE 1
 #define START 0
-
 
 class CMainFrame : public CFrameWnd
 {
@@ -24,30 +19,18 @@ protected: // create from serialization only
 	CMainFrame();
 	DECLARE_DYNCREATE(CMainFrame)
 
-// Attributes
 protected:
 	EventLogDialog EventLog1; 
 	TConfigDialog Config;
-//	CArray<RequestForAcsess> ReqArr;
-// Implementation
 public:
 	MyToolBar Toolbar1;
 	MyTabCtrl TabCtrl1;
 	CDialog * CurTabDialog;
-	DialogBarTab2 SeriesList;
-//	TerminalDialog Tab4;
-    
-//	MessagesInspector Inspector1;
 	ImageWnd	Img;
-	MainChartWnd& Chart1;
-//	Oscilloscope Scope1;
-//	ControllerWnd CntrlerWnd;
-
 	CDialogBar MainBar;
 	CToolTipCtrl ToolTip1;
 	CStatusBar  m_wndStatusBar;	
-//	MVThread* WorkThread;
-	
+	MainChartWnd Chart1;
 	
 	int ShowWarning();	
 	void InitChart();

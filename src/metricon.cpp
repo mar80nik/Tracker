@@ -103,7 +103,8 @@ double FilmParams::DispEqSolver::FuncParams::funcTM( double betta )
 }
 double FilmParams::FuncParams::func(const gsl_vector * x)
 {
-    double ret=100; int status;	DoubleArray film; film = *x;
+    double ret=100; int status;	DoubleArray film; 
+	Convert_gsl_vector_to_DoubleArray(x, film);
 
 	Solver1dTemplate<FilmParams::DispEqSolver::FuncParams> FindBettas(MULTI_ROOT);
 	FilmParams::DispEqSolver::FuncParams params(pol, n_i, film[index_n], n_s, k*film[index_H]);

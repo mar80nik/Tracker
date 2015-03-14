@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <Keyword>ManagedCProj</Keyword>
+    <ProjectGuid>{AD8AD6F2-9F98-11A2-D71E-A29125711EF2}</ProjectGuid>
+    <ProjectName>Tracker</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CLRSupport>true</CLRSupport>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <UseOfAtl>false</UseOfAtl>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CLRSupport>true</CLRSupport>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <PlatformToolset>v100</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;d:\REPO\my_gsl\src\;d:\REPO\my_gsl\header\;d:\REPO\my_lib\src\;d:\REPO\TChart\src</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath);d:\REPO\my_gsl\lib</LibraryPath>
+    <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+    <OutDir>$(SolutionDir)\..\exe\</OutDir>
+    <IntDir>..\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;d:\REPO\my_gsl\src\;d:\REPO\my_gsl\header\;d:\REPO\my_lib\src\;d:\REPO\TChart\src</IncludePath>
+    <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath);d:\REPO\my_gsl\lib</LibraryPath>
+    <OutDir>$(SolutionDir)\..\exe\</OutDir>
+    <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+    <IntDir>..\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;GSL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <DisableSpecificWarnings>4065;4482;4793</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <AddModuleNamesToAssembly>
+      </AddModuleNamesToAssembly>
+      <AdditionalLibraryDirectories>D:\DXSDK\lib;$(SolutionDir)\gsl-1.16\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4248 %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;GSL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4065;4482;4793;4248</DisableSpecificWarnings>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAsManaged>true</CompileAsManaged>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\DXSDK\lib;$(SolutionDir)\gsl-1.16\lib</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\my_gsl\src\my_gsl.cpp" />
+    <ClCompile Include="..\..\my_lib\src\BMPanvas.cpp" />
+    <ClCompile Include="..\..\my_lib\src\MessageInspector.cpp" />
+    <ClCompile Include="..\..\my_lib\src\MyThread.cpp" />
+    <ClCompile Include="..\..\my_lib\src\MyTime.cpp" />
+    <ClCompile Include="..\..\my_lib\src\my_color.cpp" />
+    <ClCompile Include="..\..\my_lib\src\ProtectedObject.cpp" />
+    <ClCompile Include="..\..\my_lib\src\type_array.cpp" />
+    <ClCompile Include="..\..\TChart\src\MouseTrackerWnd.cpp" />
+    <ClCompile Include="..\..\TChart\src\OwnerDrawBtn.cpp" />
+    <ClCompile Include="..\..\TChart\src\SeriesListCtrl.cpp" />
+    <ClCompile Include="..\..\TChart\src\SeriesListDlg.cpp" />
+    <ClCompile Include="..\..\TChart\src\SeriesStyleDlg.cpp" />
+    <ClCompile Include="..\..\TChart\src\SeriesValuesDlg.cpp" />
+    <ClCompile Include="..\..\TChart\src\SetAxisRangeDlg.cpp" />
+    <ClCompile Include="..\..\TChart\src\TChart.cpp" />
+    <ClCompile Include="..\..\TChart\src\TChartElements.cpp" />
+    <ClCompile Include="..\..\TChart\src\TChartPoints.cpp" />
+    <ClCompile Include="..\..\TChart\src\TChartSeries.cpp" />
+    <ClCompile Include="src\BarTemplate.cpp" />
+    <ClCompile Include="src\camera.cpp" />
+    <ClCompile Include="src\cameraChooser.cpp" />
+    <ClCompile Include="src\captureWnd.cpp" />
+    <ClCompile Include="src\compressor.cpp" />
+    <ClCompile Include="src\devices.cpp" />
+    <ClCompile Include="src\DialogBarTab1.cpp" />
+    <ClCompile Include="src\EventLogDialog.cpp" />
+    <ClCompile Include="src\ImageWnd.cpp" />
+    <ClCompile Include="src\KSVU3.cpp" />
+    <ClCompile Include="src\KSVU3Doc.cpp" />
+    <ClCompile Include="src\KSVU3View.cpp" />
+    <ClCompile Include="src\MainFrm.cpp" />
+    <ClCompile Include="src\metricon.cpp" />
+    <ClCompile Include="src\ModifyValueDialog.cpp" />
+    <ClCompile Include="src\MyListBox.cpp" />
+    <ClCompile Include="src\MyTabCtrl.cpp" />
+    <ClCompile Include="src\MyToolBar.cpp" />
+    <ClCompile Include="src\SystemConfig.cpp" />
+    <ClCompile Include="src\TConfigDialog.cpp" />
+    <ClCompile Include="StdAfx.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\my_gsl\src\my_gsl.h" />
+    <ClInclude Include="..\..\my_lib\src\BMPanvas.h" />
+    <ClInclude Include="..\..\my_lib\src\MessageInspector.h" />
+    <ClInclude Include="..\..\my_lib\src\MyThread.h" />
+    <ClInclude Include="..\..\my_lib\src\MyTime.h" />
+    <ClInclude Include="..\..\my_lib\src\my_color.h" />
+    <ClInclude Include="..\..\my_lib\src\my_lib_globals.h" />
+    <ClInclude Include="..\..\my_lib\src\my_lib_resources.h" />
+    <ClInclude Include="..\..\my_lib\src\ProtectedObject.h" />
+    <ClInclude Include="..\..\my_lib\src\type_array.h" />
+    <ClInclude Include="..\..\TChart\src\MouseTrackerWnd.h" />
+    <ClInclude Include="..\..\TChart\src\OwnerDrawBtn.h" />
+    <ClInclude Include="..\..\TChart\src\SeriesListCtrl.h" />
+    <ClInclude Include="..\..\TChart\src\SeriesListDlg.h" />
+    <ClInclude Include="..\..\TChart\src\SeriesStyleDlg.h" />
+    <ClInclude Include="..\..\TChart\src\SeriesValuesDlg.h" />
+    <ClInclude Include="..\..\TChart\src\SetAxisRangeDlg.h" />
+    <ClInclude Include="..\..\TChart\src\TChart.h" />
+    <ClInclude Include="..\..\TChart\src\TChartElements.h" />
+    <ClInclude Include="..\..\TChart\src\TChartGlobal.h" />
+    <ClInclude Include="..\..\TChart\src\TChartPoints.h" />
+    <ClInclude Include="..\..\TChart\src\TChartSeries.h" />
+    <ClInclude Include="..\..\TChart\src\tchart_resources.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="src\BarTemplate.h" />
+    <ClInclude Include="src\camera.h" />
+    <ClInclude Include="src\cameraChooser.h" />
+    <ClInclude Include="src\captureWnd.h" />
+    <ClInclude Include="src\compressor.h" />
+    <ClInclude Include="src\externals.h" />
+    <ClInclude Include="src\ImageWnd.h" />
+    <ClInclude Include="src\KSVU3.h" />
+    <ClInclude Include="src\MainFrm.h" />
+    <ClInclude Include="src\SystemConfig.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\my_lib\src\my_lib_resources.rc" />
+    <ResourceCompile Include="..\..\TChart\src\tchart_resources.rc" />
+    <ResourceCompile Include="KSVU3.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\bitmap1.bmp" />
+    <None Include="res\KSVU3.ico" />
+    <None Include="res\KSVU3Doc.ico" />
+    <None Include="res\stateico.bmp" />
+    <None Include="res\toolbar2.bmp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="KSVU3.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

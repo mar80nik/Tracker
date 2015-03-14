@@ -5,9 +5,9 @@
 #include <afxtempl.h>
 #include <math.h>
 #include "externals.h"
-#include "my_cpp\my_color.h"
+#include "my_color.h"
 #include "bmpanvas.h"
-#include "mythread\MessageInspector.h"
+#include "MessageInspector.h"
 
 enum ThreadsID
 {	
@@ -25,7 +25,7 @@ enum UserDefinedMessages
 	UM_SENSOR_PREPARE=WM_USER + 100, UM_SENSOR_OK,	UM_UPDATE_INDICATORS, UM_WAVELEN_SET, 
 	UM_COMUTATOR, UM_STATUS_UPDATE,	UM_STAGE_UPDATE, UM_SENSOR_UPDATE, UM_OSCIL, UM_PGA_SET,
 	UM_BACKUP_SAVE, UM_UPDATE_CONFIG, UM_ADD, UM_DATA_UPDATE, UM_ACCESS_REQUEST, 
-	UM_ACCESS_GRANTED, UM_ACCESS_DEINIED, UM_SERIES_PNTR, UM_GENERIC_MESSAGE,
+	UM_ACCESS_GRANTED, UM_ACCESS_DEINIED, UM_SERIES_PNTR, 
 	UM_LAST_MESSAGE
 };
 
@@ -34,24 +34,15 @@ enum UserDefinedMessages1
 	UM_MESSAGE=UM_LAST_MESSAGE+1, UM_MSG_OUT, UM_NOTIFY, UM_LAST_MESSAGE1
 };
 
-enum UserDefinedMessages2
-{	
-	UM_SERIES_UPDATE=UM_LAST_MESSAGE1+1, UM_LAST_MESSAGE2
-};
+//enum UserDefinedMessages2
+//{	
+//	UM_SERIES_UPDATE=UM_LAST_MESSAGE1+1, UM_LAST_MESSAGE2
+//};
 
 
 class Error;
 
 struct IndicatorsText {CString device, running, paused;};
-
-struct PerfomanceStaff
-{
-	MyTimer Timer1;
-	bool LogEvents;
-	int pass_num;
-
-	PerfomanceStaff() {LogEvents=false;pass_num=0;}	
-};
 
 union FloatInt
 {

@@ -6,8 +6,6 @@
 #include "systemconfig.h"
 #include "mythread.h"
 #include "afxwin.h"
-#include "calibratorDialog.h"
-#include "CalcTEDialog.h"
 
 int GetArrayIndex(DoubleArray& arr, double x );
 
@@ -22,10 +20,6 @@ protected:
 	CFont font1;
 	ProtectedSeriesArray* Series;
 	CalibrationParams cal;
-public:
-	CalibratorDialog CalibratorDlg;
-	CalcTEDialog	CalcTEDlg, CalcTMDlg;
-
 public:
 	DialogBarTab1(CWnd* pParent = NULL);   // standard constructor	
 	//{{AFX_DATA(DialogBarTab1)
@@ -46,9 +40,6 @@ protected:
 	virtual void OnOK() {};
 	virtual void OnCancel() {};
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnBnClickedCalibrate();
-	afx_msg void OnBnClickedCalcTE();
-	afx_msg void OnBnClickedCalcTM();		
 	//}}AFX_MSG
 public:
 	int spec_wdth;
@@ -59,15 +50,12 @@ public:
 	int minimum_widht_2, dX;
 	double X0;
 
-	afx_msg void OnBnClicked_Fit();
-	afx_msg void OnBnClicked_Locate();
 	virtual BOOL DestroyWindow();
 	afx_msg void OnBnClickedLoadCalibration();
 	LRESULT OnSeriesUpdate(WPARAM wParam, LPARAM lParam );
 	TPointVsErrorSeries* GetSeries(TSeriesArray& series);
 
 	CComboBox SeriesCombo;
-	afx_msg void OnBnClickedKneeTest();
 	double Xmin;
 	double Xmax;
 	double level;
@@ -80,8 +68,6 @@ class MainChartWnd: public TChart
 protected:
 	DialogBarTab1 Panel;
 public:
-//	MessagesInspector Inspector1;
-
 	MainChartWnd();
 	virtual ~MainChartWnd() {} 
 	virtual void Serialize(CArchive& ar);
@@ -94,5 +80,4 @@ protected:
 
 public:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-//    SeriesArray* GetSeries() {return Series;}
 };

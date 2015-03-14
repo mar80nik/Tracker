@@ -139,11 +139,6 @@ BEGIN
     ID_INDICATOR_WAIT       "WAIT"
 END
 
-STRINGTABLE
-BEGIN
-    ID_MOTORCTRL            "oa?uoooue"
-END
-
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -239,14 +234,6 @@ BEGIN
     CONTROL         "Tab1",IDC_TAB1,"SysTabControl32",0x0,2,2,621,74
 END
 
-IDD_SERIES_LIST_DLG DIALOGEX 0, 0, 231, 127
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Series List"
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    CONTROL         "List2",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_NOLABELWRAP | LVS_EDITLABELS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,3,3,223,121
-END
-
 IDD_MODIF_VALUE_DLG DIALOG 0, 0, 186, 33
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION
 CAPTION "Modify value"
@@ -255,16 +242,6 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,134,17,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,134,2,50,14
     EDITTEXT        IDC_EDIT1,13,8,98,14,ES_AUTOHSCROLL
-END
-
-IDD_SERIES_VALUES_DLG DIALOGEX 0, 0, 199, 226
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Series values"
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,73,210,50,14
-    LISTBOX         IDC_LIST1,2,2,195,45,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
-    CONTROL         "List2",IDC_LIST2,"SysListView32",LVS_REPORT | WS_BORDER | WS_TABSTOP,2,47,195,161
 END
 
 IDD_LOCATE_CTRLS_DLG DIALOGEX 0, 0, 569, 59
@@ -323,115 +300,6 @@ BEGIN
     LISTBOX         IDC_LIST3,7,7,228,244,LBS_SORT | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
 END
 
-IDD_CALIBRATION_CALC_DLG DIALOGEX 0, 0, 331, 107
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Calibration calculator"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    EDITTEXT        IDC_EDIT1,30,7,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT10,30,22,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT2,30,37,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT6,30,52,53,14,ES_AUTOHSCROLL
-    LTEXT           "N0=",IDC_STATIC,13,10,15,8
-    LTEXT           "N1=",IDC_STATIC,13,25,15,8
-    LTEXT           "N2=",IDC_STATIC,13,40,15,8
-    LTEXT           "N3=",IDC_STATIC,13,54,15,8
-    EDITTEXT        IDC_EDIT5,119,7,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT13,119,22,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT8,119,37,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT16,119,52,53,14,ES_AUTOHSCROLL
-    LTEXT           "Q0=",IDC_STATIC,102,9,16,8
-    LTEXT           "Q1=",IDC_STATIC,102,25,16,8
-    LTEXT           "Q2=",IDC_STATIC,102,40,16,8
-    LTEXT           "Q3=",IDC_STATIC,102,54,16,8
-    EDITTEXT        IDC_EDIT14,271,7,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT17,271,22,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT18,271,37,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT19,271,52,53,14,ES_AUTOHSCROLL
-    LTEXT           "Nc=",IDC_STATIC,254,9,14,8
-    LTEXT           "Lc=",IDC_STATIC,254,25,13,8
-    LTEXT           "dc=",IDC_STATIC,254,40,14,8
-    LTEXT           "fic=",IDC_STATIC,254,55,14,8
-    PUSHBUTTON      "==>",IDC_BUTTON4,191,34,34,14
-    COMBOBOX        IDC_COMBO1,7,69,76,108,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Save to Config",IDC_BUTTON10,175,86,63,14
-    COMBOBOX        IDC_COMBO3,97,69,76,108,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT15,271,70,53,14,ES_AUTOHSCROLL
-    LTEXT           "alfa=",IDC_STATIC,249,72,18,8
-    EDITTEXT        IDC_EDIT20,271,85,53,14,ES_AUTOHSCROLL
-    LTEXT           "n_p=",IDC_STATIC,249,87,18,8
-    PUSHBUTTON      "Load from Config",IDC_BUTTON15,175,72,63,14
-END
-
-IDD_TE_CALC_DLG DIALOGEX 0, 0, 359, 103
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Film parameters calculator"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    EDITTEXT        IDC_EDIT1,26,7,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT10,26,22,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT2,26,37,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT6,26,52,53,14,ES_AUTOHSCROLL
-    LTEXT           "N0 =",-1,7,9,17,8
-    LTEXT           "N1 =",-1,7,25,17,8
-    LTEXT           "N2 =",-1,7,40,17,8
-    LTEXT           "N3 =",-1,7,55,17,8
-    EDITTEXT        IDC_EDIT5,159,7,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT13,159,22,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT8,159,37,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT16,159,52,53,14,ES_AUTOHSCROLL
-    LTEXT           "Q0=",-1,141,10,16,8
-    LTEXT           "Q1=",-1,141,25,16,8
-    LTEXT           "Q2=",-1,141,40,16,8
-    LTEXT           "Q3=",-1,141,54,16,8
-    PUSHBUTTON      "==>",IDC_BUTTON4,86,33,50,14
-    COMBOBOX        IDC_COMBO1,7,82,85,108,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "==>",IDC_BUTTON11,220,33,50,14
-    EDITTEXT        IDC_EDIT14,299,25,53,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT17,299,44,53,14,ES_AUTOHSCROLL
-    LTEXT           "nf=",-1,281,28,13,8
-    LTEXT           "hf=",-1,281,47,13,8
-    EDITTEXT        IDC_EDIT18,159,67,53,14,ES_AUTOHSCROLL
-    LTEXT           "lambda, nm=",-1,114,69,43,8
-    EDITTEXT        IDC_EDIT19,159,82,53,14,ES_AUTOHSCROLL
-    LTEXT           "n3 = ",-1,140,84,18,8
-    EDITTEXT        IDC_EDIT21,26,67,53,14,ES_AUTOHSCROLL
-    LTEXT           "Np =",-1,7,69,17,8
-    CONTROL         "TE",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,235,66,24,10
-    CONTROL         "TM",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,235,76,25,10
-END
-
-IDD_SERIES_PROP_DLG DIALOGEX 0, 0, 152, 103
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Series properties"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,95,80,50,14
-    EDITTEXT        IDC_EDIT1,30,7,115,14,ES_AUTOHSCROLL
-    LTEXT           "Name",IDC_STATIC,9,9,19,8
-    COMBOBOX        IDC_COMBO1,59,25,86,93,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Symbol style",IDC_STATIC,7,28,41,8
-    COMBOBOX        IDC_COMBO4,59,42,86,61,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Line style",IDC_STATIC,7,46,31,8
-    LTEXT           "Error bars style",IDC_STATIC,7,62,50,8
-    COMBOBOX        IDC_COMBO5,59,60,86,64,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Line color",IDC_BUTTON1,"Button",BS_OWNERDRAW | BS_BITMAP | WS_TABSTOP,7,80,39,14
-    CONTROL         "Fill color",IDC_BUTTON3,"Button",BS_OWNERDRAW | BS_BITMAP | WS_TABSTOP,47,80,40,14
-END
-
-IDD_SET_AXIS_RANGE_DLG DIALOGEX 0, 0, 132, 44
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Set axis  range"
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,75,7,50,14,NOT WS_TABSTOP
-    PUSHBUTTON      "Cancel",IDCANCEL,75,23,50,14,NOT WS_TABSTOP
-    EDITTEXT        IDC_EDIT1,30,7,40,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT2,30,23,40,14,ES_AUTOHSCROLL
-    LTEXT           "Max Y",IDC_STATIC,3,8,24,8,0,WS_EX_RIGHT
-    LTEXT           "Min Y",IDC_STATIC,0,24,26,8,0,WS_EX_RIGHT
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -470,28 +338,12 @@ BEGIN
         TOPMARGIN, 2
     END
 
-    IDD_SERIES_LIST_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 3
-        RIGHTMARGIN, 226
-        TOPMARGIN, 3
-        BOTTOMMARGIN, 124
-    END
-
     IDD_MODIF_VALUE_DLG, DIALOG
     BEGIN
         LEFTMARGIN, 2
         RIGHTMARGIN, 184
         TOPMARGIN, 2
         BOTTOMMARGIN, 31
-    END
-
-    IDD_SERIES_VALUES_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 2
-        RIGHTMARGIN, 197
-        TOPMARGIN, 2
-        BOTTOMMARGIN, 224
     END
 
     IDD_LOCATE_CTRLS_DLG, DIALOG
@@ -517,38 +369,6 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 251
     END
-
-    IDD_CALIBRATION_CALC_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 324
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 99
-    END
-
-    IDD_TE_CALC_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 352
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 96
-    END
-
-    IDD_SERIES_PROP_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 145
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 96
-    END
-
-    IDD_SET_AXIS_RANGE_DLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 125
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 37
-    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -559,7 +379,6 @@ END
 //
 
 IDR_TOOLBAR2            BITMAP                  "res\\toolbar2.bmp"
-IDB_STATEICONS          BITMAP                  "res\\stateico.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -583,31 +402,6 @@ END
 //
 // Menu
 //
-
-IDR_MENU1 MENU
-BEGIN
-    POPUP "Series Menu"
-    BEGIN
-        MENUITEM "Show values",                 ID_SERIESMENU_SHOWVALUES
-        MENUITEM "Delete Series",               ID_SERIESMENU_DELETESERIES
-        MENUITEM "Save as Text",                ID_SERIESMENU_SAVEASTEXT
-        POPUP "Change Status"
-        BEGIN
-            MENUITEM "Active",                      ID_CHANGESTATUS_ACTIVE
-            MENUITEM "InActive",                    ID_CHANGESTATUS_INACTIVE
-            MENUITEM "Calibrator",                  ID_CHANGESTATUS_CALIBRATOR
-        END
-        MENUITEM "Change style",                ID_SERIESMENU_CHANGESTYLE
-    END
-END
-
-IDR_MENU2 MENU
-BEGIN
-    POPUP "Chart menu"
-    BEGIN
-        MENUITEM "Show values",                 ID_SERIESMENU_SHOWVALUES
-    END
-END
 
 IDR_MENU3 MENU
 BEGIN
@@ -663,29 +457,13 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_TOOLTIP_SCANSPEED   "Maximum speed = 1 nm/s"
     ID_CHART1               "id for chart"
-    ID_SERIES_UPD_COMMAND   "fref"
-    STEP_MOTOR_ICON         "grge"
-    PHEM1_ICON              "gret"
-    PHEM2_ICON              "grerte"
-    L2_TEXT_ID              "gerter"
-    IDD_BARTEMPLATE         "thrt"
-    IDS_TAGEDITTIP          "ура!"
-    ID_TAGEDITTIP           "fgertge"
-    IDS_STRING11            "]"
-    IND_GRIDTYPE            "ИК"
-    FILTERHEAD_ICON         "rter"
-    IDS_PAUSESTAGE3         "Сейчас будем измерять фон."
 END
 
 STRINGTABLE
 BEGIN
     ID_CONFIG               "system config"
     IDS_MOTORSTAGE_R        "Ж-Ж-Ж-Ж..."
-    IDS_STRING_IDLE         "Чего ждём?!"
-    IDS_VOLTSTAGE_R         "Измеряем вольтажину"
-    IDS_MAINSTAGE           "   "
     IND_WAVELEN             "8888.88"
     IND_ACTION              "S"
     IND_DEVICE              "MOTR"
@@ -695,21 +473,6 @@ END
 STRINGTABLE
 BEGIN
     IND_MAIN                "0"
-    IDS_MOTORSTAGE_P        "Ну вот, на самом интересном месте..."
-    IDB_VOLTMETER_BUTTON    "Это вольтметр"
-    IDB_MOTOR_BUTTON        "Это мотор"
-    IDB_LOG_BUTTON          "Это лог"
-    IDS_ERROR_STRING        "Упс, косяк"
-    IDB_MV_BUTTON           "Это MV"
-    ID_OSCILWND             "dlsmcvasdm"
-    ID_OSCILWND1            "dkl;we"
-    IND_STATUS              "00000000"
-    IDS_TERMINALBUTTON      "fgd"
-    ID_CHIP_CTRL            "Управление комплексом"
-    ID_EVENT_LOG            "Лог сообщений"
-    ID_VIEW_CONFIG          " Настройка параметров системы"
-    ID_EventsList           "gfero"
-    ID_MV_WND               "ter"
 END
 
 STRINGTABLE
@@ -719,31 +482,8 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_volt_out_ctrl        "gerjh"
-    ID_volt_out_ctrl2       "gnrej"
-    ID_volt_out_ctrl3       "rgjnek"
-    ID_wave_len_ctrl        "grengtk"
-END
-
-STRINGTABLE
-BEGIN
-    ID_SCOPE_CHNL_1         "scope_chnl_1"
-END
-
-STRINGTABLE
-BEGIN
     ID_SPINEDIT1            "spinedit1"
     ID_SLIDERTRACK1         "rete"
-END
-
-STRINGTABLE
-BEGIN
-    ID_SPECTRUM_UNIT_1      "ID_SPECTRUM_UNIT_1"
-END
-
-STRINGTABLE
-BEGIN
-    ID_SCOPE_CHNL_2         "rfer"
 END
 
 STRINGTABLE
@@ -798,26 +538,6 @@ BEGIN
     ERR_CONFIG_MEMERR       "Ощибка при загрузке config.dat (CMemException)"
     ERR_CONFIG_NOFILE       "Ошибка при загрузке config.dat, файл не найден"
     ERR_PGA_CONFIG          "Невозможно изменить конфигурацию PGA"
-END
-
-STRINGTABLE
-BEGIN
-    MSG_STRING1             "Сейчас будем измерять фон."
-    MSG_STRING2             "Uno momento"
-    MSG_STRING3             "Сейчас будем измерять ФОН. Ну кто-нибудь перекройте поток."
-    MSG_STRING4             "Чего ждем. Фильтры я что-ли буду менять!"
-    MSG_STRING0             "Ну я даже не знаю что сказать"
-END
-
-STRINGTABLE
-BEGIN
-    ID_PGA_CNTRL1           "rfer"
-    ID_PGA_CNTRL2           "gerter"
-END
-
-STRINGTABLE
-BEGIN
-    ID_PGA_DLG_WND          "ete"
 END
 
 STRINGTABLE

@@ -16,7 +16,6 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 ////////////////////////////////////////////////////////////////////////////
-MainChartWnd GlobalChart;
 SystemConfig MainCfg;
 WindowAddress EventsLog, MainFrame;
 MessagesInspector GlobalInspector;
@@ -24,6 +23,12 @@ MessagesInspector* MessagesInspectorSubject::GlobalInspector=&::GlobalInspector;
 
 WindowAddress LogMessage::LogWindow;
 WindowAddress MyThread::ConfigParentWindow;
+
+CString SeriesListCtrl::GetSaveAsPath()
+{
+	CMainFrame* MW=(CMainFrame*)AfxGetMainWnd();
+	return MW->GetActiveDocument()->GetPathName();
+}
 
 BEGIN_MESSAGE_MAP(CKSVU3App, CWinApp)
 	//{{AFX_MSG_MAP(CKSVU3App)

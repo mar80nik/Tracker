@@ -2,8 +2,6 @@
 #include "BarTemplate.h"
 #include "camera.h"
 #include "captureWnd.h"
-#include "calibratorDialog.h"
-#include "CalcTEDialog.h"
 #include "afxwin.h"
 
 #define CrossWidth 10

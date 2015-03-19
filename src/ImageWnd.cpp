@@ -725,37 +725,26 @@ void ImageWnd::PicWnd::OnPicWndScanArbitaryLine()
 {
 	if (accum.HasImage())
 	{
-		void* x; CString T; MyTimer Timer1;
-		TPointVsErrorSeries::DataImportMsg *ChartMsg = NULL; 
-		ControledLogMessage log; log << _T("Speed tests results");
-
-		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+		MyTimer Timer1; ControledLogMessage log; log << _T("ScanArbitaryLine Speed tests results");
+		TPointVsErrorSeries *t2; CMainFrame* mf=(CMainFrame*)AfxGetMainWnd();
 		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
 
-		if((x = chrt.Series.GainAcsess(WRITE))!=0)
-		{
-			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-			TPointVsErrorSeries *t2;
-			if((t2 = new TPointVsErrorSeries(T))!=0)	
-			{
-				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-				Series.Add(t2); 
-				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
-				ChartMsg = t2->CreateDataImportMsg(); 
-				t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-				t2->PointType.Set(GenericPnt); 
-				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-			}		
-		}
-
-		if (SUCCEEDED(ScanArbitaryLine(&(ChartMsg->Points), Parent->MarkerBGN, Parent->MarkerEND, Timer1)))
+		PointVsErrorArray Points;
+		if (SUCCEEDED(ScanArbitaryLine(&Points, Parent->MarkerBGN, Parent->MarkerEND, Timer1)))
 		{			
+			if((t2 = new TPointVsErrorSeries("ScanArbitaryLine"))!=0)	
+			{
+				t2->SetParentUpdateStatus(UPD_OFF);
+				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
+				t2->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
+				for (int i = 0; i < Points.GetSize(); i++) 
+					t2->AddXY(Points[i]);
+				t2->DispatchDataImportMsg(mf->Chart1);
+			}		
+
 			log.T.Format("Scan of %d points from (%d,%d) to (%d,%d) took %g ms", 
-				ChartMsg->Points.GetSize(), 
-				Parent->MarkerBGN.x, Parent->MarkerBGN.y, Parent->MarkerEND.x, Parent->MarkerEND.y,
-				Timer1.GetValue().val()); 
-			log << log.T;
-			ChartMsg->Dispatch();
+				Points.GetSize(), Parent->MarkerBGN.x, Parent->MarkerBGN.y, Parent->MarkerEND.x, Parent->MarkerEND.y,
+				Timer1.GetValue().val());  log << log.T;
 			log.Dispatch();
 		}
 	}
@@ -819,45 +808,29 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 	line.Init(beg, end);
 	GaussFitFunc GaussFit; 
 
-	void *x; TSimplePointSeries::DataImportMsg *ChartMsg = NULL; 
-	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
+	CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TSimplePointSeries *t2 = NULL;
 	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
-	if((x = chrt.Series.GainAcsess(WRITE))!=0)
+	PointVsErrorArray pnts; 
+
+	if((t2 = new TSimplePointSeries(_T("GaussFit graph")))!=0)	
 	{
-		SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-		TSimplePointSeries *t2;
-		if((t2 = new TSimplePointSeries(_T("GaussFit graph")))!=0)	
+		t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
+		t2->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
+
+		SimplePoint spnt; PointVsError epnt;
+		for (spnt.x = -90; spnt.x <= 260; spnt.x += 5)
 		{
-			for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-			Series.Add(t2); 
-			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
-			ChartMsg = t2->CreateDataImportMsg(); 
-			t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-			t2->PointType.Set(GenericPnt); 
-			t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-		}		
-	}
-	SimplePoint spnt; PointVsErrorArray pnts; PointVsError epnt;
-	for (spnt.x = -90; spnt.x <= 260; spnt.x += 5)
-	{
-		tmp_line = line; tmp_line.RotateByAngle(spnt.x*DEGREE, ScanLineRotationMode::CNTR); 
-		OnPicWndMultiCrossHelper(tmp_line, GaussFit);		
-		if (GaussFit.a[1] > 0 && GaussFit.a[2] > 0)
-		{
-			spnt.y = 1/GaussFit.GetWidth();
-			ChartMsg->Points.Add(spnt);
-			epnt.x = spnt.x;
-			epnt.y = spnt.y;
-			epnt.dy = 0;
-			pnts.Add(epnt);
+			tmp_line = line; tmp_line.RotateByAngle(spnt.x*DEGREE, ScanLineRotationMode::CNTR); 
+			OnPicWndMultiCrossHelper(tmp_line, GaussFit);		
+			if (GaussFit.a[1] > 0 && GaussFit.a[2] > 0)
+			{
+				spnt.y = 1/GaussFit.GetWidth();
+				epnt = spnt; epnt.dy = 0; 
+				pnts.Add(epnt); t2->AddXY(spnt);
+			}
 		}
-		else
-		{
-			spnt.y = 0;
-		}
-		
-	}
-	ChartMsg->Dispatch();
+		t2->DispatchDataImportMsg(mf->Chart1);
+	}		
 
 	Sin2FitFunc Sin2Fit; DoubleArray init; ControledLogMessage log;
 	init << .1 << M_PI/180 << 5 << .1;
@@ -870,31 +843,17 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 	DoubleArray X, Y;
 	if (SUCCEEDED(Sin2Fit.MakeGraph(X, Y)))
 	{
-		void *x; TSimplePointSeries::DataImportMsg *ChartMsg = NULL; 
-		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
-		mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
-		if((x = chrt.Series.GainAcsess(WRITE))!=0)
+		if((t2 = new TSimplePointSeries(_T("Sin2Fit graph")))!=0)	
 		{
-			SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-			TSimplePointSeries *t2;
-			if((t2 = new TSimplePointSeries(_T("Sin2Fit graph")))!=0)	
+			SimplePoint spnt;
+			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
+			t2->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
+			for (int i = 0; i < X.GetSize(); i++)
 			{
-				for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-				Series.Add(t2); 
-				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
-				ChartMsg = t2->CreateDataImportMsg(); 
-				t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-				t2->PointType.Set(GenericPnt); 
-				t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-			}		
-		}
-		SimplePoint pnt;
-		for (int i = 0; i < X.GetSize(); i++)
-		{
-			pnt.x = X[i]; pnt.y = Y[i];
-			ChartMsg->Points.Add(pnt);
-		}
-		ChartMsg->Dispatch();
+				spnt.x = X[i]; spnt.y = Y[i]; t2->AddXY(spnt);
+			}
+			t2->DispatchDataImportMsg(mf->Chart1);
+		}		
 	}
 
 	Parent->MarkerBGN = ParentBgn; Parent->MarkerEND = ParentEnd;

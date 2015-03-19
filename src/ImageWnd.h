@@ -37,6 +37,8 @@ public:
 struct ScanRgnData
 { int stroka, Xmin, Xmax, AvrRange;};
 
+enum ScanLineRotationMode { BEG, CNTR, END };
+
 struct ScanLineData
 { 
 protected:
@@ -48,6 +50,7 @@ public:
 	ScanLineData() {dX = dY= len = 0; cosfi = 1.; sinfi = 0; status = E_FAIL;};
 	HRESULT Init(const CPoint &_beg, const CPoint &_end);
 	BOOL IsInited() const { return (status == S_OK);}
+	void RotateByAngle(const double RadiansAngle, const ScanLineRotationMode mode);
 protected:
 	double Get_Length() const;
 	double Get_dX() const;
@@ -92,7 +95,7 @@ public:
 	HRESULT SaveTo(const CString &file);
 	HRESULT LoadFrom(const CString &file);
 	void ScanLine( void *buf, const ScanRgnData &data, MyTimer *Timer1 = NULL) const;
-	void ScanArbitaryLine( void *buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
+	void ScanArbitaryLine( void * const buf, const ScanLineData &data, MyTimer *Timer1 = NULL) const;
 	PointVsError3D GetPoint(const CPoint &pnt) const;
 	BOOL HasImage() const {return (sums != NULL);};
 };
@@ -100,17 +103,6 @@ public:
 class ImageWnd : public CWnd
 {
 public:
-	//struct AvaPoint: public CPoint 
-	//{ 
-	//	AvaPoint(): CPoint() {}
-	//	AvaPoint(const CPoint& pnt): CPoint(pnt) {}
-	//};
-	//struct OrgPoint: public CPoint
-	//{
-	//	OrgPoint(): CPoint() {}
-	//	OrgPoint(const CPoint& pnt): CPoint(pnt) {}	
-	//};
-
 	enum DrawModes { DRAW, ERASE };
 	enum MarkerNames { BGN, END};
 
@@ -183,6 +175,7 @@ public:
 		void OnPicWndSave();
 		void OnPicWndScanLine();
 		void OnPicWndScanArbitaryLine();
+		void OnPicWndMultiCross();
 		void EraseAva();
 		void SetMarker(const CPoint& mark, MarkerNames pos);
 		HRESULT MakeAva();
@@ -202,6 +195,8 @@ public:
 		HRESULT TryLoadBitmap(CString T, BMPanvas &bmp);
 		HRESULT ConvertAvaToOrg( CPoint& pnt ) const;
 		HRESULT ConvertOrgToAva( CPoint& pny ) const;
+		HRESULT ScanArbitaryLine(void * const buf, CPoint beg, CPoint end, MyTimer &Timer);
+		void OnPicWndMultiCrossHelper(ScanLineData tmp_line, GaussFitFunc &GaussFit);
 	};
 	
 	DECLARE_DYNAMIC(ImageWnd)

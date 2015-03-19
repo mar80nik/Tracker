@@ -184,6 +184,7 @@
 #define ID_MAIN_TAB                     32817
 #define ID_IMAGE_TAB                    32820
 #define ID_PICWNDMENU_SCANLINE          32823
+#define ID_PICWNDMENU_MULTICROSS        32824
 #define ID_volt_out_ctrl                33000
 #define ID_volt_out_ctrl2               33001
 #define ID_volt_out_ctrl3               33002
@@ -261,7 +262,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        238
-#define _APS_NEXT_COMMAND_VALUE         32824
+#define _APS_NEXT_COMMAND_VALUE         32825
 #define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

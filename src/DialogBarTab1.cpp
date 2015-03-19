@@ -185,7 +185,7 @@ LRESULT DialogBarTab1::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 				for(int i=0;i<results.Series.GetSize();i++)
 				{
 					T.Format("%s (%d)",results.Series[i]->Name,results.Series[i]->GetSize());
-					n=SeriesCombo.AddString(T); pid=results.Series[i]->PID;
+					n=SeriesCombo.AddString(T); pid=results.Series[i]->GetPID();
 					SeriesCombo.SetItemData(n,pid);
 				}				
 			}

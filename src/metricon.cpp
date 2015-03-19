@@ -300,4 +300,63 @@ int FourierFilter( FFTRealTransform::Params& in, double spec_width, FFTRealTrans
 	return ret;
 
 }
-//////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+////////////   f = A + C*exp(-(x - x0)^2/b)		     ////////////
+/////////////////////////////////////////////////////////////////
+double GaussFuncParams::func( const double &x, const double *a, const size_t &p )
+{
+	return a[ind_A] + a[ind_C]*exp(-(x - a[ind_x0])*(x - a[ind_x0])/a[ind_b]);
+}
+double GaussFuncParams::df_dA( const double &x, const double *a, const size_t &p, double *c )  { return 1; }
+double GaussFuncParams::df_dC( const double &x, const double *a, const size_t &p, double *c )  { return c[1];}
+double GaussFuncParams::df_dx0( const double &x, const double *a, const size_t &p, double *c ) { return 2*a[ind_C]*c[0]*c[1]; }
+double GaussFuncParams::df_db( const double &x, const double *a, const size_t &p, double *c )  { return a[ind_C]*c[0]*c[0]*c[1]; }
+double * GaussFuncParams::PrepareDerivBuf( const double &x, const double *a, const size_t &p )
+{
+	buf[0] = (x - a[ind_x0])/a[ind_b]; buf[1] = exp(-a[ind_b]*buf[0]*buf[0]);
+	return &buf[0];
+}
+double GaussFitFunc::GetWidth()
+{
+	return 2*sqrt(a[GaussFuncParams::ind_b]);
+}
+/////////////////////////////////////////////////////////////////
+////////////   f = A*sin^2(W*x + x0) + C			     ////////////
+/////////////////////////////////////////////////////////////////
+double Sin2FuncParams::func( const double &x, const double *a, const size_t &p )
+{
+	double Sin = sin(a[ind_W]*x + a[ind_x0]);
+	return a[ind_A]*Sin*Sin + a[ind_C];
+}
+
+double Sin2FuncParams::df_dA( const double &x, const double *a, const size_t &p, double *c )
+{
+	return c[0]*c[0];
+}
+
+double Sin2FuncParams::df_dW( const double &x, const double *a, const size_t &p, double *c )
+{
+	return a[ind_A]*2*c[0]*c[1]*x;
+}
+
+double Sin2FuncParams::df_dx0( const double &x, const double *a, const size_t &p, double *c )
+{
+	return a[ind_A]*2*c[0]*c[1];
+}
+
+double Sin2FuncParams::df_dC( const double &x, const double *a, const size_t &p, double *c )
+{
+	return 1;
+}
+
+double * Sin2FuncParams::PrepareDerivBuf( const double &x, const double *a, const size_t &p )
+{
+	buf[0] = sin(a[ind_W]*x + a[ind_x0]); buf[1] = cos(a[ind_W]*x + a[ind_x0]);
+	return &buf[0];	
+}
+
+
+double Sin2FitFunc::GetShift()
+{
+	return (M_PI - a[Sin2FuncParams::ind_x0])/(2*a[Sin2FuncParams::ind_W]);
+}

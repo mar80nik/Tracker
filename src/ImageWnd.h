@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "captureWnd.h"
 #include "afxwin.h"
+#include "fittings.h"
 
 #define CrossWidth 10
 

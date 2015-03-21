@@ -111,6 +111,9 @@
     <ClCompile Include="src\TConfigDialog.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\my_gsl\src\fittings.cpp">
+      <Filter>my_gsl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

@@ -51,7 +51,7 @@ int ImageWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
  	fiber.LoadPic(CString("d:\\REPO\\pics\\fiber.png"));
 #endif
 	Ctrls.Parent=this;
-	SetMarker(CPoint(282, 243), BGN);
+	SetMarker(CPoint(282, 253), BGN);
 	SetMarker(CPoint(507, 784), END);
 
 	return 0;
@@ -754,44 +754,52 @@ void ImageWnd::PicWnd::OnPicWndMultiCrossHelper(ScanLineData tmp_line, GaussFitF
 	Parent->MarkerBGN = tmp_line.beg; Parent->MarkerEND = tmp_line.end; /*OnPicWndScanArbitaryLine();*/
 	PointVsErrorArray buf; buf.RemoveAll(); MyTimer Timer;
 	if (SUCCEEDED(ScanArbitaryLine(&buf, tmp_line.beg, tmp_line.end, Timer)))
-	{		
-		ControledLogMessage log;
-		//DoubleArray init; init << 10 << 1 << 1 << .1;
-		DoubleArray init; init << 10 << 100 << 50 << 20;
+	{
+		SimplePoint max = buf[0]; 
+		//double dx = (buf.x[buf.GetSize() - 1] - buf.x[0])/(buf.GetSize() - 1);
+		for (int i = 1; i < buf.GetSize(); i++)
+		{
+			if (buf[i].y > max.y) 
+			{
+				max = buf[i];
+			}
+		}
+		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
+		DoubleArray init; init << 30 << max.y << max.x << 6;
 		GaussFit.CalculateFrom(buf.x, buf.y, buf.dy, init);
-		//log.T.Format("************ GaussFit **********************"); log << log.T;
-		//GaussFit.GetReport(log);
-		//double width = GaussFit.GetWidth(); log.T.Format("width = %g", width); log << log.T;
-		//log.Dispatch();
-		
-		/*DoubleArray X, Y;
+		ControledLogMessage log;
+		log.T.Format("************ GaussFit **********************"); log << log.T;
+		GaussFit.GetReport(log);
+		double width = GaussFit.GetWidth(); log.T.Format("width = %g", width); log << log.T;
+		log.Dispatch();
+	/*			
+		TSimplePointSeries *t1, *t2;
+		if((t1 = new TSimplePointSeries(_T("Original points")))!=0)	
+		{
+			t1->_SymbolStyle::Set(NO_SYMBOL); t1->_ErrorBarStyle::Set(NO_BARS);
+			t1->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
+
+			for (int i = 0; i < buf.GetSize(); i++)
+			{
+				t1->AddXY(SimplePoint(buf[i]));
+			}
+			t1->DispatchDataImportMsg(mf->Chart1);								
+		}	
+
+		DoubleArray X, Y;
 		if (SUCCEEDED(GaussFit.MakeGraph(X, Y)))
 		{
-			void *x; TSimplePointSeries::DataImportMsg *ChartMsg = NULL; 
-			CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); TChart& chrt=mf->Chart1; 
-			mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
-			if((x = chrt.Series.GainAcsess(WRITE))!=0)
+			if((t2 = new TSimplePointSeries(_T("GaussFit graph")))!=0)	
 			{
-				SeriesProtector Protector(x); TSeriesArray& Series(Protector);
-				TSimplePointSeries *t2;
-				if((t2 = new TSimplePointSeries(_T("GaussFit graph")))!=0)	
+				t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
+				t2->AssignColors(ColorsStyle(clRED, t1->PColor));
+
+				for (int i = 0; i < X.GetSize(); i++)
 				{
-					for(int i=0;i<Series.GetSize();i++) Series[i]->SetStatus(SER_INACTIVE);
-					Series.Add(t2); 
-					t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
-					ChartMsg = t2->CreateDataImportMsg(); 
-					t2->AssignColors(ColorsStyle(clRED,Series.GetRandomColor()));
-					t2->PointType.Set(GenericPnt); 
-					t2->SetStatus(SER_ACTIVE); t2->SetVisible(true);
-				}		
-			}
-			SimplePoint pnt;
-			for (int i = 0; i < X.GetSize(); i++)
-			{
-				pnt.x = X[i]; pnt.y = Y[i];
-				ChartMsg->Points.Add(pnt);
-			}
-			ChartMsg->Dispatch();
+					t2->AddXY(SimplePoint(X[i], Y[i]));
+				}
+				t2->DispatchDataImportMsg(mf->Chart1);								
+			}	
 		}*/
 	}
 }
@@ -811,33 +819,42 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 	mf->TabCtrl1.ChangeTab(mf->TabCtrl1.FindTab("Main control"));	
 	PointVsErrorArray pnts; 
 
+	ControledLogMessage log;
+	log.T.Format("************ Resulting GaussFit **********************"); log << log.T;
+
+	int n = 0;
 	if((t2 = new TSimplePointSeries(_T("GaussFit graph")))!=0)	
 	{
 		t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
 		t2->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
 
 		SimplePoint spnt; PointVsError epnt;
-		for (spnt.x = -90; spnt.x <= 260; spnt.x += 5)
+		for (spnt.x = -90; spnt.x <= 260; spnt.x += 20, n++)
 		{
 			tmp_line = line; tmp_line.RotateByAngle(spnt.x*DEGREE, ScanLineRotationMode::CNTR); 
 			OnPicWndMultiCrossHelper(tmp_line, GaussFit);		
-			if (GaussFit.a[1] > 0 && GaussFit.a[2] > 0)
+			if (GaussFit.status == GSL_SUCCESS)
 			{
-				spnt.y = 1/GaussFit.GetWidth();
-				epnt = spnt; epnt.dy = 0; 
-				pnts.Add(epnt); t2->AddXY(spnt);
+				if (GaussFit.a[1] > 0 && GaussFit.a[2] > 0)
+				{
+					spnt.y = 1/GaussFit.GetWidth();
+					epnt = spnt; epnt.dy = 0; 
+					pnts.Add(epnt); t2->AddXY(spnt);
+				}
 			}
 		}
 		t2->DispatchDataImportMsg(mf->Chart1);
 	}		
+	log.T.Format("%d points of %d", pnts.GetSize(), n); log << log.T;	
 
-	Sin2FitFunc Sin2Fit; DoubleArray init; ControledLogMessage log;
-	init << .1 << M_PI/180 << 5 << .1;
+	Sin2FitFunc Sin2Fit; 
+	DoubleArray init; 
+	init << .1 << 2*M_PI/360 << 0 << .1;
 	Sin2Fit.CalculateFrom(pnts.x, pnts.y, pnts.dy, init);	
 	log.T.Format("************ Sin2Fit **********************"); log << log.T;
 	Sin2Fit.GetReport(log);	
 	log.T.Format("shift = %g", Sin2Fit.GetShift()); log << log.T;
-	log.Dispatch();
+	
 
 	DoubleArray X, Y;
 	if (SUCCEEDED(Sin2Fit.MakeGraph(X, Y)))
@@ -855,6 +872,7 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 		}		
 	}
 
+	log.Dispatch();
 	Parent->MarkerBGN = ParentBgn; Parent->MarkerEND = ParentEnd;
 }
 

@@ -44,16 +44,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;d:\REPO\my_gsl\src\;d:\REPO\my_gsl\header\;d:\REPO\my_lib\src\;d:\REPO\TChart\src;d:\REPO\zlib\header</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath);d:\REPO\my_gsl\lib;d:\REPO\zlib\lib</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir);$(SolutionDir)\src;$(SolutionDir)\..\my_lib\src\;$(SolutionDir)\..\my_gsl\src;$(SolutionDir)\..\my_gsl\header;$(SolutionDir)\..\my_lib\zlib\header;$(SolutionDir)\..\my_lib\directx\include;$(SolutionDir)\..\TChart\src</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SolutionDir)\..\my_gsl\lib\;$(SolutionDir)\..\my_lib\zlib\lib</LibraryPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
     <OutDir>$(SolutionDir)\..\exe\</OutDir>
     <IntDir>..\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)\zlib;$(IncludePath);D:\DXSDK\include;$(SolutionDir)\gsl-1.16;$(SolutionDir)\my_cpp;$(SolutionDir);$(SolutionDir)\mythread;$(SolutionDir)\TChart;$(SolutionDir)\src;d:\REPO\my_gsl\src\;d:\REPO\my_gsl\header\;d:\REPO\my_lib\src\;d:\REPO\TChart\src;d:\REPO\zlib\header</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\lib;$(LibraryPath);d:\REPO\my_gsl\lib;d:\REPO\zlib\lib</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir);$(SolutionDir)\src;$(SolutionDir)\..\my_lib\src\;$(SolutionDir)\..\my_gsl\src;$(SolutionDir)\..\my_gsl\header;$(SolutionDir)\..\my_lib\zlib\header;$(SolutionDir)\..\my_lib\directx\include;$(SolutionDir)\..\TChart\src</IncludePath>
+    <LibraryPath>$(LibraryPath);$(SolutionDir)\..\my_gsl\lib\;$(SolutionDir)\..\my_lib\zlib\lib</LibraryPath>
     <OutDir>$(SolutionDir)\..\exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
     <IntDir>..\$(Configuration)\</IntDir>
@@ -78,6 +78,9 @@
       <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
       <AdditionalOptions>/ignore:4248 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PreBuildEvent>
+      <Command>perl $(SourceDir)Makefile.pl</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -98,28 +101,31 @@
       <AdditionalDependencies>gsl_$(Platform)_$(Configuration).lib;cblas_$(Platform)_$(Configuration).lib;strmiids.lib;zdll.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\DXSDK\lib;$(SolutionDir)\gsl-1.16\lib</AdditionalLibraryDirectories>
     </Link>
+    <PreBuildEvent>
+      <Command>perl $(SourceDir)Makefile.pl</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\my_gsl\src\fittings.cpp" />
-    <ClCompile Include="..\..\my_gsl\src\my_gsl.cpp" />
-    <ClCompile Include="..\..\my_lib\src\BMPanvas.cpp" />
-    <ClCompile Include="..\..\my_lib\src\MessageInspector.cpp" />
-    <ClCompile Include="..\..\my_lib\src\MyThread.cpp" />
-    <ClCompile Include="..\..\my_lib\src\MyTime.cpp" />
-    <ClCompile Include="..\..\my_lib\src\my_color.cpp" />
-    <ClCompile Include="..\..\my_lib\src\ProtectedObject.cpp" />
-    <ClCompile Include="..\..\my_lib\src\type_array.cpp" />
-    <ClCompile Include="..\..\TChart\src\MouseTrackerWnd.cpp" />
-    <ClCompile Include="..\..\TChart\src\OwnerDrawBtn.cpp" />
-    <ClCompile Include="..\..\TChart\src\SeriesListCtrl.cpp" />
-    <ClCompile Include="..\..\TChart\src\SeriesListDlg.cpp" />
-    <ClCompile Include="..\..\TChart\src\SeriesStyleDlg.cpp" />
-    <ClCompile Include="..\..\TChart\src\SeriesValuesDlg.cpp" />
-    <ClCompile Include="..\..\TChart\src\SetAxisRangeDlg.cpp" />
-    <ClCompile Include="..\..\TChart\src\TChart.cpp" />
-    <ClCompile Include="..\..\TChart\src\TChartElements.cpp" />
-    <ClCompile Include="..\..\TChart\src\TChartPoints.cpp" />
-    <ClCompile Include="..\..\TChart\src\TChartSeries.cpp" />
+    <ClCompile Include="..\my_gsl\src\fittings.cpp" />
+    <ClCompile Include="..\my_gsl\src\my_gsl.cpp" />
+    <ClCompile Include="..\my_lib\src\BMPanvas.cpp" />
+    <ClCompile Include="..\my_lib\src\MessageInspector.cpp" />
+    <ClCompile Include="..\my_lib\src\MyThread.cpp" />
+    <ClCompile Include="..\my_lib\src\MyTime.cpp" />
+    <ClCompile Include="..\my_lib\src\my_color.cpp" />
+    <ClCompile Include="..\my_lib\src\ProtectedObject.cpp" />
+    <ClCompile Include="..\my_lib\src\type_array.cpp" />
+    <ClCompile Include="..\TChart\src\MouseTrackerWnd.cpp" />
+    <ClCompile Include="..\TChart\src\OwnerDrawBtn.cpp" />
+    <ClCompile Include="..\TChart\src\SeriesListCtrl.cpp" />
+    <ClCompile Include="..\TChart\src\SeriesListDlg.cpp" />
+    <ClCompile Include="..\TChart\src\SeriesStyleDlg.cpp" />
+    <ClCompile Include="..\TChart\src\SeriesValuesDlg.cpp" />
+    <ClCompile Include="..\TChart\src\SetAxisRangeDlg.cpp" />
+    <ClCompile Include="..\TChart\src\TChart.cpp" />
+    <ClCompile Include="..\TChart\src\TChartElements.cpp" />
+    <ClCompile Include="..\TChart\src\TChartPoints.cpp" />
+    <ClCompile Include="..\TChart\src\TChartSeries.cpp" />
     <ClCompile Include="src\BarTemplate.cpp" />
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\cameraChooser.cpp" />
@@ -143,29 +149,29 @@
     <ClCompile Include="StdAfx.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\my_gsl\src\my_gsl.h" />
-    <ClInclude Include="..\..\my_lib\src\BMPanvas.h" />
-    <ClInclude Include="..\..\my_lib\src\MessageInspector.h" />
-    <ClInclude Include="..\..\my_lib\src\MyThread.h" />
-    <ClInclude Include="..\..\my_lib\src\MyTime.h" />
-    <ClInclude Include="..\..\my_lib\src\my_color.h" />
-    <ClInclude Include="..\..\my_lib\src\my_lib_globals.h" />
-    <ClInclude Include="..\..\my_lib\src\my_lib_resources.h" />
-    <ClInclude Include="..\..\my_lib\src\ProtectedObject.h" />
-    <ClInclude Include="..\..\my_lib\src\type_array.h" />
-    <ClInclude Include="..\..\TChart\src\MouseTrackerWnd.h" />
-    <ClInclude Include="..\..\TChart\src\OwnerDrawBtn.h" />
-    <ClInclude Include="..\..\TChart\src\SeriesListCtrl.h" />
-    <ClInclude Include="..\..\TChart\src\SeriesListDlg.h" />
-    <ClInclude Include="..\..\TChart\src\SeriesStyleDlg.h" />
-    <ClInclude Include="..\..\TChart\src\SeriesValuesDlg.h" />
-    <ClInclude Include="..\..\TChart\src\SetAxisRangeDlg.h" />
-    <ClInclude Include="..\..\TChart\src\TChart.h" />
-    <ClInclude Include="..\..\TChart\src\TChartElements.h" />
-    <ClInclude Include="..\..\TChart\src\TChartGlobal.h" />
-    <ClInclude Include="..\..\TChart\src\TChartPoints.h" />
-    <ClInclude Include="..\..\TChart\src\TChartSeries.h" />
-    <ClInclude Include="..\..\TChart\src\tchart_resources.h" />
+    <ClInclude Include="..\my_gsl\src\my_gsl.h" />
+    <ClInclude Include="..\my_lib\src\BMPanvas.h" />
+    <ClInclude Include="..\my_lib\src\MessageInspector.h" />
+    <ClInclude Include="..\my_lib\src\MyThread.h" />
+    <ClInclude Include="..\my_lib\src\MyTime.h" />
+    <ClInclude Include="..\my_lib\src\my_color.h" />
+    <ClInclude Include="..\my_lib\src\my_lib_globals.h" />
+    <ClInclude Include="..\my_lib\src\my_lib_resources.h" />
+    <ClInclude Include="..\my_lib\src\ProtectedObject.h" />
+    <ClInclude Include="..\my_lib\src\type_array.h" />
+    <ClInclude Include="..\TChart\src\MouseTrackerWnd.h" />
+    <ClInclude Include="..\TChart\src\OwnerDrawBtn.h" />
+    <ClInclude Include="..\TChart\src\SeriesListCtrl.h" />
+    <ClInclude Include="..\TChart\src\SeriesListDlg.h" />
+    <ClInclude Include="..\TChart\src\SeriesStyleDlg.h" />
+    <ClInclude Include="..\TChart\src\SeriesValuesDlg.h" />
+    <ClInclude Include="..\TChart\src\SetAxisRangeDlg.h" />
+    <ClInclude Include="..\TChart\src\TChart.h" />
+    <ClInclude Include="..\TChart\src\TChartElements.h" />
+    <ClInclude Include="..\TChart\src\TChartGlobal.h" />
+    <ClInclude Include="..\TChart\src\TChartPoints.h" />
+    <ClInclude Include="..\TChart\src\TChartSeries.h" />
+    <ClInclude Include="..\TChart\src\tchart_resources.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="src\BarTemplate.h" />
     <ClInclude Include="src\camera.h" />
@@ -181,8 +187,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\my_lib\src\my_lib_resources.rc" />
-    <ResourceCompile Include="..\..\TChart\src\tchart_resources.rc" />
+    <ResourceCompile Include="..\my_lib\src\my_lib_resources.rc" />
+    <ResourceCompile Include="..\TChart\src\tchart_resources.rc" />
     <ResourceCompile Include="KSVU3.rc" />
   </ItemGroup>
   <ItemGroup>

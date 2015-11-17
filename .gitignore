@@ -22,7 +22,7 @@ obj/
 [Rr]elease*/
 _ReSharper*/
 *.*sdf
-exe/*.exe
+exe/
 *RCa04812*
 *.dat
 gsl-1.16/lib/

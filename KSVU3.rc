@@ -244,6 +244,18 @@ BEGIN
     EDITTEXT        IDC_EDIT1,13,8,98,14,ES_AUTOHSCROLL
 END
 
+IDD_CHOOSE_CWD DIALOGEX 0, 0, 331, 44
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Set",IDOK,223,23,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,274,23,50,14
+    EDITTEXT        IDC_EDIT1,7,7,317,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Choose dir...",IDC_BUTTON1,7,23,49,14
+    CONTROL         "Add date",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,60,25,45,10
+END
+
 IDD_LOCATE_CTRLS_DLG DIALOGEX 0, 0, 569, 59
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x1
@@ -546,6 +558,12 @@ BEGIN
     IDS_ERRORS_VALUES       "+++ Описания ошибок +++"
 END
 
+STRINGTABLE
+BEGIN
+    IDS_CAMERA_SEPARATOR    "camera separator"
+    IDS_CWD_SEPARATOR       "cwd"
+END
+
 #endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -606,6 +624,7 @@ BEGIN
         MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
         MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
         MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
+        MENUITEM "Choose CWD...",               ID_FILE_CHOOSECWD
         MENUITEM SEPARATOR
         MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
         MENUITEM SEPARATOR

@@ -4,13 +4,14 @@
 #include "KSVU3.h"
 #include "ImageWnd.h"
 #include "compressor.h"
+#include "MyStatusBar.h"
 
 IMPLEMENT_DYNAMIC(CaptureWnd, CWnd)
 CaptureWnd::CaptureWnd(): thrd(444)
 {
 	Src=NULL;
-	CameraOutWnd=CRect(CPoint(0,0),CSize(600,500));
-	LevelsScanWnd=CRect(CPoint(0,CameraOutWnd.bottom + 10),CSize(600,100));
+	CameraOutWnd=CRect(CPoint(0,0),CSize(800,600));
+	LevelsScanWnd=CRect(CPoint(0,600+10),CSize(800,200));
 	penRed.CreatePen(PS_SOLID,1,clRED);
 	penBlue.CreatePen(PS_SOLID,1,clBLUE);
 	penGreen.CreatePen(PS_SOLID,1,clGREEN);
@@ -45,9 +46,6 @@ BEGIN_MESSAGE_MAP(CaptureWnd::CtrlsTab, CDialog)
 	ON_BN_CLICKED(IDC_BUTTON5, OnBnClicked_FilterParams)
 	ON_WM_CREATE()
 	ON_BN_CLICKED(IDC_BUTTON6, OnBnClickedChooseCam)
-	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeCombo1)
-	ON_BN_CLICKED(IDC_RADIO1, &CaptureWnd::CtrlsTab::OnBnClickedRadio1)
-	ON_BN_CLICKED(IDC_RADIO4, &CaptureWnd::CtrlsTab::OnBnClickedRadio4)
 END_MESSAGE_MAP()
 
 int CaptureWnd::CtrlsTab::OnCreate( LPCREATESTRUCT lpCreateStruct )
@@ -109,17 +107,19 @@ void CaptureWnd::CtrlsTab::OnBnClicked_Live()
 		pParent->Timer1.Start(); 
 		pParent->cntr=0;
 
-		pParent->thrd.params.Parent.pThrd=AfxGetThread();
-		pParent->thrd.params.Parent.pWND=pParent;
-		pParent->thrd.params.Pbuf=&pParent->Pbuf;
-		pParent->thrd.params.LevelScanBuf=&pParent->LevelsScanBuf;
-		pParent->thrd.params.Src=pParent->Src;
-		pParent->thrd.params.StopCapture.ResetEvent();
-		pParent->thrd.params.PauseCapture.ResetEvent();
-		pParent->thrd.params.ResumeCapture.ResetEvent();
-		pParent->thrd.params.ShowFilterParams.ResetEvent();
-		pParent->thrd.params.size=GetPreviewSize();
-		pParent->thrd.params.thrd=&pParent->thrd;
+		CaptureParams &thread_params = pParent->thrd;
+		thread_params.Parent = *pParent;
+		thread_params.Pbuf=&pParent->Pbuf;
+		thread_params.ColorTransformSelector = &ColorTransformSelector;
+		thread_params.Stack = &pParent->Stack;
+		//thread_params.LevelScanBuf=&pParent->LevelsScanBuf;
+		thread_params.Src=pParent->Src;
+		thread_params.StopCapture.ResetEvent();
+		thread_params.PauseCapture.ResetEvent();
+		thread_params.ResumeCapture.ResetEvent();
+		thread_params.ShowFilterParams.ResetEvent();
+		thread_params.size=GetPreviewSize();
+		thread_params.thrd=&pParent->thrd;
 
 		CRect r=((CaptureWnd*)Parent)->CameraOutWnd;
 		pParent->grayscaleBuf.Create(this,r.Width(),r.Height(),8);
@@ -145,22 +145,40 @@ void CaptureWnd::CtrlsTab::OnBnClicked_Live()
 	return;
 }
 
+struct CaptureRequestStackCBparams_StopCapture
+{	
+	void GainAcsessCB(CaptureRequestStack& Stack);
+};
+
 void CaptureWnd::CtrlsTab::OnBnClicked_StopCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
-	pParent->thrd.params.StopCapture.SetEvent();  
+	pParent->thrd.StopCapture.SetEvent();  
 	BtnCapture.EnableWindow(TRUE);
 	BtnStop.EnableWindow(FALSE);
 	BtnPause.EnableWindow(FALSE);
 	BtnResume.EnableWindow(FALSE);
 	BtnChooseCam.EnableWindow(TRUE);
 	BtnFilterParams.EnableWindow(FALSE);
+
+	CaptureRequestStackCBparams_StopCapture paramsCB;
+	pParent->Stack.ModifyWith(paramsCB);
+
 }
+void CaptureRequestStackCBparams_StopCapture::GainAcsessCB( CaptureRequestStack& Stack)
+{
+	CaptureRequestStack::Item request;
+	while(Stack >> request)
+	{
+		request.sender->PostMessage(UM_CAPTURE_EVENT,EvntOnCaptureStop,0);
+	}
+}
+
 
 void CaptureWnd::CtrlsTab::OnBnClicked_PauseCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
-	pParent->thrd.params.PauseCapture.SetEvent();  
+	pParent->thrd.PauseCapture.SetEvent();  
 	BtnCapture.EnableWindow(FALSE);
 	BtnStop.EnableWindow(TRUE);
 	BtnPause.EnableWindow(FALSE);
@@ -170,7 +188,7 @@ void CaptureWnd::CtrlsTab::OnBnClicked_PauseCapture()
 void CaptureWnd::CtrlsTab::OnBnClicked_ResumeCapture()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
-	pParent->thrd.params.ResumeCapture.SetEvent();    
+	pParent->thrd.ResumeCapture.SetEvent();    
 	BtnCapture.EnableWindow(FALSE);
 	BtnStop.EnableWindow(TRUE);
 	BtnPause.EnableWindow(TRUE);
@@ -180,7 +198,7 @@ void CaptureWnd::CtrlsTab::OnBnClicked_ResumeCapture()
 void CaptureWnd::CtrlsTab::OnBnClicked_FilterParams()
 {
 	CaptureWnd *pParent=(CaptureWnd*)Parent;
-	pParent->thrd.params.ShowFilterParams.SetEvent();    
+	pParent->thrd.ShowFilterParams.SetEvent();    
 }
 
 void CaptureWnd::SelectCaptureSrc(CString name)
@@ -209,7 +227,12 @@ void CaptureWnd::SelectCaptureSrc(CString name)
 			T.Format(" %s - INIT ERROR",name); *log << T;
 			log->Dispatch();
 		}
-		else Src->Name=name;
+		else 
+		{
+			Src->Name=name;
+			StatusBarMessage *msg = new StatusBarMessage(IDS_CAMERA_SEPARATOR, name);
+			msg->Dispatch();
+		}
 	}	
 }
 
@@ -218,7 +241,7 @@ int CaptureWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-	Ctrls.Parent=this;
+	Ctrls.Parent=this; 	WindowAddress::pWND = this;
 
 	font1.CreatePointFont(90,"Arial"); 
 
@@ -259,16 +282,16 @@ LRESULT CaptureWnd::OnDataUpdate(WPARAM wParam, LPARAM lParam )
 	return 0;
 }
 
-void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWnd::CtrlsTab::ColorTransformModes mode)
+void ColorTransform(BMPanvas *color, BMPanvas *grayscale, ColorTransformModes mode)
 {	
 	RGBTRIPLE *colorCurrentPoint; int i,j; BYTE *colorLineBegin=NULL, *bwCurrentPoint=NULL, *bwLineBegin=NULL;
 	int (*LuminosityFunc)(RGBTRIPLE&)=NULL;
 	
 	switch(mode)
 	{
-	case CaptureWnd::CtrlsTab::HSL: LuminosityFunc=getL_HSL; break;
-	case CaptureWnd::CtrlsTab::HSV: LuminosityFunc=getL_HSV; break;
-	case CaptureWnd::CtrlsTab::NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
+	case HSL: LuminosityFunc=getL_HSL; break;
+	case HSV: LuminosityFunc=getL_HSV; break;
+	case NativeGDI: color->CopyTo(grayscale,TOP_LEFT); return;
 	}
 	if(LuminosityFunc==NULL) return;
 
@@ -288,13 +311,13 @@ void ColorTransform(BMPanvas *color, BMPanvas *grayscale, CaptureWnd::CtrlsTab::
 
 }
 
-void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const CaptureWnd::CtrlsTab::ColorTransformModes mode)
+void CaptureWnd::ScanLevels(BMPanvas *src, BMPanvas &levels, const ColorTransformModes mode)
 {
 	int i;  HGDIOBJ t; double l; MyTimer time1; time1.Start(); ms dt;CString T;
 	src->LoadBitmapArray(src->h/2,src->h/2); 
 	levels.PatBlt(BLACKNESS);
 
-	if (mode == CaptureWnd::CtrlsTab::TrueColor)
+	if (mode == TrueColor)
 	{
 		RGBTRIPLE *col = (RGBTRIPLE*)src->arr;
 		for (i = 0; i < src->w; i++)
@@ -352,7 +375,7 @@ void CaptureWnd::OnPaint()
 		if(r>1) { SetStretchBltMode(tbuf->GetDC(),COLORONCOLOR); buf.StretchTo(tbuf,rgn1,buf.Rgn,SRCCOPY); }
 		else buf.CopyTo(tbuf,rgn1);
 		
-		if (Ctrls.ColorTransformSelector != CaptureWnd::CtrlsTab::TrueColor)
+		if (Ctrls.ColorTransformSelector != TrueColor)
 		{
 			ColorTransform(tbuf, &grayscaleBuf, Ctrls.ColorTransformSelector); tbuf=&grayscaleBuf;
 
@@ -360,18 +383,6 @@ void CaptureWnd::OnPaint()
 			//accum.FillAccum(&grayscaleBuf); time = accum.fillTime;
 			//accum.ConvertToBitmap(&grayscaleBuf);
 			//accumText.Format("Fill = %.2f ms Init = %.2f ms n = %d", time.val(), accum.fillTime.val(), accum.n);
-
-			CaptureRequestStack::Item request;
-			while(Stack >> request)
-			{
-				if((*request.buf)!=buf)
-				{
-					request.buf->Create(buf.GetDC(),buf.w,buf.h,8);
-					request.buf->CreateGrayPallete();
-				}
-				ColorTransform(&buf, request.buf, Ctrls.ColorTransformSelector);
-				request.sender->PostMessage(UM_CAPTURE_READY,0,0);
-			}
 		}
 
 		if ((xx=LevelsScanBuf.GainAcsess(WRITE)) != NULL)
@@ -394,19 +405,28 @@ void CaptureWnd::OnPaint()
 
 		tbuf->SelectObject(tf);
 		
-		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.SetPallete(pal); 
+		if(Ctrls.ColorTransformSelector!=TrueColor) grayscaleBuf.SetPallete(pal); 
 		//pal - special pallete to diagnose overlight pixels with red color
 		tbuf->CopyTo(hdc,TOP_LEFT); 
-		if(Ctrls.ColorTransformSelector!=CaptureWnd::CtrlsTab::TrueColor) grayscaleBuf.CreateGrayPallete();
+		if(Ctrls.ColorTransformSelector!=TrueColor) grayscaleBuf.CreateGrayPallete();
 	}
 	//else ASSERT(0);
 }
 
+struct CaptureRequestStackCBparams_OnRequest 
+{
+	CaptureRequestStack::Item item; 
+	void GainAcsessCB(CaptureRequestStack& Stack) { Stack << item; }
+};
+
 LRESULT CaptureWnd::OnCaptureRequest( WPARAM wParam, LPARAM lParam )
 {
-	Stack << CaptureRequestStack::Item((CWnd*)wParam,(BMPanvas*)lParam);
+	CaptureRequestStackCBparams_OnRequest paramsCB;
+	paramsCB.item = CaptureRequestStack::Item((CWnd*)wParam,(BMPanvas*)lParam);
+	Stack.ModifyWith(paramsCB);
 	return 0;
 }
+
 void CaptureWnd::CtrlsTab::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
@@ -432,11 +452,6 @@ void CaptureWnd::CtrlsTab::OnBnClickedChooseCam()
 	}	
 }
 
-void CaptureWnd::CtrlsTab::OnCbnSelchangeCombo1()
-{
-	// TODO: Add your control notification handler code here
-}
-
 void CaptureWnd::OnDestroy()
 {
 	__super::OnDestroy();
@@ -444,11 +459,3 @@ void CaptureWnd::OnDestroy()
 	font1.DeleteObject();
 }
 
-void CaptureWnd::CtrlsTab::OnBnClickedRadio1()
-{
-	// TODO: Add your control notification handler code here
-}
-
-void CaptureWnd::CtrlsTab::OnBnClickedRadio4()
-{
-}

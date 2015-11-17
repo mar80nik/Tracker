@@ -255,7 +255,7 @@ BEGIN_MESSAGE_MAP(ImageWnd::PicWnd, CWnd)
 	ON_WM_LBUTTONUP()
 	ON_WM_RBUTTONUP()
 	ON_COMMAND(CaptureBtnID, OnCaptureButton)
-	ON_MESSAGE(UM_CAPTURE_READY,OnCaptureReady)
+	ON_MESSAGE(UM_CAPTURE_EVENT,OnCaptureEvent)
 	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_PICWNDMENU_ERASE, OnPicWndErase)
 	ON_COMMAND(ID_PICWNDMENU_SAVE, OnPicWndSave)
@@ -386,11 +386,10 @@ HRESULT ImageWnd::PicWnd::TryLoadBitmap(CString T, BMPanvas &bmp)
 	if (SUCCEEDED(ret = bmp.LoadImage(T)))
 	{
 		Parent->CameraWnd.Ctrls.UpdateData();	
-		CaptureWnd::CtrlsTab::ColorTransformModes ColorTransformModes = 
-			Parent->CameraWnd.Ctrls.ColorTransformSelector;
+		const ColorTransformModes &colorTransformModes = Parent->CameraWnd.Ctrls.ColorTransformSelector;
 		if (bmp.ColorType != BMPanvas::GRAY_PAL)
 		{
-			if (ColorTransformModes == CaptureWnd::CtrlsTab::ColorTransformModes::TrueColor)
+			if (colorTransformModes == TrueColor)
 			{
 				ControledLogMessage log(lmprHIGH);
 				log.T.Format("Error: Image you are trying to load which is no GRAYSCALE."); log << log.T;
@@ -403,7 +402,7 @@ HRESULT ImageWnd::PicWnd::TryLoadBitmap(CString T, BMPanvas &bmp)
 			temp_replica.Create(&bmp, bmp.Rgn); bmp.CopyTo(&temp_replica, TOP_LEFT);
 			bmp.Destroy(); bmp.Create(this,temp_replica.w,temp_replica.h,8);
 			bmp.CreateGrayPallete(); 
-			ColorTransform(&temp_replica, &bmp, ColorTransformModes);
+			ColorTransform(&temp_replica, &bmp, colorTransformModes);
 		}
 	}
 	return ret;
@@ -492,9 +491,16 @@ void ImageWnd::PicWnd::OnCaptureButton()
 	UpdateHelpers(EvntOnCaptureButton);
 }
 
-LRESULT ImageWnd::PicWnd::OnCaptureReady( WPARAM wParam, LPARAM lParam )
+LRESULT ImageWnd::PicWnd::OnCaptureEvent( WPARAM wParam, LPARAM lParam )
 {
-	UpdateHelpers(EvntOnCaptureReady);
+	HelperEvent event;
+	switch (wParam)
+{
+	case EvntOnCaptureReady:	event = EvntOnCaptureReady; break;
+	case EvntOnCaptureStop:		event = EvntOnCaptureStop; break;
+	default: return 0;
+	}
+	UpdateHelpers(event);
 	return 0;
 }
 void ImageWnd::PicWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
@@ -854,22 +860,13 @@ void ImageWnd::PicWnd::OnPicWndMultiCross()
 	log.T.Format("************ Sin2Fit **********************"); log << log.T;
 	Sin2Fit.GetReport(log);	
 	log.T.Format("shift = %g", Sin2Fit.GetShift()); log << log.T;
-	
 
 	DoubleArray X, Y;
-	if (SUCCEEDED(Sin2Fit.MakeGraph(X, Y)))
+	if(Sin2Fit.PrepareGraph(X, Y, pnts.x[0], pnts.x[pnts.x.GetUpperBound()], pnts.x.GetSize()*3 ) IS GSL_SUCCESS)
 	{
-		if((t2 = new TSimplePointSeries(_T("Sin2Fit graph")))!=0)	
-		{
-			SimplePoint spnt;
-			t2->_SymbolStyle::Set(NO_SYMBOL); t2->_ErrorBarStyle::Set(NO_BARS);
-			t2->AssignColors(ColorsStyle(clRED, RANDOM_COLOR));
-			for (int i = 0; i < X.GetSize(); i++)
-			{
-				spnt.x = X[i]; spnt.y = Y[i]; t2->AddXY(spnt);
-			}
-			t2->DispatchDataImportMsg(mf->Chart1);
-		}		
+		CString name; name = _T("Sin2Fit graph");
+		CMainFrame* mf=(CMainFrame*)AfxGetMainWnd(); 
+		mf->Chart1.Visualize(name, X, Y);
 	}
 
 	log.Dispatch();

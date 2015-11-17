@@ -36,6 +36,7 @@
 #define IDD_TAB_CTRL_DLG                145
 #define IDD_DIALOGBARTAB2               147
 #define IDD_NEW_SERIES                  148
+#define IDD_CHOOSE_CWD                  149
 #define IDD_DIALOG7                     152
 #define IDD_MODIF_VALUE_DLG             152
 #define IDD_DIALOG8                     153
@@ -127,8 +128,11 @@
 #define IDC_RADIO5                      1052
 #define IDC_RADIO6                      1053
 #define IDC_LIST3                       1056
+#define IDC_CHECK1                      1057
 #define IDC_CHECK2                      1058
 #define IDC_RADIO7                      1060
+#define IDS_CAMERA_SEPARATOR            10000
+#define IDS_CWD_SEPARATOR               10002
 #define VOLTMETER1                      32771
 #define ID_CONFIG                       32772
 #define ID_VIEW                         32773
@@ -177,6 +181,7 @@
 #define ID_SHOW_SERIES_LIST             32802
 #define ID_VIEW_PGACONTROL              32807
 #define ID_SHOWSERIES                   32810
+#define ID_FILE_CHOOSECWD               32811
 #define ID_PICWNDMENU_ERASE             32812
 #define ID_PICWNDMENU_SAVE              32813
 #define ID_EVENTLOGMENU_CLEAR           32814
@@ -261,7 +266,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        238
+#define _APS_NEXT_RESOURCE_VALUE        242
 #define _APS_NEXT_COMMAND_VALUE         32825
 #define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           105

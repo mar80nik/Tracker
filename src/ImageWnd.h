@@ -7,13 +7,14 @@
 
 #define CrossWidth 10
 
-enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_READY};
+enum CaptureWndMSGS {UM_CAPTURE_REQUEST=4000, UM_CAPTURE_EVENT};
 enum CEditInterceptorMessages {UM_BUTTON_ITERCEPTED = 3000};
 
 enum HelperEvent {
-	EvntOnCaptureButton, EvntOnCaptureReady,
+	EvntOnCaptureButton, EvntOnCaptureReady, EvntOnCaptureStop,
 	RSLT_HELPER_COMPLETE, RSLT_OK, RSLT_BMP_ERR, RSLT_ERR
 };
+
 //================================================
 struct BaseForHelper
 {
@@ -58,15 +59,6 @@ protected:
 	double Get_dY() const;
 	HRESULT Get_cosfi(double &cosfi) const;
 	HRESULT Get_sinfi(double &sinfi) const;
-};
-
-struct AccumInfo
-{		
-	USHORT w, h, n; BYTE HasErrors;
-	virtual void Serialize(CArchive &ar);
-	AccumInfo() {w = h = n = 0; HasErrors = FALSE; }
-	size_t GetSumsSize() const;
-	size_t GetCompressorBufferSize() const;
 };
 
 struct PointVsError3D
@@ -198,6 +190,7 @@ public:
 		HRESULT ConvertOrgToAva( CPoint& pny ) const;
 		HRESULT ScanArbitaryLine(void * const buf, CPoint beg, CPoint end, MyTimer &Timer);
 		void OnPicWndMultiCrossHelper(ScanLineData tmp_line, GaussFitFunc &GaussFit);
+		LRESULT OnCaptureEvent( WPARAM wParam, LPARAM lParam );
 	};
 	
 	DECLARE_DYNAMIC(ImageWnd)

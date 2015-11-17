@@ -47,16 +47,16 @@
     <IncludePath>$(IncludePath);$(SolutionDir);$(SolutionDir)\src;$(SolutionDir)\..\my_lib\src\;$(SolutionDir)\..\my_gsl\src;$(SolutionDir)\..\my_gsl\header;$(SolutionDir)\..\my_lib\zlib\header;$(SolutionDir)\..\my_lib\directx\include;$(SolutionDir)\..\TChart\src</IncludePath>
     <LibraryPath>$(LibraryPath);$(SolutionDir)\..\my_gsl\lib\;$(SolutionDir)\..\my_lib\zlib\lib</LibraryPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
-    <OutDir>$(SolutionDir)\..\exe\</OutDir>
-    <IntDir>..\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)exe\</OutDir>
+    <IntDir>$(SolutionDir)temp\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath);$(SolutionDir);$(SolutionDir)\src;$(SolutionDir)\..\my_lib\src\;$(SolutionDir)\..\my_gsl\src;$(SolutionDir)\..\my_gsl\header;$(SolutionDir)\..\my_lib\zlib\header;$(SolutionDir)\..\my_lib\directx\include;$(SolutionDir)\..\TChart\src</IncludePath>
     <LibraryPath>$(LibraryPath);$(SolutionDir)\..\my_gsl\lib\;$(SolutionDir)\..\my_lib\zlib\lib</LibraryPath>
-    <OutDir>$(SolutionDir)\..\exe\</OutDir>
+    <OutDir>$(SolutionDir)exe\</OutDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
-    <IntDir>..\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)temp\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -130,6 +130,7 @@
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\cameraChooser.cpp" />
     <ClCompile Include="src\captureWnd.cpp" />
+    <ClCompile Include="src\ChooseCWDDialog.cpp" />
     <ClCompile Include="src\compressor.cpp" />
     <ClCompile Include="src\devices.cpp" />
     <ClCompile Include="src\DialogBarTab1.cpp" />
@@ -142,6 +143,7 @@
     <ClCompile Include="src\metricon.cpp" />
     <ClCompile Include="src\ModifyValueDialog.cpp" />
     <ClCompile Include="src\MyListBox.cpp" />
+    <ClCompile Include="src\MyStatusBar.cpp" />
     <ClCompile Include="src\MyTabCtrl.cpp" />
     <ClCompile Include="src\MyToolBar.cpp" />
     <ClCompile Include="src\SystemConfig.cpp" />

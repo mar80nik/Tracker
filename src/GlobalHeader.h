@@ -8,6 +8,7 @@
 #include "my_color.h"
 #include "bmpanvas.h"
 #include "MessageInspector.h"
+#include "MyTime.h"
 
 enum ThreadsID
 {	

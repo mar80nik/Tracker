@@ -1,68 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\KSVU3.cpp" />
-    <ClCompile Include="src\KSVU3Doc.cpp" />
-    <ClCompile Include="src\KSVU3View.cpp" />
-    <ClCompile Include="src\MainFrm.cpp" />
     <ClCompile Include="StdAfx.cpp" />
-    <ClCompile Include="..\..\my_gsl\src\my_gsl.cpp">
-      <Filter>my_gsl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\BMPanvas.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\MessageInspector.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\my_color.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\MyThread.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\MyTime.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\ProtectedObject.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\my_lib\src\type_array.cpp">
-      <Filter>my_lib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\MouseTrackerWnd.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\OwnerDrawBtn.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\SeriesListCtrl.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\SeriesListDlg.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\SeriesStyleDlg.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\SeriesValuesDlg.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\SetAxisRangeDlg.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\TChart.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\TChartElements.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\TChartPoints.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\TChart\src\TChartSeries.cpp">
-      <Filter>TChart</Filter>
-    </ClCompile>
     <ClCompile Include="src\BarTemplate.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -87,12 +26,6 @@
     <ClCompile Include="src\EventLogDialog.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\ImageWnd.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="src\metricon.cpp">
-      <Filter>Sources</Filter>
-    </ClCompile>
     <ClCompile Include="src\ModifyValueDialog.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
@@ -111,85 +44,93 @@
     <ClCompile Include="src\TConfigDialog.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\my_gsl\src\fittings.cpp">
+    <ClCompile Include="..\TChart\src\OwnerDrawBtn.cpp" />
+    <ClCompile Include="..\my_lib\src\BMPanvas.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\KSVU3.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\KSVU3Doc.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\KSVU3View.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MainFrm.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\metricon.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ImageWnd.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\SeriesListCtrl.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\SeriesListDlg.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\SeriesStyleDlg.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\SeriesValuesDlg.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\SetAxisRangeDlg.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\MouseTrackerWnd.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\my_color.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\MessageInspector.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\TChart.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\TChartElements.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\TChartPoints.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\TChart\src\TChartSeries.cpp">
+      <Filter>TChart</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\MyThread.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\MyTime.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\ProtectedObject.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_gsl\src\fittings.cpp">
       <Filter>my_gsl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_gsl\src\my_gsl.cpp">
+      <Filter>my_gsl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\my_lib\src\type_array.cpp">
+      <Filter>my_lib</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ChooseCWDDialog.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MyStatusBar.cpp">
+      <Filter>Sources</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
-    <ClInclude Include="src\KSVU3.h" />
-    <ClInclude Include="src\MainFrm.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="..\..\my_gsl\src\my_gsl.h">
-      <Filter>my_gsl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\BMPanvas.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\MessageInspector.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\my_color.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\my_lib_globals.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\my_lib_resources.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\MyThread.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\MyTime.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\ProtectedObject.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\my_lib\src\type_array.h">
-      <Filter>my_lib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\MouseTrackerWnd.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\OwnerDrawBtn.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\SeriesListCtrl.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\SeriesListDlg.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\SeriesStyleDlg.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\SeriesValuesDlg.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\SetAxisRangeDlg.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\TChart.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\tchart_resources.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\TChartElements.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\TChartGlobal.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\TChartPoints.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\TChart\src\TChartSeries.h">
-      <Filter>TChart</Filter>
-    </ClInclude>
     <ClInclude Include="src\BarTemplate.h">
       <Filter>Sources</Filter>
     </ClInclude>
@@ -205,24 +146,93 @@
     <ClInclude Include="src\compressor.h">
       <Filter>Sources</Filter>
     </ClInclude>
-    <ClInclude Include="src\externals.h">
+    <ClInclude Include="src\SystemConfig.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\my_lib_globals.h" />
+    <ClInclude Include="..\my_lib\src\my_lib_resources.h" />
+    <ClInclude Include="..\TChart\src\OwnerDrawBtn.h" />
+    <ClInclude Include="..\my_lib\src\BMPanvas.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="src\KSVU3.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MainFrm.h">
       <Filter>Sources</Filter>
     </ClInclude>
     <ClInclude Include="src\ImageWnd.h">
       <Filter>Sources</Filter>
     </ClInclude>
-    <ClInclude Include="src\SystemConfig.h">
+    <ClInclude Include="src\externals.h">
       <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\SeriesListCtrl.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\SeriesListDlg.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\SeriesStyleDlg.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\SeriesValuesDlg.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\SetAxisRangeDlg.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\MouseTrackerWnd.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\my_color.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\MessageInspector.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\TChart.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\tchart_resources.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\TChartElements.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\TChartGlobal.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\TChartPoints.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\TChart\src\TChartSeries.h">
+      <Filter>TChart</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\MyThread.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\MyTime.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\ProtectedObject.h">
+      <Filter>my_lib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_gsl\src\my_gsl.h">
+      <Filter>my_gsl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\my_lib\src\type_array.h">
+      <Filter>my_lib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\my_lib\src\my_lib_resources.rc">
-      <Filter>Resources</Filter>
-    </ResourceCompile>
     <ResourceCompile Include="KSVU3.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
-    <ResourceCompile Include="..\..\TChart\src\tchart_resources.rc">
+    <ResourceCompile Include="..\TChart\src\tchart_resources.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="..\my_lib\src\my_lib_resources.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>

@@ -3,13 +3,17 @@
 #include "MyToolBar.h"	// Added by ClassView
 #include "DialogBarTab1.h"	// Added by ClassView
 #include "MyTabCtrl.h"	// Added by ClassView
+#include "mystatusbar.h"
+
 #include "EventLogDialog.h"	// Added by ClassView
 #include "tconfigdialog.h"
 #include "ImageWnd.h"
 #include "captureWnd.h"
 
+
 #define PAUSE 1
 #define START 0
+
 
 class CMainFrame : public CFrameWnd
 {
@@ -19,23 +23,27 @@ protected: // create from serialization only
 	CMainFrame();
 	DECLARE_DYNCREATE(CMainFrame)
 
+// Attributes
 protected:
 	EventLogDialog EventLog1; 
 	TConfigDialog Config;
+// Implementation
 public:
 	MyToolBar Toolbar1;
 	MyTabCtrl TabCtrl1;
 	CDialog * CurTabDialog;
 	ImageWnd	Img;
+	MainChartWnd Chart1;
+
 	CDialogBar MainBar;
 	CToolTipCtrl ToolTip1;
-	CStatusBar  m_wndStatusBar;	
-	MainChartWnd Chart1;
+	MyStatusBar  m_wndStatusBar;	
 	
 	int ShowWarning();	
 	void InitChart();
 	virtual ~CMainFrame();
 	virtual void Serialize(CArchive& ar);
+	CString GetCWD();
 protected: 
 	bool SearchForMsgRequest(DWORD msg,WPARAM wParam, LPARAM lParam );	
 
@@ -46,6 +54,7 @@ protected:
 	afx_msg void OnMainTabAccel();
 	afx_msg void OnImageTabAccel();
 	afx_msg void OnConfig();
+	afx_msg void OnChooseCWD();
 	afx_msg void OnPGAControl();
 	afx_msg void OnTerminalButton();
 	afx_msg void OnTabChange( NMHDR * pNotifyStruct, LRESULT * result );

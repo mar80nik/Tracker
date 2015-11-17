@@ -1,14 +1,12 @@
+// MainFrm.cpp : implementation of the CMainFrame class
+//
+
 #include "stdafx.h"
 #include "KSVU3.h"
 #include "MainFrm.h"
 #include "ksvu3doc.h"
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
+#include "resource.h"
+#include "ChooseCWDDialog.h"
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame
 
@@ -22,6 +20,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_COMMAND(IDB_LOG_BUTTON, OnEventlog)
 	ON_COMMAND(ID_EVENT_LOG, OnEventlog)	
 	ON_COMMAND(ID_VIEW_CONFIG, OnConfig)	
+	ON_COMMAND(ID_FILE_CHOOSECWD, OnChooseCWD)	
 	ON_NOTIFY(TCN_SELCHANGE,IDC_TAB1,OnTabChange)
 	ON_WM_SHOWWINDOW()
 	ON_WM_CLOSE()
@@ -53,6 +52,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
+	m_wndStatusBar.AddIndicator(ID_SEPARATOR);	
+	m_wndStatusBar.AddIndicator(IDS_CWD_SEPARATOR); 
+	m_wndStatusBar.AddIndicator(IDS_CAMERA_SEPARATOR, MyStatusBar::Refresh);	
+	m_wndStatusBar.SetText(IDS_CWD_SEPARATOR, GetCWD());
+	
 	MainBar.Create(this,IDD_DIALOGBAR,CBRS_ALIGN_BOTTOM,IDD_DIALOGBAR);
 
 	Toolbar1.Create(this,WS_CHILD | WS_VISIBLE | CBRS_RIGHT); Toolbar1.LoadToolBar(IDR_TOOLBAR2);
@@ -137,12 +141,37 @@ LRESULT CMainFrame::OnUpdateConfig(WPARAM wParam, LPARAM lParam )
 
 LRESULT CMainFrame::OnSeriesUpdate(WPARAM wParam, LPARAM lParam )
 {
-	Chart1.Panel.PostMessage(UM_SERIES_UPDATE,wParam,lParam);	
 	return 0;
 }
 
 void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
 	CFrameWnd::OnSize(nType, cx, cy);
+}
+
+CString CMainFrame::GetCWD()
+{
+	CKSVU3Doc *doc = (CKSVU3Doc*)GetActiveDocument();
+	if (doc != NULL)
+	{
+		return doc->GetPath();
+	}
+	return _T("No CWD");	
+}
+
+void CMainFrame::OnChooseCWD()
+{
+	ChooseCWDDialog dlg;
+	dlg.CWD = GetCWD();
+	if (dlg.DoModal() == IDOK)
+	{
+		CKSVU3Doc *doc = (CKSVU3Doc*)GetActiveDocument();
+		doc->SetPathName(dlg.CWD);
+	}
+	else
+	{
+
+	}
+		
 }
 

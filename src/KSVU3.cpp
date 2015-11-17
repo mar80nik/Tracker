@@ -6,8 +6,7 @@
 #include "MainFrm.h"
 #include "KSVU3Doc.h"
 #include "KSVU3View.h"
-//#include "externals.h"
-//#include "chipthread.h"
+#include "MyStatusBar.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -17,17 +16,17 @@ static char THIS_FILE[] = __FILE__;
 
 ////////////////////////////////////////////////////////////////////////////
 SystemConfig MainCfg;
-WindowAddress EventsLog, MainFrame;
+WindowAddress EventsLog, MainFrame, StatusBarWindow;
 MessagesInspector GlobalInspector;
 MessagesInspector* MessagesInspectorSubject::GlobalInspector=&::GlobalInspector;
-
 WindowAddress LogMessage::LogWindow;
 WindowAddress MyThread::ConfigParentWindow;
+WindowAddress StatusBarMessage::StatusBarWindow;
 
 CString SeriesListCtrl::GetSaveAsPath()
 {
 	CMainFrame* MW=(CMainFrame*)AfxGetMainWnd();
-	return MW->GetActiveDocument()->GetPathName();
+	return MW->GetCWD();
 }
 
 BEGIN_MESSAGE_MAP(CKSVU3App, CWinApp)
@@ -103,17 +102,21 @@ BOOL CKSVU3App::InitInstance()
 	if (!ProcessShellCommand(cmdInfo))
 		return FALSE;
 	CMainFrame* MainWnd=(CMainFrame*)m_pMainWnd;
-	EventsLog.pThrd=AfxGetThread(); EventsLog.pWND=&MainWnd->EventLog1;
-	MainFrame.pThrd=AfxGetThread(); MainFrame.pWND=MainWnd;
+	EventsLog.pThrd = AfxGetThread(); EventsLog.pWND=&MainWnd->EventLog1;
+	MainFrame.pThrd = AfxGetThread(); MainFrame.pWND=MainWnd;
+	StatusBarWindow.pThrd = AfxGetThread(); StatusBarWindow.pWND = &MainWnd->m_wndStatusBar;
 
 	LogMessage::LogWindow = EventsLog;
 	MyThread::ConfigParentWindow = MainFrame;
+	StatusBarMessage::StatusBarWindow = StatusBarWindow;
 
 	MainCfg.LoadConfig(); 
 	MainWnd->InitChart(); 
+
 	if(cmdInfo.m_strFileName=="") MainWnd->TabCtrl1.ChangeTab(1);	
 	else MainWnd->TabCtrl1.ChangeTab(0);	
-	CString ProgPortName;
+
+	StatusBarMessage *msg = new StatusBarMessage(IDS_CWD_SEPARATOR, MainWnd->GetCWD()); msg->Dispatch();
 
 	gsl_error_handler_t * old_handler = gsl_set_error_handler (&my_handler);
 
